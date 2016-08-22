@@ -178,15 +178,18 @@ lemma opt_MatchAny_match_expr_correct: "matches \<gamma> (opt_MatchAny_match_exp
   proof(case_tac \<gamma>, rename_tac \<beta> \<alpha>, clarify)
   fix \<beta> \<alpha>
   assume "\<gamma> = (\<beta>, \<alpha>)"
-  have "\<And>p. ternary_ternary_eval (map_match_tac \<beta> p (opt_MatchAny_match_expr m)) = ternary_ternary_eval (map_match_tac \<beta> p m)"
-    proof(induction m rule: opt_MatchAny_match_expr.induct)
+  have "ternary_ternary_eval (map_match_tac \<beta> p (opt_MatchAny_match_expr_once m)) =
+          ternary_ternary_eval (map_match_tac \<beta> p m)" for p m
+    proof(induction m rule: opt_MatchAny_match_expr_once.induct)
     qed(simp_all add: eval_ternary_simps eval_ternary_idempotence_Not)
   thus "matches (\<beta>, \<alpha>) (opt_MatchAny_match_expr m) = matches (\<beta>, \<alpha>) m"
     apply(simp add: fun_eq_iff)
     apply(clarify, rename_tac a p)
     apply(rule_tac f="opt_MatchAny_match_expr" in matches_iff_apply_f)
     apply(simp)
-    done
+    apply(simp add: opt_MatchAny_match_expr_def)
+    apply(rule repeat_stabilize_induct)
+     by(simp)+
   qed
 
 

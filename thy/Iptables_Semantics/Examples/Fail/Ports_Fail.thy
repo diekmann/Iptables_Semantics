@@ -49,22 +49,22 @@ lemma "unfold_ruleset_FORWARD action.Accept
    action.Drop,
   Rule MatchAny action.Accept]" by eval
 
-
-text\<open>The simple firewall accepts everything. This is a useless result but a sound overapproximation.
-The simple firewall cannot express more. See below.
-
-
+text\<open>
 Without having the protocol again in the type for ports, the nnf normalization would mix up
 tcp and udp ports and we would end up with a firewall which
 accepts everything for every protocol from source port 22 to dst port 80 and drop everything else. 
-This was wrong. Now it is correct.\<close>
+This was wrong. Now it is correct. Here is exactly how it should (and does) look like:\<close>
 lemma "map simple_rule_ipv4_toString
               (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new
                     (unfold_ruleset_FORWARD action.Accept
                       (map_of_string_ipv4 allow_only_tcpsport_22_and_udp_dport80))))))) =
-[''ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval
+[ ''DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 0:79'',
+  ''DROP     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 81:65535'',
+  ''DROP     tcp  --  0.0.0.0/0            0.0.0.0/0   sports: 0:21 '',
+  ''DROP     tcp  --  0.0.0.0/0            0.0.0.0/0   sports: 23:65535 '',
+  ''ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    '']" by eval
 
 text\<open>Before the fix, we had:
 @{term "[''DROP     all  --  0.0.0.0/0            0.0.0.0/0   sports: 0:21 dports: 0:79'',
@@ -72,6 +72,10 @@ text\<open>Before the fix, we had:
          ''DROP     all  --  0.0.0.0/0            0.0.0.0/0   sports: 23:65535 dports: 0:79'',
          ''DROP     all  --  0.0.0.0/0            0.0.0.0/0   sports: 23:65535 dports: 81:65535'',
          ''ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0    '']"}
+Note that we completely lost the protocols!
+
+In a transition period, we had a firewall which accepts everything, which is a sound overapproximation.
+(Sound, but useless).
 \<close>
 
 

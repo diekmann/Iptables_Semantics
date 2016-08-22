@@ -19,7 +19,7 @@ A new binary is created on every push to master.
 If you have trust issues with binaries, you can confine `fffuu` with AppArmor.
 `fffuu` only requires read access to the data you want to analyze (and nothing more).
 For example, given you saved `fffuu` to `/home/diekmann/Downloads`, you can put [my apparmor profile](apparmor_home.diekmann.Downloads.fffuu) to `/etc/apparmor.d/home.diekmann.Downloads.fffuu` and enforce it.
-Tested on Ubuntu 14.04.
+Tested on Ubuntu 14.04 and 16.04.
 
 ## Building from Source
 

@@ -256,6 +256,7 @@ subsection\<open>@{term match_list}\<close>
 
 
   text\<open>We can exploit de-morgan to get a disjunction in the match expression!\<close>
+  (*but we need to normalize afterwards, which is quite slow*)
   fun match_list_to_match_expr :: "'a match_expr list \<Rightarrow> 'a match_expr" where
     "match_list_to_match_expr [] = MatchNot MatchAny" |
     "match_list_to_match_expr (m#ms) = MatchOr m (match_list_to_match_expr ms)"

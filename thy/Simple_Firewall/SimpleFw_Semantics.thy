@@ -1,11 +1,10 @@
+section\<open>Simple Firewall Semantics\<close>
 theory SimpleFw_Semantics
 imports SimpleFw_Syntax
         "../IP_Addresses/IP_Address"
         "../IP_Addresses/Prefix_Match"
 begin
 
-
-section\<open>Simple Firewall Semantics\<close>
 
   fun simple_match_ip :: "('i::len word \<times> nat) \<Rightarrow> 'i::len word \<Rightarrow> bool" where
     "simple_match_ip (base, len) p_ip \<longleftrightarrow> p_ip \<in> ipset_from_cidr base len"

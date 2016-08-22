@@ -10,8 +10,8 @@ subsection\<open>A Generic primitive matcher: Agnostic of IP Addresses\<close>
 text\<open>Generalized Definition agnostic of IP Addresses fro IPv4 and IPv6\<close>
 
 
-(*TODO: generic assumptions for a common matcher without information about IPs.
-        to be used to add ipv6 integration without duplicating all proofs *)
+(*generic assumptions for a common matcher without information about IPs.
+  used to add ipv6 integration without duplicating all proofs *)
 locale primitive_matcher_generic =
   fixes \<beta> :: "('i::len common_primitive, ('i::len, 'a) tagged_packet_scheme) exact_match_tac"
   assumes IIface: "\<forall> p i. \<beta> (IIface i) p = bool_to_ternary (match_iface i (p_iiface p))"
@@ -87,8 +87,7 @@ end
 
 subsection\<open>Basic optimisations\<close>
   
-  (*TODO: move
-    TODO: this is currently not used.*)
+  (*this is currently not used.*)
   text\<open>Compress many @{const Extra} expressions to one expression.\<close>
   fun compress_extra :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
     "compress_extra (Match x) = Match x" |
@@ -119,12 +118,10 @@ subsection\<open>Basic optimisations\<close>
       fix a and p :: "('i, 'a) tagged_packet_scheme"
       from generic have "\<beta> (Extra e) p = TernaryUnknown" for e by(simp add: primitive_matcher_generic.Extra)
       hence "ternary_ternary_eval (map_match_tac \<beta> p m) = ternary_ternary_eval (map_match_tac \<beta> p (compress_extra m))"
-        apply(induction m rule: compress_extra.induct)
-        apply (simp_all)
-        (*apply(simp_all add: eval_ternary_simps)*)
-        apply(simp_all split: match_expr.split match_expr.split_asm common_primitive.split)
-        (*apply(simp_all add: eval_ternary_simps_simple)*)
-        done (*TODO: tune proof*)
+        proof(induction m rule: compress_extra.induct)
+        case 4 thus ?case
+          by(simp_all split: match_expr.split match_expr.split_asm common_primitive.split)
+        qed (simp_all)
       thus "matches (\<beta>, \<alpha>) m a p = matches (\<beta>, \<alpha>) (compress_extra m) a p"
         by(rule matches_iff_apply_f)
       qed

@@ -3,6 +3,7 @@
 *)
 (*IPPartitioning.thy
   Original Author: Max Haslbeck, 2015*)
+section\<open>Service Matrices\<close>
 theory Service_Matrix
 imports "Common/List_Product_More"
         "Common/IP_Partition_Preliminaries"
@@ -13,7 +14,6 @@ imports "Common/List_Product_More"
         "../IP_Addresses/WordInterval_Sorted"
 begin
 
-section\<open>Service Matrices\<close>
 
 subsection\<open>IP Address Space Partition\<close>
 
@@ -404,7 +404,6 @@ fun getOneIp :: "'a::len wordinterval \<Rightarrow> 'a::len word" where
 lemma getOneIp_elem: "\<not> wordinterval_empty W \<Longrightarrow> wordinterval_element (getOneIp W) W"
   by (induction W) simp_all
 
-(*TODO: better unify with simple packet ext*)
 record parts_connection = pc_iiface :: string
                           pc_oiface :: string
                           pc_proto :: primitive_protocol
@@ -517,13 +516,6 @@ proof -
     using same_fw_behaviour_one_equi(3) by metis
 qed
   
-(*TODO: delete*)
-lemma same_behave_runFw_not:
-      "(map (\<lambda>d. runFw x1 d c rs) W, map (\<lambda>s. runFw s x1 c rs) W) \<noteq>
-       (map (\<lambda>d. runFw x2 d c rs) W, map (\<lambda>s. runFw s x2 c rs) W) \<Longrightarrow>
-       \<not> same_fw_behaviour_one x1 x2 c rs"
-by (simp add: same_fw_behaviour_one_def) (blast)
-
 
 
 
@@ -583,6 +575,11 @@ proof -
                    map (\<lambda>s. runFw s (getOneIp bw) c rs) (map getOneIp (getParts rs)))"
     apply(simp add: groupWIs_def Let_def)
     using groupF_nequality by fastforce
+  have same_behave_runFw_not:
+        "(map (\<lambda>d. runFw x1 d c rs) W, map (\<lambda>s. runFw s x1 c rs) W) \<noteq>
+         (map (\<lambda>d. runFw x2 d c rs) W, map (\<lambda>s. runFw s x2 c rs) W) \<Longrightarrow>
+         \<not> same_fw_behaviour_one x1 x2 c rs" for x1 x2 W
+  by (simp add: same_fw_behaviour_one_def) (blast)
   have "\<forall>C \<in> set (groupWIs c rs). \<forall>c \<in> set C. getOneIp c \<in> wordinterval_to_set c"
     apply(simp add: groupWIs_def Let_def)
     using getParts_nonempty_elems groupF_set getOneIp_elem by fastforce
@@ -695,7 +692,6 @@ qed
 
 
 (*begin groupWIs1 and groupWIs2 optimization*)
-  (*TODO*)
   definition groupWIs1 :: "'a parts_connection_scheme \<Rightarrow> 'i::len simple_rule list \<Rightarrow> 'i wordinterval list list" where
     "groupWIs1 c rs = (let P = getParts rs in
                         (let W = map getOneIp P in 
@@ -891,9 +887,7 @@ qed
   
   
   
-  (*TODO: if we can get wordinterval_element to log runtime (this should be possible! maybe we want to
-    use a type from the Collections to store wordintervals), then this should really improve the runtime!
-    We mostly check for wordinterval_element after preprocessing. If they are ordered, a divide-and-conquer search is in log*)
+  (*TODO: if we can get wordinterval_element to log runtime ...*)
   definition groupWIs3_default_policy :: "parts_connection \<Rightarrow> 'i::len simple_rule list \<Rightarrow> 'i wordinterval list list" where
     "groupWIs3_default_policy c rs =  (let P = getParts rs in
                          (let W = map getOneIp P in 
@@ -1004,11 +998,6 @@ theorem build_ip_partition_complete: "(\<Union>x\<in>set (build_ip_partition c r
   using groupWIs_complete[simplified wordinterval_list_to_set_def] by simp
   qed
 
-
-
-(*TODO: move or delete*)
-lemma wordinterval_empty_wordinterval_compress: "wordinterval_empty (wordinterval_compress wi) \<longleftrightarrow> wordinterval_empty wi"
-  by (simp add: wordinterval_compress) 
 
 
 lemma build_ip_partition_no_empty_elems: "wi \<in> set (build_ip_partition c rs) \<Longrightarrow> \<not> wordinterval_empty wi"
@@ -1154,7 +1143,7 @@ lemma[code_unfold]: "simple_firewall_without_interfaces rs \<equiv>
   \<forall>m \<in> set rs. iiface (match_sel m) = ifaceAny \<and> oiface (match_sel m) = ifaceAny"
   by(simp add: simple_firewall_without_interfaces_def)
 
-(*TODO: simple_firewall_without_interfaces check here?*)
+(*only defined for simple_firewall_without_interfaces*)
 definition access_matrix 
   :: "parts_connection \<Rightarrow> 'i::len simple_rule list \<Rightarrow> ('i word \<times> 'i wordinterval) list \<times> ('i word \<times> 'i word) list" 
   where
@@ -1182,6 +1171,7 @@ lemma map_of_zip_map: "map_of (zip (map f rs) rs) k = Some v \<Longrightarrow> k
    apply(simp)
   apply(simp split: split_if_asm)
   done
+
 lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
               repr: "(s_repr, d_repr) \<in> set E" and
               s_range: "(map_of V) s_repr = Some s_range" and s: "s \<in> wordinterval_to_set s_range" and
@@ -1232,9 +1222,6 @@ lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and
 qed
 
 
-
-
-(*TODO: move to generic lib*)
 lemma distinct_map_getOneIp_obtain: "v \<in> set xs \<Longrightarrow> distinct (map getOneIp xs) \<Longrightarrow> 
   \<exists>s_repr. map_of (zip (map getOneIp xs) xs) s_repr = Some v"
   proof(induction xs)
@@ -1321,7 +1308,7 @@ lemma access_matrix_complete:
         by (metis (no_types) map_of_zip_map V build_ip_partition_no_empty_elems
             build_ip_partition_same_fw ex_d1 ex_d2 getOneIp_elem wordinterval_element_set_eq)
       with f1 f2 show ?thesis
-        using allow by metis (*TODO: why so slow and only metis?*)
+        using allow by metis
     qed
       
     hence ex1: "(s_repr, d_repr) \<in> set E" by(simp add: E all_pairs_set 1 2)
@@ -1392,8 +1379,6 @@ definition access_matrix_pretty_ipv4
       (formatted_nodes, formatted_edges)
     )"
 
-
-(*TODO: not sure if this gives better code*)
 definition access_matrix_pretty_ipv4_code
   :: "parts_connection \<Rightarrow> 32 simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where
@@ -1424,8 +1409,6 @@ definition access_matrix_pretty_ipv6
       (formatted_nodes, formatted_edges)
     )"
 
-
-(*TODO: not sure if this gives better code*)
 definition access_matrix_pretty_ipv6_code
   :: "parts_connection \<Rightarrow> 128 simple_rule list \<Rightarrow> (string \<times> string) list \<times> (string \<times> string) list" 
   where

@@ -1,3 +1,4 @@
+section\<open>Simple Firewall Syntax\<close>
 theory SimpleFw_Syntax
 imports "../IP_Addresses/Hs_Compat"
         Firewall_Common_Decision_State
@@ -6,8 +7,7 @@ imports "../IP_Addresses/Hs_Compat"
         "Simple_Packet"
 begin
 
-
-section\<open>Simple Firewall Syntax (for IP addresses of arbitrary length)\<close>
+  text\<open>For for IP addresses of arbitrary length\<close>
 
   datatype simple_action = Accept | Drop
   
@@ -50,12 +50,12 @@ section\<open>Simple Firewall Syntax (for IP addresses of arbitrary length)\<clo
         This is key to translate common_primitive_match to simple_match
 
         It may seem a simple enhancement to support iiface :: "iface negation_type", but then you
-        can no longer for the conjunction of two simple_matches.
+        can no longer form the conjunction of two simple_matches.
         *)
 
   record (overloaded) 'i simple_match =
     iiface :: "iface" --"in-interface"
-      (*we cannot (and don't want to, c.f. git history) express negated interfaces*)
+      (*we cannot (and don't want to) express negated interfaces*)
       (*We could also drop interface wildcard support and try negated interfaces again \<dots>*)
     oiface :: "iface" --"out-interface"
     src :: "('i::len word \<times> nat) " --"source IP address"

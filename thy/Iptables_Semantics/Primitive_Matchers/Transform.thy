@@ -109,6 +109,8 @@ context begin
                         compress_normalize_protocols_hasdisc
                         compress_normalize_input_interfaces_hasdisc)
     done
+
+  (* not needed, I probably want it to introduce Prot!
   lemma compress_normalize_besteffort_not_introduces_Prot:
       "\<not> has_disc is_Prot m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
        \<not> has_disc is_Prot m'"
@@ -118,6 +120,7 @@ context begin
        apply(auto dest: compress_normalize_input_interfaces_hasdisc compress_normalize_protocols_not_introduces_Prot
              compress_normalize_output_interfaces_hasdisc)
     done
+  *)
   
   lemma compress_normalize_besteffort_not_introduces_Iiface_negated:
       "\<not> has_disc_negated is_Iiface False m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
@@ -161,10 +164,11 @@ context begin
                         compress_normalize_protocols_hasdisc)
     done
   lemma compress_normalize_besteffort_hasdisc_negated:
-      "\<not> has_disc_negated disc neg m \<Longrightarrow>
+      "\<not> has_disc_negated disc False m \<Longrightarrow>
        (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow>
        normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
-       normalized_nnf_match m' \<and> \<not> has_disc_negated disc neg m'"
+       normalized_nnf_match m' \<and> \<not> has_disc_negated disc False m'"
+       (*due to protocols, we can only show for neg := False*)
     unfolding compress_normalize_besteffort_def
     apply(rule compress_normalize_primitive_monad_preserves)
         apply(drule(3) compress_normalize_besteffort_normalized)
@@ -228,11 +232,9 @@ lemma approximating_bigstep_fun_remdups_rev:
 lemma remdups_rev_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset (remdups_rev rs)"
   by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
 
-lemma remdups_rev_preserve_matches: "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (remdups_rev rs). P m"
+lemma remdups_rev_preserve_matches:
+  "\<forall>r\<in>set rs. P (get_match r) \<Longrightarrow> \<forall>r\<in>set (remdups_rev rs). P (get_match r)"
   by(induction rs) (simp_all add: remdups_rev_def simple_ruleset_def)
-
-
-(*TODO: closure bounds*)
 
 
 subsection\<open>Optimize and Normalize to NNF form\<close>
@@ -253,13 +255,13 @@ by(cases r)(simp add: optimize_matches_def)
 theorem transform_optimize_dnf_strict_structure:
   assumes simplers: "simple_ruleset rs" and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
   shows "simple_ruleset (transform_optimize_dnf_strict rs)"
-  and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
-          \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
-  and "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
-  and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-        \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f m"
-  and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-        \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
+  and "\<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+          \<forall> r \<in> set (transform_optimize_dnf_strict rs). \<not> has_disc disc (get_match r)"
+  and "\<forall> r \<in> set (transform_optimize_dnf_strict rs). normalized_nnf_match (get_match r)"
+  and "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow>
+        \<forall> r \<in> set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f (get_match r)"
+  and "\<forall> r \<in> set rs. \<not> has_disc_negated disc neg (get_match r) \<Longrightarrow>
+        \<forall> r \<in> set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg (get_match r)"
   proof -
     show simplers_transform: "simple_ruleset (transform_optimize_dnf_strict rs)"
       unfolding transform_optimize_dnf_strict_def
@@ -271,9 +273,9 @@ theorem transform_optimize_dnf_strict_structure:
         normalize_rules_dnf \<circ> (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ))"
     have inner_outer: "transform_optimize_dnf_strict = (cut_off_after_match_any \<circ> transform_optimize_dnf_strict_inner)"
       by(auto simp add: transform_optimize_dnf_strict_def transform_optimize_dnf_strict_inner_def)
-    have tf1: "\<And>r rs. transform_optimize_dnf_strict_inner (r#rs) =
+    have tf1: "transform_optimize_dnf_strict_inner (r#rs) =
       (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) [r])))@
-        transform_optimize_dnf_strict_inner rs"
+        transform_optimize_dnf_strict_inner rs" for r rs
       unfolding transform_optimize_dnf_strict_inner_def
       apply(simp)
       apply(subst optimize_matches_fst)
@@ -286,12 +288,13 @@ theorem transform_optimize_dnf_strict_structure:
       assume p2: "\<forall>m. P m \<longrightarrow> P (opt_MatchAny_match_expr m)"
       assume p3: "\<forall>m. P m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). P m')"
       { fix rs
-        have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs). P m"
+        have "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow>
+          \<forall> r \<in> set (optimize_matches (opt_MatchAny_match_expr \<circ> optimize_primitive_univ) rs). P (get_match r)"
           apply(rule optimize_matches_preserves)
-          using p1 p2 by simp (*1s*)
+          using p1 p2 by simp
       } note opt1=this
       { fix rs
-        have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (normalize_rules_dnf rs). P m"
+        have "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow> \<forall> r \<in> set (normalize_rules_dnf rs). P (get_match r)"
         apply(induction rs rule: normalize_rules_dnf.induct)
          apply(simp; fail)
         apply(simp)
@@ -300,11 +303,13 @@ theorem transform_optimize_dnf_strict_structure:
         using p3 by(simp)
       } note opt2=this
       { fix rs
-        have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches opt_MatchAny_match_expr rs). P m"
+        have "\<forall> r \<in> set rs. P (get_match r) \<Longrightarrow>
+          \<forall> r \<in> set (optimize_matches opt_MatchAny_match_expr rs). P (get_match r)"
           apply(rule optimize_matches_preserves)
-          using p2 by simp (*1s*)
+          using p2 by simp
       } note opt3=this
-      have "\<forall> m \<in> get_match ` set rs. P m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). P m"
+      have "\<forall> r \<in>  set rs. P (get_match r) \<Longrightarrow>
+        \<forall> r \<in> set (transform_optimize_dnf_strict rs). P (get_match r)"
         unfolding transform_optimize_dnf_strict_def
         apply(drule opt1)
         apply(drule opt2)
@@ -318,7 +323,8 @@ theorem transform_optimize_dnf_strict_structure:
     }  moreover { fix m
       have "\<not> has_disc disc m \<longrightarrow> (\<forall>m' \<in> set (normalize_match m). \<not> has_disc disc m')"
         using normalize_match_preserves_nodisc by fast
-    } ultimately show "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc disc m"
+    } ultimately show "\<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+      \<forall> r \<in> set (transform_optimize_dnf_strict rs). \<not> has_disc disc (get_match r)"
       using not_has_disc_opt_MatchAny_match_expr matchpred_rule[of "\<lambda>m. \<not> has_disc disc m"] by fast
 
     { fix m
@@ -331,7 +337,8 @@ theorem transform_optimize_dnf_strict_structure:
         apply simp_all
       using optimize_primitive_univ_unchanged_primitives by blast
     }  with not_has_disc_negated_opt_MatchAny_match_expr not_has_disc_normalize_match show
-      "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg m"
+      "\<forall> r \<in> set rs. \<not> has_disc_negated disc neg (get_match r) \<Longrightarrow>
+        \<forall> r \<in> set (transform_optimize_dnf_strict rs). \<not> has_disc_negated disc neg (get_match r)"
       using matchpred_rule[of "\<lambda>m. \<not> has_disc_negated disc neg m"] by fast
    
    { fix P and a::"'a common_primitive"
@@ -361,32 +368,25 @@ theorem transform_optimize_dnf_strict_structure:
          apply(safe)
              apply(simp_all)
       done
-    } ultimately show "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow> 
-        \<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f m"
+    } ultimately show "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow> 
+        \<forall> r \<in> set (transform_optimize_dnf_strict rs). normalized_n_primitive disc_sel f (get_match r)"
       using matchpred_rule[of "\<lambda>m. normalized_n_primitive disc_sel f m"] normalized_n_primitive_opt_MatchAny_match_expr by fast
     
 
     { fix rs::"'a::len common_primitive rule list"
-      {  fix m::"'a::len common_primitive match_expr"
-             have "normalized_nnf_match m \<Longrightarrow> normalized_nnf_match (opt_MatchAny_match_expr m)"
-               by(induction m rule: opt_MatchAny_match_expr.induct) (simp_all)
-      } note x=this
       from normalize_rules_dnf_normalized_nnf_match[of "rs"]
       have "\<forall>x \<in> set (normalize_rules_dnf rs). normalized_nnf_match (get_match x)" .
-      (*TODO simplify proof?*)
-      hence "\<forall>m \<in> get_match ` set (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf rs)). normalized_nnf_match m"
+      hence "\<forall>r \<in> set (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf rs)). normalized_nnf_match (get_match r)"
         apply -
         apply(rule optimize_matches_preserves)
-        using x by blast
-      hence "\<forall>x \<in> set (optimize_matches opt_MatchAny_match_expr (normalize_rules_dnf rs)). normalized_nnf_match (get_match x)" 
-        by blast
+        using normalized_nnf_match_opt_MatchAny_match_expr by blast
     } 
-    from this have "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict_inner rs). normalized_nnf_match m"
+    from this have "\<forall> r \<in> set (transform_optimize_dnf_strict_inner rs). normalized_nnf_match (get_match r)"
       unfolding transform_optimize_dnf_strict_inner_def by simp
-    thus "\<forall> m \<in> get_match ` set (transform_optimize_dnf_strict rs). normalized_nnf_match m"
+    thus "\<forall> r \<in> set (transform_optimize_dnf_strict rs). normalized_nnf_match (get_match r)"
       unfolding inner_outer
       apply simp
-      apply(rule cut_off_after_match_any_preserve_matches[simplified])
+      apply(rule cut_off_after_match_any_preserve_matches)
       .
   qed
 
@@ -439,16 +439,14 @@ theorem transform_remove_unknowns_generic:
       and wf\<beta>: "packet_independent_\<beta>_unknown \<beta>"
     shows "(\<beta>, \<alpha>),p\<turnstile> \<langle>transform_remove_unknowns_generic (\<beta>, \<alpha>) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (\<beta>, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
       and "simple_ruleset (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs)"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). \<not> has_disc disc m"
-      and "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). \<not> has_unknowns \<beta> m"
+      and "\<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). \<not> has_disc disc (get_match r)"
+      and "\<forall> r \<in> set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). \<not> has_unknowns \<beta> (get_match r)"
       (*may return MatchNot MatchAny*)
-      (*and "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (common_matcher, \<alpha>) rs). normalized_nnf_match m"*)
-      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). normalized_n_primitive disc_sel f m"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). \<not> has_disc_negated disc neg m"
+      and "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). normalized_n_primitive disc_sel f (get_match r)"
+      and "\<forall> r \<in> set rs. \<not> has_disc_negated disc neg (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (transform_remove_unknowns_generic (\<beta>, \<alpha>) rs). \<not> has_disc_negated disc neg (get_match r)"
   proof -
     let ?\<gamma>="(\<beta>, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
@@ -464,26 +462,26 @@ theorem transform_remove_unknowns_generic:
       using optimize_matches_a_simplers[OF simplers] remove_unknowns_generic by metis
 
       from remove_unknowns_generic_not_has_disc show
-        "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc disc m"
+        "\<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc disc (get_match r)"
       unfolding transform_remove_unknowns_generic_def
       by(intro optimize_matches_a_preserves) blast
 
       from remove_unknowns_generic_normalized_n_primitive show
-        "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-           \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). normalized_n_primitive disc_sel f m"
+        "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow>
+           \<forall> r \<in> set (transform_remove_unknowns_generic ?\<gamma> rs). normalized_n_primitive disc_sel f (get_match r)"
       unfolding transform_remove_unknowns_generic_def
       by(intro optimize_matches_a_preserves) blast
 
-    show "\<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_unknowns \<beta> m"
+    show "\<forall> r \<in> set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_unknowns \<beta> (get_match r)"
       unfolding transform_remove_unknowns_generic_def
       apply(rule optimize_matches_a_preserves)
       apply(rule remove_unknowns_generic_specification[OF _ packet_independent_\<alpha> wf\<beta>])
       using simplers by(simp add: simple_ruleset_def)
 
     from remove_unknowns_generic_not_has_disc_negated show
-      "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-         \<forall> m \<in> get_match ` set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc_negated disc neg m"
+      "\<forall> r \<in> set rs. \<not> has_disc_negated disc neg (get_match r) \<Longrightarrow>
+         \<forall> r \<in> set (transform_remove_unknowns_generic ?\<gamma> rs). \<not> has_disc_negated disc neg (get_match r)"
       unfolding transform_remove_unknowns_generic_def
       by(rule optimize_matches_a_preserves) blast
 qed
@@ -494,13 +492,13 @@ corollary transform_remove_unknowns_upper: defines "upper \<equiv> optimize_matc
    assumes simplers: "simple_ruleset rs"
     shows "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
       and "simple_ruleset (upper rs)"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (upper rs). \<not> has_disc disc m"
-      and "\<forall> m \<in> get_match ` set (upper rs). \<not> has_disc is_Extra m"
-      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (upper rs). normalized_n_primitive disc_sel f m"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (upper rs). \<not> has_disc_negated disc neg m"
+      and "\<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (upper rs). \<not> has_disc disc (get_match r)"
+      and "\<forall> r \<in> set (upper rs). \<not> has_disc is_Extra (get_match r)"
+      and "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (upper rs). normalized_n_primitive disc_sel f (get_match r)"
+      and "\<forall> r \<in> set rs. \<not> has_disc_negated disc neg (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (upper rs). \<not> has_disc_negated disc neg (get_match r)"
 proof -
   from simplers have upper: "upper rs = transform_remove_unknowns_generic (common_matcher, in_doubt_allow) rs"
     apply(simp add: transform_remove_unknowns_generic_def upper_def)
@@ -515,20 +513,20 @@ proof -
     show "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
       by(subst upper)
     from *(2) show "simple_ruleset (upper rs)" by(subst upper)
-    from *(3) show "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (upper rs). \<not> has_disc disc m"
+    from *(3) show "\<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (upper rs). \<not> has_disc disc (get_match r)"
       by(subst upper) fast
-    from *(4) show "\<forall> m \<in> get_match ` set (upper rs). \<not> has_disc is_Extra m" 
+    from *(4) show "\<forall> r \<in> set (upper rs). \<not> has_disc is_Extra (get_match r)" 
       apply(subst upper)
       using has_unknowns_common_matcher by auto
-    from *(5) show "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (upper rs). normalized_n_primitive disc_sel f m" 
+    from *(5) show "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (upper rs). normalized_n_primitive disc_sel f (get_match r)"
       apply(subst upper)
       using packet_independent_unknown_match_tacs(1) simplers
         transform_remove_unknowns_generic(5)[OF _ _ _ packet_independent_\<beta>_unknown_common_matcher] wf_in_doubt_allow
       by blast
-    from *(6) show "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (upper rs). \<not> has_disc_negated disc neg m"
+    from *(6) show "\<forall> r \<in> set rs. \<not> has_disc_negated disc neg (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (upper rs). \<not> has_disc_negated disc neg (get_match r)"
       by(subst upper) fast
 qed
 
@@ -538,13 +536,13 @@ corollary transform_remove_unknowns_lower: defines "lower \<equiv> optimize_matc
    assumes simplers: "simple_ruleset rs"
     shows "(common_matcher, in_doubt_deny),p\<turnstile> \<langle>lower rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_deny),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
       and "simple_ruleset (lower rs)"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (lower rs). \<not> has_disc disc m"
-      and "\<forall> m \<in> get_match ` set (lower rs). \<not> has_disc is_Extra m"
-      and "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (lower rs). normalized_n_primitive disc_sel f m"
-      and "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (lower rs). \<not> has_disc_negated disc neg m"
+      and "\<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (lower rs). \<not> has_disc disc (get_match r)"
+      and "\<forall> r \<in> set (lower rs). \<not> has_disc is_Extra (get_match r)"
+      and "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (lower rs). normalized_n_primitive disc_sel f (get_match r)"
+      and "\<forall> r \<in> set rs. \<not> has_disc_negated disc neg (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (lower rs). \<not> has_disc_negated disc neg (get_match r)"
 proof -
   from simplers have lower: "lower rs = transform_remove_unknowns_generic (common_matcher, in_doubt_deny) rs"
     apply(simp add: transform_remove_unknowns_generic_def lower_def)
@@ -559,20 +557,20 @@ proof -
     show "(common_matcher, in_doubt_deny),p\<turnstile> \<langle>lower rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_deny),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t" 
       by(subst lower)
     from *(2) show "simple_ruleset (lower rs)" by(subst lower)
-    from *(3) show "\<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (lower rs). \<not> has_disc disc m"
+    from *(3) show "\<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (lower rs). \<not> has_disc disc (get_match r)"
       by(subst lower) fast
-    from *(4) show "\<forall> m \<in> get_match ` set (lower rs). \<not> has_disc is_Extra m" 
+    from *(4) show "\<forall> r \<in> set (lower rs). \<not> has_disc is_Extra (get_match r)" 
       apply(subst lower)
       using has_unknowns_common_matcher by auto
-    from *(5) show "\<forall> m \<in> get_match ` set rs. normalized_n_primitive disc_sel f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (lower rs). normalized_n_primitive disc_sel f m" 
+    from *(5) show "\<forall> r \<in> set rs. normalized_n_primitive disc_sel f (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (lower rs). normalized_n_primitive disc_sel f (get_match r)"
       apply(subst lower)
       using packet_independent_unknown_match_tacs(1) simplers
         transform_remove_unknowns_generic(5)[OF _ _ _ packet_independent_\<beta>_unknown_common_matcher] wf_in_doubt_deny
       by blast
-    from *(6) show "\<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc neg m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (lower rs). \<not> has_disc_negated disc neg m"
+    from *(6) show "\<forall> r \<in> set rs. \<not> has_disc_negated disc neg (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (lower rs). \<not> has_disc_negated disc neg (get_match r)"
       by(subst lower) fast
 qed
 
@@ -603,10 +601,11 @@ definition transform_normalize_primitives :: "'i::len common_primitive rule list
 
  thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive
  lemma normalize_rules_preserves_unrelated_normalized_n_primitive:
-   assumes "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) P m" 
+   assumes "\<forall> r \<in> set rs. normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) P (get_match r)" 
        and "wf_disc_sel (disc1, sel1) C"
        and "\<forall>a. \<not> disc2 (C a)"
-    shows "\<forall>m \<in> get_match ` set (normalize_rules (normalize_primitive_extract (disc1, sel1) C f) rs). normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) P m"
+    shows "\<forall>r \<in> set (normalize_rules (normalize_primitive_extract (disc1, sel1) C f) rs).
+              normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) P (get_match r)"
     thm normalize_rules_preserves[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
         and f="normalize_primitive_extract (disc1, sel1) C f"]
     apply(rule normalize_rules_preserves[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
@@ -618,35 +617,29 @@ definition transform_normalize_primitives :: "'i::len common_primitive rule list
 
 
   lemma normalize_rules_normalized_n_primitive:
-   assumes "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+   assumes "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)"
        and "\<forall>m. normalized_nnf_match m \<longrightarrow>
              (\<forall>m' \<in> set (normalize_primitive_extract (disc, sel) C f m). normalized_n_primitive (disc, sel) P m')"
-    shows "\<forall>m \<in> get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs).
-           normalized_n_primitive (disc, sel) P m"
+    shows "\<forall>r \<in> set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs).
+           normalized_n_primitive (disc, sel) P (get_match r)"
     apply(rule normalize_rules_property[where P=normalized_nnf_match and f="normalize_primitive_extract (disc, sel) C f"])
      using assms(1) apply simp
     using assms(2) by simp
 
 
-(*the simplifier preferes this*)
-(*TODO: move*)
-(*TODO: \<And> instead of \<forall> ?*)
-lemma optimize_matches_option_preserves':
-  "\<forall> m \<in> set rs. P (get_match m) \<Longrightarrow> \<forall>m. P m \<longrightarrow> (\<forall>m'. f m = Some m' \<longrightarrow> P m') \<Longrightarrow> \<forall>m \<in> set (optimize_matches_option f rs). P (get_match m)"
-  using optimize_matches_option_preserves[simplified] by metis
-thm optimize_matches_option_preserves
 
 (*TODO: generalize?*)
 (*TODO: move*)
 lemma optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive:
- assumes "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) P m" 
+ assumes "\<forall> r \<in> set rs. normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) P (get_match r)" 
      and "\<forall>a. \<not> disc2 (IIface a)" and "\<forall>a. \<not> disc2 (OIface a)" and "\<forall>a. \<not> disc2 (Prot a)"
-  shows "\<forall>m \<in> get_match ` set (optimize_matches_option compress_normalize_besteffort rs). normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) P m"
+  shows "\<forall>r \<in> set (optimize_matches_option compress_normalize_besteffort rs).
+          normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) P (get_match r)"
   thm optimize_matches_option_preserves
   apply(rule optimize_matches_option_preserves[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive  (disc2, sel2) P m"
       and f="compress_normalize_besteffort"])
-  apply(rule_tac m="(get_match r)" and m'=m in compress_normalize_besteffort_preserves_normalized_n_primitive)
-     apply(simp_all add: assms)
+  apply(rule compress_normalize_besteffort_preserves_normalized_n_primitive)
+       apply(simp_all add: assms)
   done
 
 theorem transform_normalize_primitives:
@@ -659,26 +652,27 @@ theorem transform_normalize_primitives:
                                (*port normalization may introduce new matches on protocols*)
   assumes simplers: "simple_ruleset (rs :: 'i::len common_primitive rule list)"
       and wf\<alpha>: "wf_unknown_match_tac \<alpha>"
-      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+      and normalized: "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)"
   shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>transform_normalize_primitives rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
     and "simple_ruleset (transform_normalize_primitives rs)"
     and "unchanged disc1 \<Longrightarrow> changeddisc disc1 \<Longrightarrow> \<forall>a. \<not> disc1 (Prot a) \<Longrightarrow>
-           \<forall> m \<in> get_match ` set rs. \<not> has_disc disc1 m \<Longrightarrow>
-              \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc disc1 m"
-    and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
-    and "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs).
-          normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m"
+           \<forall> r \<in> set rs. \<not> has_disc disc1 (get_match r) \<Longrightarrow>
+              \<forall> r \<in> set (transform_normalize_primitives rs). \<not> has_disc disc1 (get_match r)"
+    and "\<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r)"
+    and "\<forall> r \<in> set (transform_normalize_primitives rs).
+          normalized_src_ports (get_match r) \<and> normalized_dst_ports (get_match r) \<and>
+          normalized_src_ips (get_match r) \<and> normalized_dst_ips (get_match r)"
     and "unchanged disc2 \<Longrightarrow> (\<forall>a. \<not> disc2 (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (Prot a)) \<Longrightarrow>
-         \<forall> m \<in> get_match ` set rs. normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive (disc2, sel2) f m"
+         \<forall> r \<in> set rs. normalized_n_primitive (disc2, sel2) f (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (transform_normalize_primitives rs). normalized_n_primitive (disc2, sel2) f (get_match r)"
     --\<open>For disc3, we do not allow ports and ips, because these are changed.
        In addition, either it must not be protocol or there must be no negated port matches in the ruleset.\<close>
     and "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
         (\<forall>a. \<not> disc3 (Prot a)) \<or>
-        (disc3 = is_Prot \<and> (\<forall> m \<in> get_match ` set rs.
-          \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m)) \<Longrightarrow>
-         \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False m"
+        (disc3 = is_Prot \<and> (\<forall> r \<in> set rs.
+          \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r))) \<Longrightarrow>
+         \<forall> r \<in> set rs. \<not> has_disc_negated disc3 False (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False (get_match r)"
   proof -
     let ?\<gamma>="(common_matcher, \<alpha>)"
     let ?fw="\<lambda>rs. approximating_bigstep_fun ?\<gamma> p rs s"
@@ -693,23 +687,23 @@ theorem transform_normalize_primitives:
     let ?rs3="normalize_rules normalize_dst_ips ?rs2"
     let ?rs4="optimize_matches_option compress_normalize_besteffort ?rs3"
 
-    have normalized_rs0: "\<forall>m \<in> get_match ` set ?rs0. normalized_nnf_match m"
+    have normalized_rs0: "\<forall>r \<in> set ?rs0. normalized_nnf_match (get_match r)"
       apply(intro normalize_rules_preserves[OF normalized])
       using normalize_src_ports_nnf by blast
-    from normalize_dst_ports_nnf have normalized_rs1: "\<forall>m \<in> get_match ` set ?rs1. normalized_nnf_match m"
+    from normalize_dst_ports_nnf have normalized_rs1: "\<forall>r \<in> set ?rs1. normalized_nnf_match (get_match r)"
       apply(intro normalize_rules_preserves[OF normalized_rs0])
       by blast
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(3)]
          normalize_src_ips_def
-    have normalized_rs2: "\<forall>m \<in> get_match ` set ?rs2. normalized_nnf_match m" by metis
+    have normalized_rs2: "\<forall>r \<in> set ?rs2. normalized_nnf_match (get_match r)" by metis
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(4)]
          normalize_dst_ips_def
-    have normalized_rs3: "\<forall>m \<in> get_match ` set ?rs3. normalized_nnf_match m" by metis
-    have normalized_rs4: "\<forall>m \<in> get_match ` set ?rs4. normalized_nnf_match m"
+    have normalized_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r)" by metis
+    have normalized_rs4: "\<forall>r \<in> set ?rs4. normalized_nnf_match (get_match r)"
       apply(intro optimize_matches_option_preserves)
       apply(erule compress_normalize_besteffort_nnf[rotated])
       by(simp add: normalized_rs3)
-    thus "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m"
+    thus "\<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r)"
       unfolding transform_normalize_primitives_def by simp
 
     (*TODO: add this as generic simp rule somewhere? But simplifier loops? what to do? cong_rule?*)
@@ -719,7 +713,7 @@ theorem transform_normalize_primitives:
     have opt_compress_rule:
       "approximating_bigstep_fun (common_matcher, \<alpha>) p (optimize_matches_option compress_normalize_besteffort rs1) s =
            approximating_bigstep_fun (common_matcher, \<alpha>) p rs2 s"
-    if rs1_n: "\<forall>m \<in> get_match ` set rs1. normalized_nnf_match m" 
+    if rs1_n: "\<forall>r \<in> set rs1. normalized_nnf_match (get_match r)" 
     and rs1rs2: "approximating_bigstep_fun (common_matcher, \<alpha>) p rs1 s =
            approximating_bigstep_fun (common_matcher, \<alpha>) p rs2 s" for rs1 rs2
      apply(subst optimize_matches_option_generic[where P="\<lambda> m a. normalized_nnf_match m"])
@@ -756,36 +750,36 @@ theorem transform_normalize_primitives:
 
 
     from normalize_src_ports_normalized_n_primitive
-    have normalized_src_ports: "\<forall>m \<in> get_match ` set ?rs0. normalized_src_ports m"
+    have normalized_src_ports: "\<forall>r \<in> set ?rs0. normalized_src_ports (get_match r)"
     using normalize_rules_property[OF normalized, where f=normalize_src_ports and Q=normalized_src_ports] by fast
       (*why u no rule? because things are not in simp-normal form!*)
     from normalize_dst_ports_normalized_n_primitive
          normalize_rules_property[OF normalized_rs0, where f=normalize_dst_ports and Q=normalized_dst_ports]
-    have normalized_dst_ports: "\<forall>m \<in> get_match ` set ?rs1.  normalized_dst_ports m" by fast
+    have normalized_dst_ports: "\<forall>r \<in> set ?rs1.  normalized_dst_ports (get_match r)" by fast
     from normalize_src_ips_normalized_n_primitive
          normalize_rules_property[OF normalized_rs1, where f=normalize_src_ips and Q=normalized_src_ips]
-    have normalized_src_ips: "\<forall>m \<in> get_match ` set ?rs2.  normalized_src_ips m" by fast
+    have normalized_src_ips: "\<forall>r \<in> set ?rs2.  normalized_src_ips (get_match r)" by fast
     from normalize_dst_ips_normalized_n_primitive
          normalize_rules_property[OF normalized_rs2, where f=normalize_dst_ips and Q=normalized_dst_ips]
          normalized_rs3
-    have normalized_dst_ips_rs3: "\<forall>m \<in> get_match ` set ?rs3. normalized_nnf_match m \<and> normalized_dst_ips m" by fast
+    have normalized_dst_ips_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r) \<and> normalized_dst_ips (get_match r)" by fast
     with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
           of _ is_Dst dst_sel normalized_cidr_ip
           , folded normalized_dst_ips_def2]
-    have normalized_dst_rs4: "\<forall>m \<in> get_match ` set ?rs4. normalized_dst_ips m" by fastforce
+    have normalized_dst_rs4: "\<forall>r \<in> set ?rs4. normalized_dst_ips (get_match r)" by fastforce
 
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Src_Ports src_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)",
          folded normalized_src_ports_def2]
     have preserve_normalized_src_ports: " 
-      \<forall>m\<in>get_match ` set rs. normalized_nnf_match m  \<Longrightarrow>
-      \<forall>m\<in>get_match ` set rs. normalized_src_ports m \<Longrightarrow>
+      \<forall>r\<in> set rs. normalized_nnf_match (get_match r) \<Longrightarrow>
+      \<forall>r\<in> set rs. normalized_src_ports (get_match r) \<Longrightarrow>
       wf_disc_sel (disc, sel) C \<Longrightarrow>
       \<forall>a. \<not> is_Src_Ports (C a) \<Longrightarrow>
-      \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_src_ports m"
+      \<forall>r\<in> set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_src_ports (get_match r)"
       for f :: "'c negation_type list \<Rightarrow> 'c list" and rs disc sel and C :: "'c \<Rightarrow> 'i::len common_primitive"
-      by metis
-    have normalized_src_ports_rs0: "\<forall>m \<in> get_match ` set ?rs0.  normalized_src_ports m"
+      by blast
+    have normalized_src_ports_rs0: "\<forall>r \<in> set ?rs0.  normalized_src_ports (get_match r)"
       apply(rule normalize_rules_property[where P="normalized_nnf_match"])
        using normalized apply blast
       using normalize_src_ports_normalized_n_primitive by blast
@@ -796,69 +790,70 @@ theorem transform_normalize_primitives:
       apply(rule normalize_ports_generic_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(2)])
            apply(simp_all)
       by (simp add: normalize_dst_ports_def normalize_ports_generic_def normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
-    have normalized_src_ports_rs1: "\<forall>m \<in> get_match ` set ?rs1.  normalized_src_ports m"
+    have normalized_src_ports_rs1: "\<forall>r \<in> set ?rs1.  normalized_src_ports (get_match r)"
       apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_src_ports m"])
        using normalized_rs0 normalized_src_ports_rs0 apply blast
       apply(clarify)
       using normalize_dst_ports_preserves_normalized_src_ports by blast
     from preserve_normalized_src_ports[OF normalized_rs1 normalized_src_ports_rs1 wf_disc_sel_common_primitive(3),
          where f2=ipt_iprange_compress, folded normalize_src_ips_def]
-    have normalized_src_ports_rs2: "\<forall>m \<in> get_match ` set ?rs2.  normalized_src_ports m" by force
+    have normalized_src_ports_rs2: "\<forall>r \<in> set ?rs2.  normalized_src_ports (get_match r)" by simp
     from preserve_normalized_src_ports[OF normalized_rs2 normalized_src_ports_rs2 wf_disc_sel_common_primitive(4),
          where f2=ipt_iprange_compress, folded normalize_dst_ips_def]
          normalized_rs3
-    have normalized_src_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3. normalized_nnf_match m \<and> normalized_src_ports m" by force
+    have normalized_src_ports_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r) \<and> normalized_src_ports (get_match r)" by simp
     with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
           of _ is_Src_Ports src_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)"
           , folded normalized_src_ports_def2]
-    have normalized_src_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4. normalized_src_ports m" by fastforce
+    have normalized_src_ports_rs4: "\<forall>r \<in> set ?rs4. normalized_src_ports (get_match r)" by fastforce
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Dst_Ports dst_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)",
          folded normalized_dst_ports_def2]
     have preserve_normalized_dst_ports: "\<And>rs disc sel C f. 
-      \<forall>m\<in>get_match ` set rs. normalized_nnf_match m  \<Longrightarrow>
-      \<forall>m\<in>get_match ` set rs. normalized_dst_ports m \<Longrightarrow>
+      \<forall>r\<in>set rs. normalized_nnf_match (get_match r) \<Longrightarrow>
+      \<forall>r\<in>set rs. normalized_dst_ports (get_match r) \<Longrightarrow>
       wf_disc_sel (disc, sel) C \<Longrightarrow>
       \<forall>a. \<not> is_Dst_Ports (C a) \<Longrightarrow>
-      \<forall>m\<in>get_match ` set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_dst_ports m"
-      by metis
+      \<forall>r\<in> set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_dst_ports (get_match r)"
+      by blast
     from preserve_normalized_dst_ports[OF normalized_rs1 normalized_dst_ports wf_disc_sel_common_primitive(3),
          where f2=ipt_iprange_compress, folded normalize_src_ips_def]
-    have normalized_dst_ports_rs2: "\<forall>m \<in> get_match ` set ?rs2.  normalized_dst_ports m" by force
+    have normalized_dst_ports_rs2: "\<forall>r \<in> set ?rs2.  normalized_dst_ports (get_match r)" by force
     from preserve_normalized_dst_ports[OF normalized_rs2 normalized_dst_ports_rs2 wf_disc_sel_common_primitive(4),
          where f2=ipt_iprange_compress, folded normalize_dst_ips_def]
          normalized_rs3
-    have normalized_dst_ports_rs3: "\<forall>m \<in> get_match ` set ?rs3. normalized_nnf_match m \<and> normalized_dst_ports m" by force
+    have normalized_dst_ports_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r) \<and> normalized_dst_ports (get_match r)" by force
     with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
           of _ is_Dst_Ports dst_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)"
           , folded normalized_dst_ports_def2]
-    have normalized_dst_ports_rs4: "\<forall>m \<in> get_match ` set ?rs4. normalized_dst_ports m" by fastforce
+    have normalized_dst_ports_rs4: "\<forall>r \<in> set ?rs4. normalized_dst_ports (get_match r)" by fastforce
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of ?rs2 is_Src src_sel normalized_cidr_ip,
          OF _ wf_disc_sel_common_primitive(4),
          where f=ipt_iprange_compress, folded normalize_dst_ips_def normalized_src_ips_def2]
          normalized_rs2 normalized_src_ips
-    have normalized_src_rs3: "\<forall>m \<in> get_match ` set ?rs3. normalized_nnf_match m \<and> normalized_src_ips m" by force
+    have normalized_src_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r) \<and> normalized_src_ips (get_match r)" by force
     with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
           of _ is_Src src_sel normalized_cidr_ip
           , folded normalized_src_ips_def2]
-    have normalized_src_rs4: "\<forall>m \<in> get_match ` set ?rs4. normalized_src_ips m"
+    have normalized_src_rs4: "\<forall>r \<in> set ?rs4. normalized_src_ips (get_match r)"
        by fastforce
 
     from normalized_src_ports_rs4 normalized_dst_ports_rs4 normalized_src_rs4 normalized_dst_rs4
-    show "\<forall> m \<in> get_match ` set (transform_normalize_primitives rs).
-          normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m"
-      unfolding transform_normalize_primitives_def by force
+    show "\<forall> r \<in> set (transform_normalize_primitives rs).
+          normalized_src_ports (get_match r) \<and> normalized_dst_ports (get_match r) \<and>
+          normalized_src_ips (get_match r) \<and> normalized_dst_ips (get_match r)"
+      unfolding transform_normalize_primitives_def by simp
    
 
    show  "unchanged disc2 \<Longrightarrow> (\<forall>a. \<not> disc2 (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (Prot a)) \<Longrightarrow>
-          \<forall> m \<in> get_match ` set rs. normalized_n_primitive (disc2, sel2) f m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_n_primitive  (disc2, sel2) f m"
+          \<forall> r \<in> set rs. normalized_n_primitive (disc2, sel2) f (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (transform_normalize_primitives rs). normalized_n_primitive  (disc2, sel2) f (get_match r)"
    unfolding unchanged_def
    proof(elim conjE)
-     assume "\<forall>m\<in>get_match ` set rs. normalized_n_primitive  (disc2, sel2) f m"
+     assume "\<forall>r\<in> set rs. normalized_n_primitive  (disc2, sel2) f (get_match r)"
      with normalized have a':
-      "\<forall>m\<in>get_match ` set rs. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m" by blast
+      "\<forall>r\<in> set rs. normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) f (get_match r)" by blast
 
      assume a_Src_Ports: "\<forall>a. \<not> disc2 (Src_Ports a)"
      assume a_Dst_Ports: "\<forall>a. \<not> disc2 (Dst_Ports a)"
@@ -870,25 +865,23 @@ theorem transform_normalize_primitives:
 
 
      have normalized_n_primitive_rs0:
-     "\<forall>m\<in>get_match ` set ?rs0. normalized_n_primitive (disc2, sel2) f m" (*by blast*)
+     "\<forall>r\<in>set ?rs0. normalized_n_primitive (disc2, sel2) f (get_match r)" (*by blast*)
       apply(intro normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m"])
-       apply(simp)
        using a' apply blast
       using normalize_src_ports_preserves_normalized_n_primitive[OF _ a_Src_Ports] a_Prot by blast
-     have "\<forall>m\<in>get_match ` set ?rs1. normalized_n_primitive (disc2, sel2) f m"
+     have "\<forall>r\<in>set ?rs1. normalized_n_primitive (disc2, sel2) f (get_match r)"
       apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m"])
-       apply(simp)
        using normalized_n_primitive_rs0 normalized_rs0 apply blast
       using normalize_dst_ports_preserves_normalized_n_primitive[OF _ a_Dst_Ports] a_Prot by blast
      with normalized_rs1 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(3) a_Src,
        of ?rs1 sel2 f ipt_iprange_compress,
        folded normalize_src_ips_def]
-     have "\<forall>m\<in>get_match ` set ?rs2. normalized_n_primitive (disc2, sel2) f m" by blast
+     have "\<forall>r\<in>set ?rs2. normalized_n_primitive (disc2, sel2) f (get_match r)" by blast
      with normalized_rs2 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(4) a_Dst,
        of ?rs2 sel2 f ipt_iprange_compress,
        folded normalize_dst_ips_def]
-     have "\<forall>m\<in>get_match ` set ?rs3. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m" by blast
-     hence "\<forall>m\<in>get_match ` set ?rs4. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m" 
+     have "\<forall>r\<in>set ?rs3. normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) f (get_match r)" by blast
+     hence "\<forall>r\<in>set ?rs4. normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) f (get_match r)" 
        apply(intro optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive)
           using a_IIface a_OIface a_Prot by simp_all
      thus ?thesis
@@ -943,32 +936,32 @@ theorem transform_normalize_primitives:
 
    { fix rs
      assume "(\<forall>a. \<not> disc1 (IIface a)) \<or> disc1 = is_Iiface"
-        and "((\<forall>a. \<not> disc1 (OIface a)) \<or> disc1 = is_Oiface)" and "(\<forall>a. \<not> disc1 (Prot a)) \<or> disc1 = is_Prot"
+        and "((\<forall>a. \<not> disc1 (OIface a)) \<or> disc1 = is_Oiface)"
+        and "(\<forall>a. \<not> disc1 (Prot a)) (*\<or> disc1 = is_Prot*)"
      hence "\<forall>m\<in>set rs. \<not> has_disc disc1 (get_match m) \<and> normalized_nnf_match (get_match m) \<Longrightarrow>
               \<forall>m\<in>set (optimize_matches_option compress_normalize_besteffort rs).
                   normalized_nnf_match (get_match m) \<and> \<not> has_disc disc1 (get_match m)"
      apply -
-     apply(rule optimize_matches_option_preserves')
-      apply(simp; fail)
+     apply(rule optimize_matches_option_preserves)
      apply(elim disjE)
             using compress_normalize_besteffort_hasdisc apply blast
-           using compress_normalize_besteffort_nnf compress_normalize_besteffort_not_introduces_Iiface compress_normalize_besteffort_not_introduces_Oiface
-                 compress_normalize_besteffort_not_introduces_Prot by blast+
+           using compress_normalize_besteffort_nnf compress_normalize_besteffort_not_introduces_Iiface
+                 compress_normalize_besteffort_not_introduces_Oiface by blast+
    } note y=this
 
    have "\<forall>a. \<not> disc1 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst_Ports a) \<Longrightarrow> 
          \<forall>a. \<not> disc1 (Src a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst a) \<Longrightarrow>
          (\<forall>a. \<not> disc1 (IIface a)) \<or> disc1 = is_Iiface \<Longrightarrow>
          (\<forall>a. \<not> disc1 (OIface a)) \<or> disc1 = is_Oiface \<Longrightarrow> (\<forall>a. \<not> disc1 (Prot a)) (*\<or> disc1 = is_Prot*) \<Longrightarrow>
-         \<forall> m \<in> get_match ` set rs. \<not> has_disc disc1 m \<and> normalized_nnf_match m \<Longrightarrow>
-    \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc disc1 m"
+         \<forall> r\<in>set rs. \<not> has_disc disc1 (get_match r) \<and> normalized_nnf_match (get_match r) \<Longrightarrow>
+    \<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r) \<and> \<not> has_disc disc1 (get_match r)"
    unfolding transform_normalize_primitives_def
    apply(simp)
    apply(rule y)
       apply(simp; fail)
      apply(simp; fail)
     apply(simp; fail)
-   apply(rule normalize_rules_preserves')+
+   apply(rule normalize_rules_preserves)+
        apply(simp; fail)
       subgoal
       apply clarify
@@ -982,7 +975,8 @@ theorem transform_normalize_primitives:
    done
    
    thus "unchanged disc1 \<Longrightarrow> changeddisc disc1 \<Longrightarrow> \<forall>a. \<not> disc1 (Prot a) \<Longrightarrow>
-    \<forall> m \<in> get_match ` set rs. \<not> has_disc disc1 m \<Longrightarrow> \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc disc1 m"
+    \<forall> r \<in> set rs. \<not> has_disc disc1 (get_match r) \<Longrightarrow>
+      \<forall> r \<in> set (transform_normalize_primitives rs). \<not> has_disc disc1 (get_match r)"
    unfolding unchanged_def changeddisc_def using normalized by blast
 
    (*TODO: copy pasta*)
@@ -1050,9 +1044,9 @@ theorem transform_normalize_primitives:
        \<forall>r\<in>set (optimize_matches_option compress_normalize_besteffort rs).
                 normalized_nnf_match (get_match r) \<and> \<not> has_disc_negated disc3 False (get_match r) \<and> P (get_match r)"
      apply -
-     thm optimize_matches_option_preserves[simplified, where P=
+     thm optimize_matches_option_preserves[where P=
         "\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and> P m"]
-     apply(rule optimize_matches_option_preserves[simplified, where P=
+     apply(rule optimize_matches_option_preserves[where P=
         "\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and> P m"])
      apply(elim disjE)
             using compress_normalize_besteffort_nnf compress_normalize_besteffort_hasdisc_negated apply blast
@@ -1070,17 +1064,17 @@ theorem transform_normalize_primitives:
          (\<forall>a. \<not> disc3 (IIface a)) \<or> disc3 = is_Iiface \<Longrightarrow>
          (\<forall>a. \<not> disc3 (OIface a)) \<or> disc3 = is_Oiface \<Longrightarrow>
          (\<forall>a. \<not> disc3 (Prot a)) (*\<or>
-          disc3 = is_Prot \<and> (\<forall>m \<in> get_match ` set rs.
-            \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m)*) \<Longrightarrow>
-         \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<and> normalized_nnf_match m \<Longrightarrow>
-    \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m"
+          disc3 = is_Prot \<and> (\<forall>r \<in> set rs.
+            \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r))*) \<Longrightarrow>
+         \<forall> r \<in> set rs. \<not> has_disc_negated disc3 False (get_match r) \<and> normalized_nnf_match (get_match r) \<Longrightarrow>
+    \<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r) \<and> \<not> has_disc_negated disc3 False (get_match r)"
    unfolding transform_normalize_primitives_def
    apply(simp)
    apply(rule y)
       apply(simp; fail)
      apply(simp; fail)
     apply(blast)
-   apply(rule normalize_rules_preserves')+ (*this rule is just not good. we need to state that there could also be no negated ports or disc3 \<noteq> is_Prot*)
+   apply(rule normalize_rules_preserves)+
        apply(simp; fail)
       subgoal
       apply(clarify)
@@ -1109,23 +1103,23 @@ theorem transform_normalize_primitives:
        apply simp+
     apply(clarify)
     apply(intro conjI)
-     using compress_normalize_besteffort_hasdisc_negated[of is_Src_Ports False] apply fastforce
-    using compress_normalize_besteffort_hasdisc_negated[of is_Dst_Ports False] apply fastforce
+     using compress_normalize_besteffort_hasdisc_negated[of is_Src_Ports] apply fastforce
+    using compress_normalize_besteffort_hasdisc_negated[of is_Dst_Ports] apply fastforce
    by simp
 
    (*TODO, copy from above, specific version for is_Prot*)
    have case_disc3_is_prot: "disc3 = is_Prot \<Longrightarrow>
-  \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<and> normalized_nnf_match m \<and>
-         \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m \<Longrightarrow>
-    \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and>
-              \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m"
+  \<forall> r \<in> set rs. \<not> has_disc_negated disc3 False (get_match r) \<and> normalized_nnf_match (get_match r) \<and>
+         \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r) \<Longrightarrow>
+    \<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r) \<and> \<not> has_disc_negated disc3 False (get_match r) \<and>
+              \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
    unfolding transform_normalize_primitives_def
    apply(simp)
    apply(rule case_disc3_is_prot_optimize_matches_option)
     apply(simp; fail)
-   thm normalize_rules_property[simplified,
+   thm normalize_rules_property[
       where P="\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m"]
-   apply(rule normalize_rules_property[simplified,
+   apply(rule normalize_rules_property[
       where P="\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and>
                    \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m"])+ (*dst ips first*)
        apply(simp; fail)
@@ -1156,10 +1150,10 @@ theorem transform_normalize_primitives:
 
    show "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
     (\<forall>a. \<not> disc3 (Prot a)) \<or>
-        (disc3 = is_Prot \<and> (\<forall> m \<in> get_match ` set rs.
-          \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m)) \<Longrightarrow>
-         \<forall> m \<in> get_match ` set rs. \<not> has_disc_negated disc3 False m \<Longrightarrow>
-            \<forall> m \<in> get_match ` set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False m"
+        (disc3 = is_Prot \<and> (\<forall> r \<in> set rs.
+          \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r))) \<Longrightarrow>
+         \<forall> r \<in> set rs. \<not> has_disc_negated disc3 False (get_match r) \<Longrightarrow>
+            \<forall> r \<in> set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False (get_match r)"
    unfolding unchanged_def changeddisc_def
    apply(elim disjE)
     using normalized case_disc3_is_not_prot apply blast
@@ -1169,7 +1163,7 @@ qed
 
 theorem iiface_constrain:
   assumes simplers: "simple_ruleset rs"
-      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+      and normalized: "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)"
       and wf_ipassmt: "ipassmt_sanity_nowildcards ipassmt"
       and nospoofing: "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips)"
   shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (iiface_constrain ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
@@ -1195,7 +1189,7 @@ text\<open>In contrast to @{thm iiface_constrain}, this requires  @{const ipassm
       as much stronger nospoof assumption: This assumption requires that the packet is actually in ipassmt!\<close>
 theorem iiface_rewrite:
   assumes simplers: "simple_ruleset rs"
-      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+      and normalized: "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)"
       and wf_ipassmt: "ipassmt_sanity_nowildcards ipassmt"
       and disjoint_ipassmt: "ipassmt_sanity_disjoint ipassmt"
       and nospoofing: "\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipcidr_union_set (set ips)"
@@ -1238,23 +1232,24 @@ lemma transform_upper_closure:
   shows "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>upper_closure rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
   and "simple_ruleset (upper_closure rs)"
   -- "simple, normalized rules without unknowns"
-  and "\<forall> m \<in> get_match ` set (upper_closure rs). normalized_nnf_match m \<and>
-         normalized_src_ports m \<and>
-         normalized_dst_ports m \<and>
-         normalized_src_ips m \<and>
-         normalized_dst_ips m \<and>
-         \<not> has_disc is_Extra m"
+  and "\<forall> r \<in> set (upper_closure rs). normalized_nnf_match (get_match r) \<and>
+                                     normalized_src_ports (get_match r) \<and>
+                                     normalized_dst_ports (get_match r) \<and>
+                                     normalized_src_ips (get_match r) \<and>
+                                     normalized_dst_ips (get_match r) \<and>
+                                     \<not> has_disc is_Extra (get_match r)"
   -- "no new primitives are introduced"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
        \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
        \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
-        \<forall> r \<in> get_match ` set rs. \<not> has_disc disc r \<Longrightarrow> \<forall> r \<in> get_match ` set (upper_closure rs). \<not> has_disc disc r"
+        \<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow> \<forall> r \<in> set (upper_closure rs). \<not> has_disc disc (get_match r)"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
        \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
        (\<forall>a. \<not> disc (Prot a)) \<or>
         disc = is_Prot \<and> (*if it is prot, there must not be negated matches on ports*)
-        (\<forall> r \<in> get_match ` set rs. \<not> has_disc_negated is_Src_Ports False r \<and> \<not> has_disc_negated is_Dst_Ports False r) \<Longrightarrow>
-        \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc False r \<Longrightarrow> \<forall> r \<in> get_match ` set (upper_closure rs). \<not> has_disc_negated disc False r"
+        (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)) \<Longrightarrow>
+         \<forall> r \<in> set rs. \<not> has_disc_negated disc False (get_match r) \<Longrightarrow>
+         \<forall> r \<in> set (upper_closure rs). \<not> has_disc_negated disc False (get_match r)"
   proof -
     { fix m a
         have "Rule m a \<in> set (upper_closure rs) \<Longrightarrow>
@@ -1272,7 +1267,7 @@ lemma transform_upper_closure:
         apply(drule transform_remove_unknowns_upper(2))
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_allow]
         apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_allow, where disc=is_Extra])
-        apply(thin_tac "\<forall>m\<in>get_match ` set (optimize_matches_a upper_closure_matchexpr rs). \<not> has_disc is_Extra m")
+        apply(thin_tac "\<forall>r\<in> set (optimize_matches_a upper_closure_matchexpr rs). \<not> has_disc is_Extra (get_match r)")
         apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_allow])
         apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_allow])
         thm transform_normalize_primitives[OF _ wf_in_doubt_allow]
@@ -1281,7 +1276,7 @@ lemma transform_upper_closure:
            apply(simp;fail)
           apply(simp;fail)
          apply blast
-        apply(thin_tac "\<forall>m\<in>get_match ` set (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs)). \<not> has_disc is_Extra m")
+        apply(thin_tac "\<forall>r\<in> set (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs)). \<not> has_disc is_Extra (get_match r)")
         apply(frule(1) transform_normalize_primitives(5)[OF _ wf_in_doubt_allow])
         apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_allow], simp)
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_allow]
@@ -1296,14 +1291,13 @@ lemma transform_upper_closure:
         apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_allow, of _ "(is_Dst, dst_sel)" normalized_cidr_ip])
          apply(simp add: normalized_dst_ips_def2; fail)
         apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_allow])
-        apply(simp)
         apply(subgoal_tac "(a = action.Accept \<or> a = action.Drop)")
          prefer 2
          apply(simp_all add: simple_ruleset_def)
          apply fastforce
         apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2 normalized_src_ips_def2 normalized_dst_ips_def2)
         apply(intro conjI)
-              apply fastforce+
+             apply fastforce+
         done
     } note 1=this
 
@@ -1316,13 +1310,12 @@ lemma transform_upper_closure:
       by blast
 
 
-    from 1 show "\<forall> m \<in> get_match ` set (upper_closure rs). normalized_nnf_match m \<and>
-         normalized_src_ports m \<and>
-         normalized_dst_ports m \<and>
-         normalized_src_ips m \<and>
-         normalized_dst_ips m \<and>
-         \<not> has_disc is_Extra m"
-      apply(simp)
+    from 1 show "\<forall> r \<in> set (upper_closure rs). normalized_nnf_match (get_match r) \<and>
+         normalized_src_ports (get_match r) \<and>
+         normalized_dst_ports (get_match r) \<and>
+         normalized_src_ips (get_match r) \<and>
+         normalized_dst_ips (get_match r) \<and>
+         \<not> has_disc is_Extra (get_match r)"
       apply(clarify)
       apply(rename_tac r)
       apply(case_tac r)
@@ -1333,7 +1326,7 @@ lemma transform_upper_closure:
     show "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
           \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
           \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
-            \<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (upper_closure rs). \<not> has_disc disc m"
+            \<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow> \<forall> r \<in> set (upper_closure rs). \<not> has_disc disc (get_match r)"
     using simplers
     unfolding upper_closure_def
     apply - 
@@ -1363,14 +1356,16 @@ lemma transform_upper_closure:
       "\<forall>r\<in> set (optimize_matches_a upper_closure_matchexpr rs). 
         \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
       by blast
-    from m this transform_optimize_dnf_strict_structure(5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_allow, of upper_closure_matchexpr, simplified]
+    from m this transform_optimize_dnf_strict_structure(5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_allow, of upper_closure_matchexpr]
       show ?thesis by blast
     qed
 
     show"\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
          \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
-         (\<forall>a. \<not> disc (Prot a)) \<or> disc = is_Prot \<and> (\<forall> r \<in> get_match ` set rs. \<not> has_disc_negated is_Src_Ports False r \<and> \<not> has_disc_negated is_Dst_Ports False r) \<Longrightarrow>
-        \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc False r \<Longrightarrow> \<forall> r \<in> get_match ` set (upper_closure rs). \<not> has_disc_negated disc False r"
+         (\<forall>a. \<not> disc (Prot a)) \<or> disc = is_Prot \<and>
+         (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)) \<Longrightarrow>
+         \<forall> r \<in> set rs. \<not> has_disc_negated disc False (get_match r) \<Longrightarrow>
+         \<forall> r \<in> set (upper_closure rs). \<not> has_disc_negated disc False (get_match r)"
     using simplers
     unfolding upper_closure_def
     apply - 
@@ -1418,21 +1413,24 @@ lemma transform_lower_closure:
   shows "(common_matcher, in_doubt_deny),p\<turnstile> \<langle>lower_closure rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, in_doubt_deny),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
   and "simple_ruleset (lower_closure rs)"
   -- "simple, normalized rules without unknowns"
-  and "\<forall> m \<in> get_match ` set (lower_closure rs). normalized_nnf_match m \<and>
-         normalized_src_ports m \<and>
-         normalized_dst_ports m \<and>
-         normalized_src_ips m \<and>
-         normalized_dst_ips m \<and>
-         \<not> has_disc is_Extra m"
+  and "\<forall> r \<in> set (lower_closure rs). normalized_nnf_match (get_match r) \<and>
+                                     normalized_src_ports (get_match r) \<and>
+                                     normalized_dst_ports (get_match r) \<and>
+                                     normalized_src_ips (get_match r) \<and>
+                                     normalized_dst_ips (get_match r) \<and>
+                                     \<not> has_disc is_Extra (get_match r)"
   -- "no new primitives are introduced"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
        \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
        \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
-        \<forall> r \<in> get_match ` set rs. \<not> has_disc disc r \<Longrightarrow> \<forall> r \<in> get_match ` set (lower_closure rs). \<not> has_disc disc r"
+        \<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+        \<forall> r \<in> set (lower_closure rs). \<not> has_disc disc (get_match r)"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
        \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
-       (\<forall>a. \<not> disc (Prot a)) \<or> disc = is_Prot \<and> (\<forall> r \<in> get_match ` set rs. \<not> has_disc_negated is_Src_Ports False r \<and> \<not> has_disc_negated is_Dst_Ports False r) \<Longrightarrow>
-        \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc False r \<Longrightarrow> \<forall> r \<in> get_match ` set (lower_closure rs). \<not> has_disc_negated disc False r"
+       (\<forall>a. \<not> disc (Prot a)) \<or> disc = is_Prot \<and>
+       (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)) \<Longrightarrow>
+       \<forall> r \<in> set rs. \<not> has_disc_negated disc False (get_match r) \<Longrightarrow>
+       \<forall> r \<in> set (lower_closure rs). \<not> has_disc_negated disc False (get_match r)"
   proof -
     { fix m a
         have "Rule m a \<in> set (lower_closure rs) \<Longrightarrow>
@@ -1450,7 +1448,7 @@ lemma transform_lower_closure:
         apply(drule transform_remove_unknowns_lower(2))
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_deny]
         apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_deny, where disc=is_Extra])
-        apply(thin_tac "\<forall>m\<in>get_match ` set (optimize_matches_a lower_closure_matchexpr rs). \<not> has_disc is_Extra m")
+        apply(thin_tac "\<forall>r\<in>set (optimize_matches_a lower_closure_matchexpr rs). \<not> has_disc is_Extra (get_match r)")
         apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_deny])
         apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_deny])
         thm transform_normalize_primitives[OF _ wf_in_doubt_deny]
@@ -1459,7 +1457,7 @@ lemma transform_lower_closure:
            apply(simp;fail)
           apply(simp;fail)
          apply blast
-        apply(thin_tac "\<forall>m\<in>get_match ` set (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs)). \<not> has_disc is_Extra m")
+        apply(thin_tac "\<forall>r\<in>set (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs)). \<not> has_disc is_Extra (get_match r)")
         apply(frule(1) transform_normalize_primitives(5)[OF _ wf_in_doubt_deny])
         apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_deny], simp)
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_deny]
@@ -1474,7 +1472,6 @@ lemma transform_lower_closure:
         apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Dst, dst_sel)" normalized_cidr_ip])
          apply(simp add: normalized_dst_ips_def2; fail)
         apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_deny])
-        apply(simp)
         apply(subgoal_tac "(a = action.Accept \<or> a = action.Drop)")
          prefer 2
          apply(simp_all add: simple_ruleset_def)
@@ -1494,13 +1491,12 @@ lemma transform_lower_closure:
       by blast
 
 
-    from 1 show "\<forall> m \<in> get_match ` set (lower_closure rs). normalized_nnf_match m \<and>
-         normalized_src_ports m \<and>
-         normalized_dst_ports m \<and>
-         normalized_src_ips m \<and>
-         normalized_dst_ips m \<and>
-         \<not> has_disc is_Extra m"
-      apply(simp)
+    from 1 show "\<forall> r \<in> set (lower_closure rs). normalized_nnf_match (get_match r) \<and>
+         normalized_src_ports (get_match r) \<and>
+         normalized_dst_ports (get_match r) \<and>
+         normalized_src_ips (get_match r) \<and>
+         normalized_dst_ips (get_match r) \<and>
+         \<not> has_disc is_Extra (get_match r)"
       apply(clarify)
       apply(rename_tac r)
       apply(case_tac r)
@@ -1511,7 +1507,7 @@ lemma transform_lower_closure:
     show "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
           \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
           \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
-            \<forall> m \<in> get_match ` set rs. \<not> has_disc disc m \<Longrightarrow> \<forall> m \<in> get_match ` set (lower_closure rs). \<not> has_disc disc m"
+            \<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow> \<forall> r \<in> set (lower_closure rs). \<not> has_disc disc (get_match r)"
     using simplers
     unfolding lower_closure_def
     apply - 
@@ -1541,14 +1537,16 @@ lemma transform_lower_closure:
       "\<forall>r\<in> set (optimize_matches_a lower_closure_matchexpr rs). 
         \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
       by blast
-    from m this transform_optimize_dnf_strict_structure(5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_deny, of lower_closure_matchexpr, simplified]
+    from m this transform_optimize_dnf_strict_structure(5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_deny, of lower_closure_matchexpr]
       show ?thesis by blast
     qed
 
     show"\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
          \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
-         (\<forall>a. \<not> disc (Prot a)) \<or> disc = is_Prot \<and> (\<forall> r \<in> get_match ` set rs. \<not> has_disc_negated is_Src_Ports False r \<and> \<not> has_disc_negated is_Dst_Ports False r) \<Longrightarrow>
-        \<forall> r \<in> get_match ` set rs. \<not> has_disc_negated disc False r \<Longrightarrow> \<forall> r \<in> get_match ` set (lower_closure rs). \<not> has_disc_negated disc False r"
+         (\<forall>a. \<not> disc (Prot a)) \<or> disc = is_Prot \<and>
+         (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)) \<Longrightarrow>
+        \<forall> r \<in> set rs. \<not> has_disc_negated disc False (get_match r) \<Longrightarrow>
+        \<forall> r \<in> set (lower_closure rs). \<not> has_disc_negated disc False (get_match r)"
     using simplers
     unfolding lower_closure_def
     apply - 
@@ -1595,7 +1593,7 @@ lemma transform_lower_closure:
 
 theorem iface_try_rewrite:
   assumes simplers: "simple_ruleset rs"
-      and normalized: "\<forall> m \<in> get_match ` set rs. normalized_nnf_match m"
+      and normalized: "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)"
       and wf_ipassmt1: "ipassmt_sanity_nowildcards (map_of ipassmt)" and wf_ipassmt2: "distinct (map fst ipassmt)"
       and nospoofing: "\<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipcidr_union_set (set ips)"
   shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>iface_try_rewrite ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"

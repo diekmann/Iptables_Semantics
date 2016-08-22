@@ -49,7 +49,7 @@ by eval
 
 (*Broken: (IpAddr 0xFFFF0127))  (Match (Extra ''.0.0.1/128'') ! An address must have a word boundary!*)
 
-lemma "sanity_check_simple_firewall
+lemma "simple_fw_valid
               (to_simple_firewall (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new

@@ -1,3 +1,4 @@
+section\<open>toString Functions for Primitives\<close>
 theory Primitives_toString
 imports "../Common/Lib_Enum_toString"
         "../../IP_Addresses/IP_Address_toString"
@@ -5,7 +6,6 @@ imports "../Common/Lib_Enum_toString"
         L4_Protocol
 begin
 
-section\<open>Primitives toString Functions\<close>
 
 definition ipv4_cidr_toString :: "(ipv4addr \<times> nat) \<Rightarrow> string" where
   "ipv4_cidr_toString ip_n = (case ip_n of (base, n) \<Rightarrow>  (ipv4addr_toString base @''/''@ string_of_nat n))"
@@ -15,7 +15,6 @@ definition ipv6_cidr_toString :: "(ipv6addr \<times> nat) \<Rightarrow> string" 
   "ipv6_cidr_toString ip_n = (case ip_n of (base, n) \<Rightarrow>  (ipv6addr_toString base @''/''@ string_of_nat n))"
 lemma "ipv6_cidr_toString (42540766411282592856906245548098208122, 64) = ''2001:db8::8:800:200c:417a/64''" by eval
 
-(*TODO: probably move*)
 definition primitive_protocol_toString :: "primitive_protocol \<Rightarrow> string" where
   "primitive_protocol_toString protid \<equiv> ( 
   if protid = TCP then ''tcp'' else
@@ -48,8 +47,6 @@ lemma "ports_toString ''spt: '' (0,65535) = ''''" by eval
 lemma "ports_toString ''spt: '' (1024,2048) = ''spt: 1024:2048''" by eval
 lemma "ports_toString ''spt: '' (1024,1024) = ''spt: 1024''" by eval
 
-
-(*TODO: move*)
 definition ipv4_cidr_opt_toString :: "string \<Rightarrow> ipv4addr \<times> nat \<Rightarrow> string" where
   "ipv4_cidr_opt_toString descr ip = (if ip = (0,0) then '''' else
       descr@ipv4_cidr_toString ip)"

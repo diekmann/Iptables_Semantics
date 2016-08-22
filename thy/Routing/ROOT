@@ -1,5 +1,9 @@
 
+chapter Routing
 session Routing = Simple_Firewall +
+  options [document = pdf, document_output = "output"]
+  theories [document = false]
+    "~~/src/HOL/Library/Monad_Syntax"
   theories
     Routing_Table
     Linux_Router
@@ -8,4 +12,3 @@ session Routing = Simple_Firewall +
     (*Dependencies: RoutingIpAssmt depends on Iptables_Semantics and is thus in another session*)
   document_files
     "root.tex"
-    "mathpartir.sty"

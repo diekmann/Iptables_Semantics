@@ -102,7 +102,7 @@ apply (metis eval_ternary_Not.cases common_matcher_SrcDst_defined(1) ternaryvalu
 apply (metis eval_ternary_Not.cases common_matcher_SrcDst_defined(2) ternaryvalue.distinct(1))
 done
 
-(*TODO: delete, use generic*)
+(*The primitive_matcher_generic does not know anything about IP addresses*)
 lemma match_simplematcher_SrcDst:
   "matches (common_matcher, \<alpha>) (Match (Src X)) a p \<longleftrightarrow> p_src  p \<in> ipt_iprange_to_set X"
   "matches (common_matcher, \<alpha>) (Match (Dst X)) a p \<longleftrightarrow> p_dst  p \<in> ipt_iprange_to_set X"
@@ -123,22 +123,16 @@ lemma common_matcher_SrcDst_Inter:
 
 
 
-(*TODO: delete, only use generic ones!*)
-lemmas match_simplematcher_Iface = primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher]
-lemmas match_simplematcher_Iface_not = primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher]
-
-
-
 subsection\<open>Basic optimisations\<close>
   text\<open>Perform very basic optimization. Remove matches to primitives which are essentially @{const MatchAny}\<close>
   fun optimize_primitive_univ :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
     "optimize_primitive_univ (Match (Src (IpAddrNetmask _ 0))) = MatchAny" |
     "optimize_primitive_univ (Match (Dst (IpAddrNetmask _ 0))) = MatchAny" |
-    (*TODO: the other IPs ...*)
+    (*missing: the other IPs ...*)
     "optimize_primitive_univ (Match (IIface iface)) = (if iface = ifaceAny then MatchAny else (Match (IIface iface)))" |
     "optimize_primitive_univ (Match (OIface iface)) = (if iface = ifaceAny then MatchAny else (Match (OIface iface)))" |
-    (*TODO: introduces new match. probably remove this omptimization if it causes problems? Add again?*)
-    (*"optimize_primitive_univ (Match (Src_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Src_Ports (L4Ports proto [(s, e)]))))" |
+    (*missing: L4Ports. But this introduces a new match, which causes problems.
+    "optimize_primitive_univ (Match (Src_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Src_Ports (L4Ports proto [(s, e)]))))" |
     "optimize_primitive_univ (Match (Dst_Ports (L4Ports proto [(s, e)]))) = (if s = 0 \<and> e = 0xFFFF then (Match (Prot (Proto proto))) else (Match (Dst_Ports (L4Ports proto [(s, e)]))))" |*)
     "optimize_primitive_univ (Match (Prot ProtoAny)) = MatchAny" |
     "optimize_primitive_univ (Match (L4_Flags (TCP_Flags m c))) = (if m = {} \<and> c = {} then MatchAny else (Match (L4_Flags (TCP_Flags m c))))" |
@@ -151,13 +145,10 @@ subsection\<open>Basic optimisations\<close>
     "optimize_primitive_univ (MatchAnd m1 m2) = MatchAnd (optimize_primitive_univ m1) (optimize_primitive_univ m2)" |
     "optimize_primitive_univ MatchAny = MatchAny"
 
-    (* no longer true if we optimize ports because we might introduce a match on protocol if we optimize ports*)
-    (*TODO: add sth similar*)
     lemma optimize_primitive_univ_unchanged_primitives:
     "optimize_primitive_univ (Match a) = (Match a) \<or> optimize_primitive_univ (Match a) = MatchAny"
-      apply (induction "(Match a)" rule: optimize_primitive_univ.induct)
-      apply(auto split: split_if_asm)
-      done
+      by (induction "(Match a)" rule: optimize_primitive_univ.induct)
+         (auto split: split_if_asm)
     
   
   lemma optimize_primitive_univ_correct_matchexpr: fixes m::"'i::len common_primitive match_expr"

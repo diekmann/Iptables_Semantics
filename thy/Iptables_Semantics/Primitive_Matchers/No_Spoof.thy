@@ -111,7 +111,8 @@ begin
       let ?p="(p\<lparr>p_iiface := iface_sel iface, p_src := src_ip\<rparr>)"
     
       from primitive_extractor_negation_type_matching1[OF wf_disc_sel_common_primitive(5) assms a1 a2]
-           match_simplematcher_Iface[where p = ?p] match_simplematcher_Iface_not[where p = ?p]
+           primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher, where p = ?p]
+           primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher, where p = ?p]
       have iface_matches: "(\<forall>i\<in>set (getPos i_matches). match_iface i (p_iiface ?p)) \<and>
                            (\<forall>i\<in>set (getNeg i_matches). \<not> match_iface i (p_iiface ?p))" by simp
       hence 2: "(\<forall>x\<in>set i_matches. case x of Pos i \<Rightarrow> match_iface i (iface_sel iface) | Neg i \<Rightarrow> \<not> match_iface i (iface_sel iface))"
@@ -128,7 +129,6 @@ begin
   qed
 
 
-  (*TODO: could this be useful somewhere?*)
   lemma common_primitive_not_has_primitive_expand: 
         "\<not> has_primitive (m::'i::len common_primitive match_expr) \<longleftrightarrow>
          \<not> has_disc is_Dst m \<and> 
@@ -146,31 +146,8 @@ begin
     apply(rename_tac x, case_tac x, simp_all)
    by blast
 
-  (*
-  (*TODO: we can clean up the \<not>has_disc hell below with \<not> has_primitive*)
-  lemma assumes n: "normalized_nnf_match m"
-        and p1: "(primitive_extractor (is_Iiface, iiface_sel) m) = (i_matches, rest1)"
-        and p2: "(primitive_extractor (is_Src, src_sel) rest1) = (ip_matches, rest2)"
-        shows "\<not> has_disc is_Dst rest2 \<and> 
-               \<not> has_disc is_Oiface rest2 \<and>
-               \<not> has_disc is_Prot rest2 \<and>
-               \<not> has_disc is_Src_Ports rest2 \<and>
-               \<not> has_disc is_Dst_Ports rest2 \<and>
-               \<not> has_disc is_L4_Flags rest2 \<and>
-               \<not> has_disc is_CT_State rest2 \<and>
-               \<not> has_disc is_Extra rest2 \<longleftrightarrow>
-               \<not> has_primitive rest2"
-    using p1 p2
-    unfolding common_primitive_not_has_primitive_expand
-    apply -
-    apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel_common_primitive(5)])
-    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel_common_primitive(5)])
-    apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel_common_primitive(5)])
-    apply(frule primitive_extractor_correct(3)[OF _ wf_disc_sel_common_primitive(3)], simp)
-    apply(frule primitive_extractor_correct(4)[OF _ wf_disc_sel_common_primitive(3)], simp)
-    by blast
-  *)
-  (*TODO: matcheq_matchAny is undefined for primitives. this is the proper way to call it!*)
+ 
+  (*matcheq_matchAny is undefined for primitives. this is the proper way to call it!*)
   lemma "\<not> has_primitive m \<and> matcheq_matchAny m \<longleftrightarrow> (if \<not> has_primitive m then matcheq_matchAny m else False)"
     by simp
 
@@ -230,7 +207,10 @@ begin
 
       from True have "(\<forall>m\<in>set (getPos i_matches). matches ?\<gamma> (Match (IIface m)) a (?p p)) \<and>
                       (\<forall>m\<in>set (getNeg i_matches). matches ?\<gamma> (MatchNot (Match (IIface m))) a (?p p))"
-       for p :: "('i, 'a) tagged_packet_scheme" by(simp add: negation_type_forall_split match_simplematcher_Iface match_simplematcher_Iface_not)
+       for p :: "('i, 'a) tagged_packet_scheme"
+        by(simp add: negation_type_forall_split
+            primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher]
+            primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
       hence matches_iface: "matches ?\<gamma> (alist_and (NegPos_map IIface i_matches)) a (?p p)"
         for p :: "('i,'a) tagged_packet_scheme"
         by(simp add: matches_alist_and NegPos_map_simps)
@@ -525,7 +505,7 @@ begin
       done
 
   private lemma "setbydecision_all TYPE('pkt_ext) iface rs1 FinalDeny \<union>
-                 {ip. \<forall>p :: (32,'pkt_ext) tagged_packet_scheme.
+                 {ip. \<forall>p :: ('i::len,'pkt_ext) tagged_packet_scheme.
                  approximating_bigstep_fun (common_matcher, in_doubt_allow) (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>) rs1 Undecided = Undecided}
                  \<subseteq>
                  - setbydecision TYPE('pkt_ext) iface rs1 FinalAllow"
@@ -747,7 +727,9 @@ text\<open>Examples\<close>
       apply(subst approximating_semantics_iff_fun_good_ruleset)
        apply(simp add: good_ruleset_def; fail)
       apply(simp add: bunch_of_lemmata_about_matches
-          match_simplematcher_SrcDst_not match_simplematcher_Iface match_simplematcher_Iface_not)
+          match_simplematcher_SrcDst_not
+          primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher]
+          primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
       apply(intro impI, thin_tac _)
       apply eval
      apply eval
@@ -777,7 +759,8 @@ text\<open>Examples\<close>
       apply(subst approximating_semantics_iff_fun_good_ruleset)
        apply(simp add: good_ruleset_def; fail)
       apply(simp add: bunch_of_lemmata_about_matches
-          match_simplematcher_SrcDst_not match_simplematcher_Iface match_simplematcher_Iface_not)
+          primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher]
+          primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
       apply(intro impI, thin_tac _)
       apply eval
      apply eval
@@ -812,8 +795,9 @@ text\<open>Examples\<close>
       unfolding no_spoofing_def
       apply(simp add: 1 ipcidr_union_set_def)
       apply(simp add: bunch_of_lemmata_about_matches
-           match_simplematcher_SrcDst_not match_simplematcher_Iface match_simplematcher_Iface_not)
-      apply(simp add: match_iface.simps
+          primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher]
+          primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
+      apply(simp add: match_iface.simps match_simplematcher_SrcDst_not
                       primitive_matcher_generic.Prot_single[OF primitive_matcher_generic_common_matcher]
                       primitive_matcher_generic.Prot_single_not[OF primitive_matcher_generic_common_matcher])
       done

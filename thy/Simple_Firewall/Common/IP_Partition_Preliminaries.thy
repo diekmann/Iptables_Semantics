@@ -3,11 +3,11 @@
 *)
 (*SetPartitioning.thy
   Original Author: Max Haslbeck, 2015*)
+section\<open>Partition a Set by a Specific Constraint\<close>
 theory IP_Partition_Preliminaries
 imports Main
 begin
 
-section\<open>Partition a set by a specifc constraint\<close>
 text\<open>Will be used for the IP address space partition of a firewall.
     However, this file is completely generic in terms of sets, it only imports Main.
 
@@ -51,7 +51,6 @@ context begin
      apply(simp_all add: disjoint_list_def disjoint_def)
     by fast
   
-  (* FUNCTIONS *)
   private definition addSubsetSet :: "'a set \<Rightarrow> 'a set set \<Rightarrow> 'a set set" where
     "addSubsetSet s ts = insert (s - \<Union>ts) ((op \<inter> s) ` ts) \<union> ((\<lambda>x. x - s) ` ts)"
   
@@ -60,20 +59,17 @@ context begin
     "partitioning (s#ss) ts = partitioning ss (addSubsetSet s ts)"
   
   
-  (* SIMPLE TESTS *)
+  text\<open>simple examples\<close>
   lemma "partitioning [{1::nat,2},{3,4},{5,6,7},{6},{10}] {} = {{10}, {6}, {5, 7}, {}, {3, 4}, {1, 2}}" by eval
   lemma "\<Union> {{1::nat,2},{3,4},{5,6,7},{6},{10}} = \<Union> (partitioning [{1,2},{3,4},{5,6,7},{6},{10}] {})" by eval
   lemma "disjoint (partitioning [{1::nat,2},{3,4},{5,6,7},{6},{10}] {})" by eval
   lemma "ipPartition {{1::nat,2},{3,4},{5,6,7},{6},{10}} (partitioning [{1::nat,2},{3,4},{5,6,7},{6},{10}] {})" by eval
   
-  (* OTHER LEMMAS *)
   lemma "ipPartition A {}" by(simp add: ipPartition_def)
   
   lemma ipPartitionUnion: "ipPartition As Cs \<and> ipPartition Bs Cs \<longleftrightarrow> ipPartition (As \<union> Bs) Cs"
     unfolding ipPartition_def by fast
   
-  
-  (* addSubsetSet LEMMAS *)
   private lemma disjointAddSubset: "disjoint ts \<Longrightarrow> disjoint (addSubsetSet a ts)" 
     by (auto simp add: disjoint_def addSubsetSet_def)
   
@@ -156,7 +152,6 @@ context begin
       from this disjointPartitioning_helper show ?thesis by fast
     qed
   
-  
   private lemma coversallPartitioning:"\<Union> (set ts) = \<Union> (partitioning ts {})"
   proof -
     have "\<Union> (set ts \<union> As) = \<Union> (partitioning ts As)" for As
@@ -168,7 +163,6 @@ context begin
   
   private lemma "\<Union> As = \<Union> Bs \<Longrightarrow> ipPartition As Bs \<Longrightarrow> ipPartition As (addSubsetSet a Bs)"
     by(auto simp add: ipPartition_def addSubsetSet_def)
-  
   
   private lemma ipPartitionSingleSet: "ipPartition {t} (addSubsetSet t Bs) 
                \<Longrightarrow> ipPartition {t} (partitioning ts (addSubsetSet t Bs))"
@@ -483,7 +477,6 @@ context begin
       qed
     qed
   
-  
   lemma partitioning1_subset: "a \<subseteq> \<Union> (set ts) \<Longrightarrow> a \<subseteq> \<Union> set (partitioning1 ss ts)"
     apply(induction ss arbitrary: ts a)
      apply(simp)
@@ -546,8 +539,6 @@ context begin
 
   lemma "partitioning1  [{1::nat},{2},{}] [{1},{},{2},{3}] = [{1}, {}, {2}, {3}]" by eval
 
-
-  (*random corny stuff*)
   lemma partitioning_foldr: "partitioning X B = foldr addSubsetSet X B"
     apply(induction X)
      apply(simp; fail)
@@ -566,15 +557,15 @@ context begin
     by(induction X)(simp_all)
   
   lemma "ipPartition (set X) (set (partitioning1 X [UNIV]))"
-  apply(rule ipPartitioning_helper_opt)
-    by(simp_all add: disjoint_list_def disjoint_def)
+    apply(rule ipPartitioning_helper_opt)
+      by(simp_all add: disjoint_list_def disjoint_def)
   
   lemma "(\<Union>(set (partitioning1 X [UNIV]))) = UNIV"
-  apply(subgoal_tac "UNIV = \<Union> (set (partitioning1 X [UNIV]))")
-   prefer 2
-   apply(rule complete_helper[where ts="[UNIV]", simplified])
-  apply(simp)
-  done
+    apply(subgoal_tac "UNIV = \<Union> (set (partitioning1 X [UNIV]))")
+     prefer 2
+     apply(rule complete_helper[where ts="[UNIV]", simplified])
+    apply(simp)
+    done
   
 end
 end

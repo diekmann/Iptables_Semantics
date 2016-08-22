@@ -1,5 +1,6 @@
 theory Firewall_Common
-imports Main "../Simple_Firewall/Firewall_Common_Decision_State"
+imports Main "../Simple_Firewall/Firewall_Common_Decision_State" 
+  "Common/RepeatStabilize"
 begin
 
 section\<open>Firewall Basic Syntax\<close>
@@ -51,27 +52,28 @@ lemma rm_LogEmpty_seq: "rm_LogEmpty (rs1@rs2) = rm_LogEmpty rs1 @ rm_LogEmpty rs
 
 
 text\<open>Optimize away MatchAny matches\<close>
-fun opt_MatchAny_match_expr :: "'a match_expr \<Rightarrow> 'a match_expr" where
-  "opt_MatchAny_match_expr MatchAny = MatchAny" |
-  "opt_MatchAny_match_expr (Match a) = (Match a)" |
-  "opt_MatchAny_match_expr (MatchNot (MatchNot m)) = (opt_MatchAny_match_expr m)" |
-  "opt_MatchAny_match_expr (MatchNot m) = MatchNot (opt_MatchAny_match_expr m)" |
-  "opt_MatchAny_match_expr (MatchAnd MatchAny MatchAny) = MatchAny" |
-  "opt_MatchAny_match_expr (MatchAnd MatchAny m) = (opt_MatchAny_match_expr m)" |
-  (*note: remove recursive call to opt_MatchAny_match_expr to make it probably faster*)
-  "opt_MatchAny_match_expr (MatchAnd m MatchAny) = (opt_MatchAny_match_expr m)" |
-  "opt_MatchAny_match_expr (MatchAnd _ (MatchNot MatchAny)) = (MatchNot MatchAny)" |
-  "opt_MatchAny_match_expr (MatchAnd (MatchNot MatchAny) _) = (MatchNot MatchAny)" |
-  "opt_MatchAny_match_expr (MatchAnd m1 m2) = MatchAnd (opt_MatchAny_match_expr m1) (opt_MatchAny_match_expr m2)"
+fun opt_MatchAny_match_expr_once :: "'a match_expr \<Rightarrow> 'a match_expr" where
+  "opt_MatchAny_match_expr_once MatchAny = MatchAny" |
+  "opt_MatchAny_match_expr_once (Match a) = (Match a)" |
+  "opt_MatchAny_match_expr_once (MatchNot (MatchNot m)) = (opt_MatchAny_match_expr_once m)" |
+  "opt_MatchAny_match_expr_once (MatchNot m) = MatchNot (opt_MatchAny_match_expr_once m)" |
+  "opt_MatchAny_match_expr_once (MatchAnd MatchAny MatchAny) = MatchAny" |
+  "opt_MatchAny_match_expr_once (MatchAnd MatchAny m) = (opt_MatchAny_match_expr_once m)" |
+  (*note: remove recursive call to opt_MatchAny_match_expr_once to make it probably faster*)
+  "opt_MatchAny_match_expr_once (MatchAnd m MatchAny) = (opt_MatchAny_match_expr_once m)" |
+  "opt_MatchAny_match_expr_once (MatchAnd _ (MatchNot MatchAny)) = (MatchNot MatchAny)" |
+  "opt_MatchAny_match_expr_once (MatchAnd (MatchNot MatchAny) _) = (MatchNot MatchAny)" |
+  "opt_MatchAny_match_expr_once (MatchAnd m1 m2) = MatchAnd (opt_MatchAny_match_expr_once m1) (opt_MatchAny_match_expr_once m2)"
 (* without recursive call: need to apply multiple times until it stabelizes *)
 
 
-text\<open>It is still a good idea to apply @{const opt_MatchAny_match_expr} multiple times. Example:\<close>
-lemma "MatchNot (opt_MatchAny_match_expr (MatchAnd MatchAny (MatchNot MatchAny))) = MatchNot (MatchNot MatchAny)" by simp
+text\<open>It is still a good idea to apply @{const opt_MatchAny_match_expr_once} multiple times. Example:\<close>
+lemma "MatchNot (opt_MatchAny_match_expr_once (MatchAnd MatchAny (MatchNot MatchAny))) = MatchNot (MatchNot MatchAny)" by simp
 lemma "m = (MatchAnd (MatchAnd MatchAny MatchAny) (MatchAnd MatchAny MatchAny)) \<Longrightarrow> 
-  (opt_MatchAny_match_expr^^2) m \<noteq> opt_MatchAny_match_expr m" by(simp add: funpow_def)
+  (opt_MatchAny_match_expr_once^^2) m \<noteq> opt_MatchAny_match_expr_once m" by(simp add: funpow_def)
 
-
+definition opt_MatchAny_match_expr :: "'a match_expr \<Rightarrow> 'a match_expr" where
+  "opt_MatchAny_match_expr m \<equiv> repeat_stabilize 2 opt_MatchAny_match_expr_once m"
 
 
 
@@ -144,13 +146,18 @@ lemma optimize_matches_option_simple_ruleset: "simple_ruleset rs \<Longrightarro
   proof(induction rs rule:optimize_matches_option.induct)
   qed(simp_all add: simple_ruleset_def split: option.split)
 
-lemma optimize_matches_option_preserves: "(\<And> r m. r \<in> set rs \<Longrightarrow> f (get_match r) = Some m \<Longrightarrow> P m) \<Longrightarrow>
-    \<forall> m \<in> get_match ` set (optimize_matches_option f rs). P m"
+lemma optimize_matches_option_preserves:
+  "(\<And> r m. r \<in> set rs \<Longrightarrow> f (get_match r) = Some m \<Longrightarrow> P m) \<Longrightarrow>
+    \<forall> r \<in> set (optimize_matches_option f rs). P (get_match r)"
   apply(induction rs rule: optimize_matches_option.induct)
    apply(simp; fail)
   apply(simp split: option.split)
   by fastforce
-
+(*
+lemma optimize_matches_option_preserves':
+  "\<forall> m \<in> set rs. P (get_match m) \<Longrightarrow> \<forall>m. P m \<longrightarrow> (\<forall>m'. f m = Some m' \<longrightarrow> P m') \<Longrightarrow> \<forall>m \<in> set (optimize_matches_option f rs). P (get_match m)"
+  using optimize_matches_option_preserves[simplified] by metis
+*)
 lemma optimize_matches_option_append: "optimize_matches_option f (rs1@rs2) = optimize_matches_option f rs1 @ optimize_matches_option f rs2"
   proof(induction rs1 rule: optimize_matches_option.induct)
   qed(simp_all split: option.split)
@@ -164,7 +171,7 @@ lemma optimize_matches_append: "optimize_matches f (rs1@rs2) = optimize_matches 
   by(simp add: optimize_matches_def optimize_matches_option_append)
 
 lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_match r))) \<Longrightarrow>
-    \<forall> m \<in> get_match ` set (optimize_matches f rs). P m"
+    \<forall> r \<in> set (optimize_matches f rs). P (get_match r)"
   unfolding optimize_matches_def
   apply(rule optimize_matches_option_preserves)
   by(auto split: split_if_asm)
@@ -188,7 +195,7 @@ apply(simp add: simple_ruleset_def)
 done
 
 lemma optimize_matches_a_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_action r) (get_match r)))
-    \<Longrightarrow> \<forall> m \<in> get_match ` set (optimize_matches_a f rs). P m"
+    \<Longrightarrow> \<forall> r \<in> set (optimize_matches_a f rs). P (get_match r)"
   by(induction rs)(simp_all add: optimize_matches_a_def)
 
 

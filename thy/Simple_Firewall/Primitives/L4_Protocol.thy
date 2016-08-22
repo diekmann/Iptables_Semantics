@@ -3,7 +3,6 @@ imports "../Common/Lib_Enum_toString" "~~/src/HOL/Word/Word"
 begin
 
 section\<open>Transport Layer Protocols\<close>
-
 type_synonym primitive_protocol = "8 word"
 
 definition "ICMP \<equiv> 1 :: 8 word"

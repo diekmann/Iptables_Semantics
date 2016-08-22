@@ -1,6 +1,6 @@
 theory Code_haskell
 imports
-  "../../Routing/IpRoute_Parser" (*TODO: sqrl strings don't get nicely exported to code! *)
+  "../../Routing/IpRoute_Parser"
   "../Primitive_Matchers/Parser"
 begin
 
@@ -68,7 +68,7 @@ export_code Rule
   no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt
   Pos Neg
   (*debug*)
-  sanity_check_simple_firewall
+  simple_fw_valid
   debug_ipassmt_ipv4 debug_ipassmt_ipv6
   (*ip partitioning*)
   access_matrix_pretty_ipv4 access_matrix_pretty_ipv6

@@ -23,6 +23,8 @@ section\<open>Util: listprod\<close>
 
 section\<open>Executable Packet Set Representation\<close>
 
+(* Not really used because it is not awesome :-( *)
+
 text\<open>Recall: @{const alist_and} transforms @{typ "'a negation_type list \<Rightarrow> 'a match_expr"} and uses conjunction as connective.\<close>
 
 text\<open>Symbolic (executable) representation. inner is @{text \<and>}, outer is @{text \<or>}\<close>
@@ -115,7 +117,6 @@ subsubsection\<open>Basic Set Operations\<close>
     unfolding packet_set_to_set_def
      apply(cases P1)
      apply(cases P2)
-     apply(simp)
      apply(simp add: packet_set_intersect.simps)
      apply blast
     done
@@ -125,8 +126,8 @@ subsubsection\<open>Basic Set Operations\<close>
      apply(simp add: to_packet_set_def packet_set_intersect.simps packet_set_to_set_alt)
      (*by fast very slow!*)
      apply safe
-     apply simp_all
-     apply blast+
+      apply simp_all
+      apply blast+
      done
      
     lemma packet_set_intersect_correct': "p \<in> packet_set_to_set \<gamma> (packet_set_intersect (to_packet_set a m1) (to_packet_set a m2)) \<longleftrightarrow> matches \<gamma> (MatchAnd m1 m2) a p"
@@ -172,8 +173,8 @@ subsubsection\<open>Basic Set Operations\<close>
       apply(induction ds)
        apply(simp_all add: packet_set_to_set_def)
       apply(case_tac a)
-      apply(simp_all)
-      apply blast+
+      apply(simp)
+      apply blast
       done
     lemma listprepend_correct: "packet_set_to_set \<gamma> (PacketSet (listprepend as ds)) = packet_set_to_set \<gamma> (PacketSet (map (\<lambda>a. [a]) as)) \<inter> packet_set_to_set \<gamma> (PacketSet ds)"
       apply(induction as arbitrary: )
@@ -204,8 +205,8 @@ subsubsection\<open>Basic Set Operations\<close>
       "packet_set_to_set \<gamma> (PacketSet (map ((\<lambda>a. [a]) \<circ> invertt) d)) = - (\<Inter> a \<in> set d. packet_set_to_set \<gamma> (PacketSet [[a]]))"
     apply(induction d)
      apply(simp)
-     apply(simp add: packet_set_to_set_alt)
-    apply(simp add: )
+     apply(simp add: packet_set_to_set_alt; fail)
+    apply(simp)
     apply(subst(1) packet_set_cons)
     apply(simp)
     apply(simp add: packet_set_to_set_map_singleton singleton_invertt)

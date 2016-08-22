@@ -1,8 +1,7 @@
+section\<open>The state of a firewall, abstracted only to the packet filtering outcome\<close>
 theory Firewall_Common_Decision_State
 imports Main
 begin
-
-section\<open>The state of a firewall, abstracted only to the packet filtering outcome\<close>
 
 datatype final_decision = FinalAllow | FinalDeny
 

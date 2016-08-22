@@ -44,7 +44,7 @@ lemma Drop_neq_Accept_unknown_match_tacs:
 
 
 
-(************* TODO use this more often to simplify existing proofs? ****************)
+(* use this more often to simplify existing proofs? *)
 corollary matches_induction_case_MatchNot_in_doubt_allow:
       "\<forall> a. matches (\<beta>,in_doubt_allow) m' a p = matches (\<beta>,in_doubt_allow) m a p \<Longrightarrow>
       matches (\<beta>,in_doubt_allow) (MatchNot m') a p = matches (\<beta>,in_doubt_allow) (MatchNot m) a p"

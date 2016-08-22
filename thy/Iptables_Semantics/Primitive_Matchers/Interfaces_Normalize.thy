@@ -198,7 +198,7 @@ begin
     "\<not> has_disc is_Iiface m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_input_interfaces m = Some m' \<Longrightarrow>
      \<not> has_disc is_Iiface m'"
       apply(simp add: compress_normalize_input_interfaces_def)
-      apply(drule compress_normalize_primitive_not_introduces_C[where m=m])
+      apply(drule compress_normalize_primitive_not_introduces_C[where m=m and C'=IIface])
           apply(simp_all add: wf_disc_sel_common_primitive(5))
       by(simp add: compress_interfaces_def iface_is_wildcard_ifaceAny)
       
@@ -271,7 +271,7 @@ begin
     "\<not> has_disc is_Oiface m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_output_interfaces m = Some m' \<Longrightarrow>
      \<not> has_disc is_Oiface m'"
       apply(simp add: compress_normalize_output_interfaces_def)
-      apply(drule compress_normalize_primitive_not_introduces_C[where m=m])
+      apply(drule compress_normalize_primitive_not_introduces_C[where m=m  and C'=OIface])
           apply(simp_all add: wf_disc_sel_common_primitive(6))
       by(simp add: compress_interfaces_def iface_is_wildcard_ifaceAny)
       

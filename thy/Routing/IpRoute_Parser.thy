@@ -1,8 +1,10 @@
+section Parser
 theory IpRoute_Parser
 imports Routing_Table 
   "../IP_Addresses/IP_Address_Parser"
 keywords "parse_ip_route" :: thy_decl
 begin
+text\<open>This helps to read the output of the \texttt{ip route} command into a @{typ "routing_rule list"}.\<close>
 
 definition empty_rr_hlp :: "32 prefix_match \<Rightarrow> routing_rule" where
   "empty_rr_hlp pm = routing_rule.make pm default_metric (routing_action.make '''' None)"

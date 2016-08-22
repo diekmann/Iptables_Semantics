@@ -21,7 +21,7 @@ lemma matches_ipassmt_iface_constrain_srcip_mexpr:
           | Some ips \<Rightarrow> match_iface ifce (p_iiface p) \<and> p_src p \<in> ipcidr_union_set (set ips)
           )"
 proof(cases "ipassmt ifce")
-case None thus ?thesis by(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface; fail)
+case None thus ?thesis by(simp add: ipassmt_iface_constrain_srcip_mexpr_def primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher]; fail)
 next
 case (Some ips)
   have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (uncurry IpAddrNetmask)) ips)) a p \<longleftrightarrow>
@@ -32,7 +32,7 @@ case (Some ips)
   with Some show ?thesis
     apply(simp add: ipcidr_union_set_uncurry)
     apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def bunch_of_lemmata_about_matches)
-    apply(simp add: match_simplematcher_Iface)
+    apply(simp add: primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
     done
 qed
 
@@ -58,7 +58,7 @@ begin
     proof(cases "ipassmt ifce")
     case None thus ?thesis
        apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-       apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
+       apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
        done
      next
      case (Some ips)
@@ -76,13 +76,15 @@ begin
        } note helper=this
        from Some show ?thesis
          apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-         apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def match_simplematcher_Iface_not)
+         apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
          apply(simp add: matches_DeMorgan)
          apply(simp add: helper)
-         apply(simp add: match_simplematcher_Iface_not)
+         apply(simp add: primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
          by blast
      qed
-     with IIface show ?thesis by(simp add: match_simplematcher_Iface_not match_simplematcher_Iface)
+     with IIface show ?thesis
+      by(simp add: primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher]
+                   primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
   qed(simp_all)
   
   
@@ -125,7 +127,7 @@ begin
             with Some show ?thesis by(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
         qed
     qed
-    thus ?thesis by(simp add: match_simplematcher_Iface)
+    thus ?thesis by(simp add: primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
   qed
     
 
@@ -153,9 +155,9 @@ end
 
 
 subsection\<open>Sanity checking the assumption\<close>
-(*TODO: we need a good formulation of the assumption. the case stuff is so undefined fo the None case \<dots>
-        EX-quantor is too strong
-        Also holds if EX replaced by ALL*)
+(* we need a good formulation of the assumption. the case stuff is so undefined for the None case \<dots>
+   EX-quantor is too strong
+  Also holds if EX replaced by ALL*)
 lemma "(\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipcidr_union_set (set ips)) \<Longrightarrow>
        (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips))"
   apply(cases "ipassmt (Iface (p_iiface p))")
@@ -166,8 +168,7 @@ lemma "(\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<i
 
 text\<open>Sanity check:
       If we assume that there are no spoofed packets, spoofing protection is trivially fulfilled.\<close>
-(*TODO: only 32 tagged_packet_scheme*)
-lemma "\<forall> p:: (32,'pkt_ext) tagged_packet_scheme. Iface (p_iiface p) \<in> dom ipassmt \<longrightarrow> p_src p \<in> ipcidr_union_set (set (the (ipassmt (Iface (p_iiface p))))) \<Longrightarrow> no_spoofing TYPE('pkt_ext) ipassmt rs"
+lemma "\<forall> p:: ('i::len,'pkt_ext) tagged_packet_scheme. Iface (p_iiface p) \<in> dom ipassmt \<longrightarrow> p_src p \<in> ipcidr_union_set (set (the (ipassmt (Iface (p_iiface p))))) \<Longrightarrow> no_spoofing TYPE('pkt_ext) ipassmt rs"
   apply(simp add: no_spoofing_def)
   apply(clarify)
   apply(rename_tac iface ips p)
@@ -181,7 +182,7 @@ text\<open>Sanity check:
       Then the packet's src ip must be according to ipassmt. (case Some)
       We don't case about packets from an interface which are not defined in ipassmt. (case None)\<close>
 lemma 
-  fixes p :: "(32,'pkt_ext) tagged_packet_scheme"
+  fixes p :: "('i::len,'pkt_ext) tagged_packet_scheme"
   shows "no_spoofing TYPE('pkt_ext) ipassmt rs \<Longrightarrow> 
       (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<Longrightarrow>
        case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips) | None \<Rightarrow> True"
@@ -215,10 +216,10 @@ definition ipassmt_iface_replace_srcip_mexpr :: "'i::len ipassignment \<Rightarr
 lemma matches_ipassmt_iface_replace_srcip_mexpr: 
     "matches (common_matcher, \<alpha>) (ipassmt_iface_replace_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> (case ipassmt ifce of
             None \<Rightarrow> match_iface ifce (p_iiface p)
-          | Some ips \<Rightarrow> (*match_iface ifce (p_iiface p) \<and>*) p_src p \<in> ipcidr_union_set (set ips)
+          | Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips)
           )"
 proof(cases "ipassmt ifce")
-case None thus ?thesis by(simp add: ipassmt_iface_replace_srcip_mexpr_def match_simplematcher_Iface)
+case None thus ?thesis by(simp add: ipassmt_iface_replace_srcip_mexpr_def primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
 next
 case (Some ips)
   have "matches (common_matcher, \<alpha>) (match_list_to_match_expr (map (Match \<circ> Src \<circ> (uncurry IpAddrNetmask)) ips)) a p \<longleftrightarrow>
@@ -227,7 +228,7 @@ case (Some ips)
                     match_list_matches match_simplematcher_SrcDst ipt_iprange_to_set_uncurry_IpAddrNetmask)
   with Some show ?thesis
     apply(simp add: ipassmt_iface_replace_srcip_mexpr_def bunch_of_lemmata_about_matches)
-    apply(simp add: match_simplematcher_Iface ipcidr_union_set_uncurry)
+    apply(simp add: ipcidr_union_set_uncurry)
     done
 qed
 
@@ -253,7 +254,7 @@ begin
     proof(cases "ipassmt ifce")
     case None thus ?thesis
        apply(simp add: matches_ipassmt_iface_replace_srcip_mexpr)
-       apply(simp add: ipassmt_iface_replace_srcip_mexpr_def match_simplematcher_Iface_not)
+       apply(simp add: ipassmt_iface_replace_srcip_mexpr_def primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
        done
      next
      case (Some ips)
@@ -272,11 +273,13 @@ begin
        } note helper=this
        from Some show ?thesis
          apply(simp add: matches_ipassmt_iface_replace_srcip_mexpr)
-         apply(simp add: ipassmt_iface_replace_srcip_mexpr_def match_simplematcher_Iface_not)
+         apply(simp add: ipassmt_iface_replace_srcip_mexpr_def)
          apply(simp add: helper)
          done
      qed
-     with IIface show ?thesis by(simp add: match_simplematcher_Iface_not match_simplematcher_Iface)
+     with IIface show ?thesis
+      by(simp add: primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher]
+            primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
   qed(simp_all)
 
 
@@ -300,7 +303,7 @@ begin
             with Some show ?thesis by(simp add: matches_ipassmt_iface_replace_srcip_mexpr)
         qed
     qed
-    thus ?thesis by(simp add: match_simplematcher_Iface)
+    thus ?thesis by(simp add: primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
   qed
 
 
@@ -334,7 +337,7 @@ end
   text\<open>Finally, we show that @{const ipassmt_sanity_disjoint} is really needed.\<close>
   lemma iface_replace_needs_ipassmt_disjoint:
     assumes "ipassmt_sanity_nowildcards ipassmt"
-    and iface_replace: "\<And> ifce p:: 32 tagged_packet.
+    and iface_replace: "\<And> ifce p:: 'i::len tagged_packet.
           (matches (common_matcher, \<alpha>) (ipassmt_iface_replace_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p)" 
     shows "ipassmt_sanity_disjoint ipassmt"
   unfolding ipassmt_sanity_disjoint_def
@@ -344,10 +347,10 @@ end
     from \<open>i1 \<in> dom ipassmt\<close> obtain i1_ips where i1_ips: "ipassmt i1 = Some i1_ips" by blast
     from \<open>i2 \<in> dom ipassmt\<close> obtain i2_ips where i2_ips: "ipassmt i2 = Some i2_ips" by blast
 
-    { fix p :: "32 tagged_packet"
+    { fix p :: "'i tagged_packet"
       from iface_replace[of  i1 "p\<lparr> p_iiface := iface_sel i2\<rparr>"] have
         "(p_src p \<in> ipcidr_union_set (set i2_ips) \<Longrightarrow> (p_src p \<in> ipcidr_union_set (set i1_ips)) = match_iface i1 (iface_sel i2))"
-      apply(simp add: match_simplematcher_Iface  \<open>i1 \<in> dom ipassmt\<close>)
+      apply(simp add: primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher] \<open>i1 \<in> dom ipassmt\<close>)
       apply(simp add: matches_ipassmt_iface_replace_srcip_mexpr i1_ips)
       done
       with \<open>i1 \<noteq> i2\<close> have "\<not> (p_src p \<in> ipcidr_union_set (set i2_ips) \<and> (p_src p \<in> ipcidr_union_set (set i1_ips)))"
@@ -356,7 +359,7 @@ end
     hence "\<not> (src \<in> ipcidr_union_set (set i2_ips) \<and> (src \<in> ipcidr_union_set (set i1_ips)))"
       for src
       apply(simp)
-      by (metis simple_packet.select_convs(3)) (*TODO: isnt this a tagged packet?*)
+      by (metis simple_packet.select_convs(3))
 
     thus "ipcidr_union_set (set (the (ipassmt i1))) \<inter> ipcidr_union_set (set (the (ipassmt i2))) = {}"
       apply(simp add: i1_ips i2_ips)
@@ -382,12 +385,6 @@ lemma iface_try_rewrite_simplers: "simple_ruleset rs \<Longrightarrow> simple_ru
     by(simp add: iface_try_rewrite_def optimize_matches_simple_ruleset)
 
 
-(*TODO: move?*)
-lemma match_list_to_match_expr_not_has_disc: 
-    "\<forall>a. \<not> disc (X a) \<Longrightarrow> \<not> has_disc disc (match_list_to_match_expr (map (Match \<circ> X) ls))"
-  apply(induction ls)
-   apply(simp; fail)
-  by(simp add: MatchOr_def)
 
 
 
@@ -419,13 +416,13 @@ lemma iiface_constrain_preserves_nodisc:
   qed(simp_all)
 
 lemma iface_try_rewrite_preserves_nodisc: "\<forall>a. \<not> disc (Src a) \<Longrightarrow> 
-      \<forall>m\<in>get_match ` set rs. \<not> has_disc disc m \<Longrightarrow>
-        \<forall>m\<in>get_match ` set (iface_try_rewrite ipassmt rs). \<not> has_disc disc m"   
+      \<forall>r\<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+        \<forall>r\<in> set (iface_try_rewrite ipassmt rs). \<not> has_disc disc (get_match r)"   
   apply(simp add: iface_try_rewrite_def)
   apply(intro conjI impI)
-   apply(rule optimize_matches_preserves[simplified])
+   apply(rule optimize_matches_preserves)
    apply(simp add: iiface_rewrite_preserves_nodisc)
-  apply(rule optimize_matches_preserves[simplified])
+  apply(rule optimize_matches_preserves)
   apply(simp add: iiface_constrain_preserves_nodisc)
   done
 

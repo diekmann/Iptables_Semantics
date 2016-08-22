@@ -1,3 +1,4 @@
+section\<open>Routing Table\<close>
 theory Routing_Table
 imports "../IP_Addresses/Prefix_Match"
         "../IP_Addresses/IPv4" (*we could probably generalize*)
@@ -5,6 +6,7 @@ imports "../IP_Addresses/Prefix_Match"
         "Linorder_Helper"
 begin
 
+text\<open>This section makes the necessary definitions to work with a routing table using longest prefix matching.\<close>
 subsection\<open>Definition\<close>
 
 record routing_action = 
@@ -120,8 +122,8 @@ lemma is_longest_prefix_routing_sort: "is_longest_prefix_routing (sort_rtbl r)" 
 
 section\<open>Routing table to Relation\<close>
 
-text\<open>Walking through a routing table splits the (remaining) IP space when traversing a routing table: the pair contains the IPs
-  concerned by the current rule and those left alone.\<close>
+text\<open>Walking through a routing table splits the (remaining) IP space when traversing a routing table into a pair of sets:
+ the pair contains the IPs concerned by the current rule and those left alone.\<close>
 private definition ipset_prefix_match where 
   "ipset_prefix_match pfx rg = (let pfxrg = prefix_to_wordset pfx in (rg \<inter> pfxrg, rg - pfxrg))"
 private lemma ipset_prefix_match_m[simp]:  "fst (ipset_prefix_match pfx rg) = rg \<inter> (prefix_to_wordset pfx)" by(simp only: Let_def ipset_prefix_match_def, simp)
@@ -148,6 +150,9 @@ private lemma range_prefix_match_snm[simp]: "wordinterval_to_set (snd (range_pre
   by (metis snd_conv ipset_prefix_match_nm wordinterval_setminus_set_eq prefix_to_wordinterval_set_eq range_prefix_match_def)
 
 subsection\<open>Wordintervals for Ports by Routing\<close>
+text\<open>This split, although rather trivial, 
+can be used to construct the sets (or rather: the intervals) 
+of IPs that are actually matched by an entry in a routing table.\<close>
 
 private fun routing_port_ranges :: "prefix_routing \<Rightarrow> 32 wordinterval \<Rightarrow> (string \<times> 32 wordinterval) list" where
 "routing_port_ranges [] lo = (if wordinterval_empty lo then [] else [(routing_oiface (undefined::routing_rule),lo)])" | (* insert default route to nirvana. has to match what routing_table_semantics does. *)
@@ -244,7 +249,10 @@ next
 qed
 
 subsection\<open>Reduction\<close>
-text\<open>So far, one entry in the list would be generated for each routing table entry. This reduces it to one for each port. The resulting list will represent a function from port to wordinterval.\<close>
+text\<open>So far, one entry in the list would be generated for each routing table entry. 
+This next step reduces it to one for each port. 
+The resulting list will represent a function from port to IP wordinterval.
+(It can also be understood as a function from IP (interval) to port (where the intervals don't overlap).\<close>
 
 private definition "reduce_range_destination l \<equiv>
 let ps = remdups (map fst l) in
@@ -344,7 +352,7 @@ proof -
   qed simp
   thus ?thesis
     unfolding routing_ipassmt_wi_def reduce_range_destination_def
-    by(force simp add:  Set.image_iff)
+    by(force simp add: Set.image_iff)
 qed
 
 end

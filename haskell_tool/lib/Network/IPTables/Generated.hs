@@ -728,6 +728,10 @@ instance Eq Ctstate where {
   a == b = equal_ctstate a b;
 };
 
+instance (Eq a) => Eq (Match_expr a) where {
+  a == b = equal_match_expr a b;
+};
+
 data Linord_helper a b = LinordHelper a b;
 
 linord_helper_less_eq1 ::
@@ -2311,15 +2315,78 @@ compress_protocols ps =
                else (if any (\ p ->
                               not (is_none (simple_proto_conjunct proto p)))
                           (getNeg ps)
-                      then Nothing else Just ([proto], getNeg ps))));
+                      then Nothing else Just ([proto], []))));
   });
+
+compress_normalize_protocols_step ::
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Maybe (Match_expr (Common_primitive a));
+compress_normalize_protocols_step m =
+  compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m;
+
+src_ports_sel :: forall a. (Len a) => Common_primitive a -> Ipt_l4_ports;
+src_ports_sel (Src_Ports x6) = x6;
+
+dst_ports_sel :: forall a. (Len a) => Common_primitive a -> Ipt_l4_ports;
+dst_ports_sel (Dst_Ports x7) = x7;
+
+is_Src_Ports :: forall a. (Len a) => Common_primitive a -> Bool;
+is_Src_Ports (Src x1) = False;
+is_Src_Ports (Dst x2) = False;
+is_Src_Ports (IIface x3) = False;
+is_Src_Ports (OIface x4) = False;
+is_Src_Ports (Prot x5) = False;
+is_Src_Ports (Src_Ports x6) = True;
+is_Src_Ports (Dst_Ports x7) = False;
+is_Src_Ports (L4_Flags x8) = False;
+is_Src_Ports (CT_State x9) = False;
+is_Src_Ports (Extra x10) = False;
+
+is_Dst_Ports :: forall a. (Len a) => Common_primitive a -> Bool;
+is_Dst_Ports (Src x1) = False;
+is_Dst_Ports (Dst x2) = False;
+is_Dst_Ports (IIface x3) = False;
+is_Dst_Ports (OIface x4) = False;
+is_Dst_Ports (Prot x5) = False;
+is_Dst_Ports (Src_Ports x6) = False;
+is_Dst_Ports (Dst_Ports x7) = True;
+is_Dst_Ports (L4_Flags x8) = False;
+is_Dst_Ports (CT_State x9) = False;
+is_Dst_Ports (Extra x10) = False;
+
+andfold_MatchExp :: forall a. [Match_expr a] -> Match_expr a;
+andfold_MatchExp [] = MatchAny;
+andfold_MatchExp [e] = e;
+andfold_MatchExp (e : v : va) = MatchAnd e (andfold_MatchExp (v : va));
+
+import_protocols_from_ports ::
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 Match_expr (Common_primitive a);
+import_protocols_from_ports m =
+  let {
+    (srcpts, rst1) = primitive_extractor (is_Src_Ports, src_ports_sel) m;
+    (dstpts, a) = primitive_extractor (is_Dst_Ports, dst_ports_sel) rst1;
+  } in MatchAnd
+         (MatchAnd
+           (MatchAnd
+             (andfold_MatchExp
+               (map (Match . Prot . (\ (L4Ports proto _) -> Proto proto))
+                 (getPos srcpts)))
+             (andfold_MatchExp
+               (map (Match . Prot . (\ (L4Ports proto _) -> Proto proto))
+                 (getPos dstpts))))
+           (alist_and
+             (negPos_map Src_Ports srcpts ++ negPos_map Dst_Ports dstpts)))
+         a;
 
 compress_normalize_protocols ::
   forall a.
     (Len a) => Match_expr (Common_primitive a) ->
                  Maybe (Match_expr (Common_primitive a));
 compress_normalize_protocols m =
-  compress_normalize_primitive (is_Prot, prot_sel) Prot compress_protocols m;
+  compress_normalize_protocols_step (import_protocols_from_ports m);
 
 compress_normalize_besteffort ::
   forall a.
@@ -2417,21 +2484,6 @@ optimize_matches_option f (Rule m a : rs) =
     Just ma -> Rule ma a : optimize_matches_option f rs;
   });
 
-src_ports_sel :: forall a. (Len a) => Common_primitive a -> Ipt_l4_ports;
-src_ports_sel (Src_Ports x6) = x6;
-
-is_Src_Ports :: forall a. (Len a) => Common_primitive a -> Bool;
-is_Src_Ports (Src x1) = False;
-is_Src_Ports (Dst x2) = False;
-is_Src_Ports (IIface x3) = False;
-is_Src_Ports (OIface x4) = False;
-is_Src_Ports (Prot x5) = False;
-is_Src_Ports (Src_Ports x6) = True;
-is_Src_Ports (Dst_Ports x7) = False;
-is_Src_Ports (L4_Flags x8) = False;
-is_Src_Ports (CT_State x9) = False;
-is_Src_Ports (Extra x10) = False;
-
 singletonize_L4Ports :: Ipt_l4_ports -> [Ipt_l4_ports];
 singletonize_L4Ports (L4Ports proto pts) = map (\ p -> L4Ports proto [p]) pts;
 
@@ -2471,11 +2523,6 @@ normalize_positive_src_ports ::
                  [Match_expr (Common_primitive a)];
 normalize_positive_src_ports =
   normalize_positive_ports_step (is_Src_Ports, src_ports_sel) Src_Ports;
-
-andfold_MatchExp :: forall a. [Match_expr a] -> Match_expr a;
-andfold_MatchExp [] = MatchAny;
-andfold_MatchExp [e] = e;
-andfold_MatchExp (e : v : va) = MatchAnd e (andfold_MatchExp (v : va));
 
 rewrite_negated_primitives ::
   forall a b.
@@ -2535,21 +2582,6 @@ normalize_src_ports ::
 normalize_src_ports m =
   normalize_ports_generic normalize_positive_src_ports rewrite_negated_src_ports
     m;
-
-dst_ports_sel :: forall a. (Len a) => Common_primitive a -> Ipt_l4_ports;
-dst_ports_sel (Dst_Ports x7) = x7;
-
-is_Dst_Ports :: forall a. (Len a) => Common_primitive a -> Bool;
-is_Dst_Ports (Src x1) = False;
-is_Dst_Ports (Dst x2) = False;
-is_Dst_Ports (IIface x3) = False;
-is_Dst_Ports (OIface x4) = False;
-is_Dst_Ports (Prot x5) = False;
-is_Dst_Ports (Src_Ports x6) = False;
-is_Dst_Ports (Dst_Ports x7) = True;
-is_Dst_Ports (L4_Flags x8) = False;
-is_Dst_Ports (CT_State x9) = False;
-is_Dst_Ports (Extra x10) = False;
 
 normalize_positive_dst_ports ::
   forall a.
@@ -2631,129 +2663,147 @@ optimize_primitive_univ (Match (Dst (IpAddrNetmask uv vc))) =
   (if equal_nat vc zero_nat then MatchAny
     else Match (Dst (IpAddrNetmask uv (suc (minus_nat vc one_nat)))));
 
-opt_MatchAny_match_expr :: forall a. Match_expr a -> Match_expr a;
-opt_MatchAny_match_expr MatchAny = MatchAny;
-opt_MatchAny_match_expr (Match a) = Match a;
-opt_MatchAny_match_expr (MatchNot (MatchNot m)) = opt_MatchAny_match_expr m;
-opt_MatchAny_match_expr (MatchNot (Match v)) =
-  MatchNot (opt_MatchAny_match_expr (Match v));
-opt_MatchAny_match_expr (MatchNot (MatchAnd v va)) =
-  MatchNot (opt_MatchAny_match_expr (MatchAnd v va));
-opt_MatchAny_match_expr (MatchNot MatchAny) =
-  MatchNot (opt_MatchAny_match_expr MatchAny);
-opt_MatchAny_match_expr (MatchAnd MatchAny MatchAny) = MatchAny;
-opt_MatchAny_match_expr (MatchAnd MatchAny (Match v)) =
-  opt_MatchAny_match_expr (Match v);
-opt_MatchAny_match_expr (MatchAnd MatchAny (MatchNot v)) =
-  opt_MatchAny_match_expr (MatchNot v);
-opt_MatchAny_match_expr (MatchAnd MatchAny (MatchAnd v va)) =
-  opt_MatchAny_match_expr (MatchAnd v va);
-opt_MatchAny_match_expr (MatchAnd (Match v) MatchAny) =
-  opt_MatchAny_match_expr (Match v);
-opt_MatchAny_match_expr (MatchAnd (MatchNot v) MatchAny) =
-  opt_MatchAny_match_expr (MatchNot v);
-opt_MatchAny_match_expr (MatchAnd (MatchAnd v va) MatchAny) =
-  opt_MatchAny_match_expr (MatchAnd v va);
-opt_MatchAny_match_expr (MatchAnd (Match v) (MatchNot MatchAny)) =
+opt_MatchAny_match_expr_once :: forall a. Match_expr a -> Match_expr a;
+opt_MatchAny_match_expr_once MatchAny = MatchAny;
+opt_MatchAny_match_expr_once (Match a) = Match a;
+opt_MatchAny_match_expr_once (MatchNot (MatchNot m)) =
+  opt_MatchAny_match_expr_once m;
+opt_MatchAny_match_expr_once (MatchNot (Match v)) =
+  MatchNot (opt_MatchAny_match_expr_once (Match v));
+opt_MatchAny_match_expr_once (MatchNot (MatchAnd v va)) =
+  MatchNot (opt_MatchAny_match_expr_once (MatchAnd v va));
+opt_MatchAny_match_expr_once (MatchNot MatchAny) =
+  MatchNot (opt_MatchAny_match_expr_once MatchAny);
+opt_MatchAny_match_expr_once (MatchAnd MatchAny MatchAny) = MatchAny;
+opt_MatchAny_match_expr_once (MatchAnd MatchAny (Match v)) =
+  opt_MatchAny_match_expr_once (Match v);
+opt_MatchAny_match_expr_once (MatchAnd MatchAny (MatchNot v)) =
+  opt_MatchAny_match_expr_once (MatchNot v);
+opt_MatchAny_match_expr_once (MatchAnd MatchAny (MatchAnd v va)) =
+  opt_MatchAny_match_expr_once (MatchAnd v va);
+opt_MatchAny_match_expr_once (MatchAnd (Match v) MatchAny) =
+  opt_MatchAny_match_expr_once (Match v);
+opt_MatchAny_match_expr_once (MatchAnd (MatchNot v) MatchAny) =
+  opt_MatchAny_match_expr_once (MatchNot v);
+opt_MatchAny_match_expr_once (MatchAnd (MatchAnd v va) MatchAny) =
+  opt_MatchAny_match_expr_once (MatchAnd v va);
+opt_MatchAny_match_expr_once (MatchAnd (Match v) (MatchNot MatchAny)) =
   MatchNot MatchAny;
-opt_MatchAny_match_expr (MatchAnd (MatchNot v) (MatchNot MatchAny)) =
+opt_MatchAny_match_expr_once (MatchAnd (MatchNot v) (MatchNot MatchAny)) =
   MatchNot MatchAny;
-opt_MatchAny_match_expr (MatchAnd (MatchAnd v va) (MatchNot MatchAny)) =
+opt_MatchAny_match_expr_once (MatchAnd (MatchAnd v va) (MatchNot MatchAny)) =
   MatchNot MatchAny;
-opt_MatchAny_match_expr (MatchAnd (MatchNot MatchAny) (Match v)) =
+opt_MatchAny_match_expr_once (MatchAnd (MatchNot MatchAny) (Match v)) =
   MatchNot MatchAny;
-opt_MatchAny_match_expr (MatchAnd (MatchNot MatchAny) (MatchNot (Match va))) =
-  MatchNot MatchAny;
-opt_MatchAny_match_expr (MatchAnd (MatchNot MatchAny) (MatchNot (MatchNot va)))
-  = MatchNot MatchAny;
-opt_MatchAny_match_expr
+opt_MatchAny_match_expr_once
+  (MatchAnd (MatchNot MatchAny) (MatchNot (Match va))) = MatchNot MatchAny;
+opt_MatchAny_match_expr_once
+  (MatchAnd (MatchNot MatchAny) (MatchNot (MatchNot va))) = MatchNot MatchAny;
+opt_MatchAny_match_expr_once
   (MatchAnd (MatchNot MatchAny) (MatchNot (MatchAnd va vb))) =
   MatchNot MatchAny;
-opt_MatchAny_match_expr (MatchAnd (MatchNot MatchAny) (MatchAnd v va)) =
+opt_MatchAny_match_expr_once (MatchAnd (MatchNot MatchAny) (MatchAnd v va)) =
   MatchNot MatchAny;
-opt_MatchAny_match_expr (MatchAnd (Match v) (Match va)) =
-  MatchAnd (opt_MatchAny_match_expr (Match v))
-    (opt_MatchAny_match_expr (Match va));
-opt_MatchAny_match_expr (MatchAnd (Match v) (MatchNot (Match vb))) =
-  MatchAnd (opt_MatchAny_match_expr (Match v))
-    (opt_MatchAny_match_expr (MatchNot (Match vb)));
-opt_MatchAny_match_expr (MatchAnd (Match v) (MatchNot (MatchNot vb))) =
-  MatchAnd (opt_MatchAny_match_expr (Match v))
-    (opt_MatchAny_match_expr (MatchNot (MatchNot vb)));
-opt_MatchAny_match_expr (MatchAnd (Match v) (MatchNot (MatchAnd vb vc))) =
-  MatchAnd (opt_MatchAny_match_expr (Match v))
-    (opt_MatchAny_match_expr (MatchNot (MatchAnd vb vc)));
-opt_MatchAny_match_expr (MatchAnd (Match v) (MatchAnd va vb)) =
-  MatchAnd (opt_MatchAny_match_expr (Match v))
-    (opt_MatchAny_match_expr (MatchAnd va vb));
-opt_MatchAny_match_expr (MatchAnd (MatchNot (Match vb)) (Match va)) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (Match vb)))
-    (opt_MatchAny_match_expr (Match va));
-opt_MatchAny_match_expr (MatchAnd (MatchNot (MatchNot vb)) (Match va)) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (MatchNot vb)))
-    (opt_MatchAny_match_expr (Match va));
-opt_MatchAny_match_expr (MatchAnd (MatchNot (MatchAnd vb vc)) (Match va)) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (MatchAnd vb vc)))
-    (opt_MatchAny_match_expr (Match va));
-opt_MatchAny_match_expr (MatchAnd (MatchNot (Match va)) (MatchNot (Match vb))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (Match va)))
-    (opt_MatchAny_match_expr (MatchNot (Match vb)));
-opt_MatchAny_match_expr
+opt_MatchAny_match_expr_once (MatchAnd (Match v) (Match va)) =
+  MatchAnd (opt_MatchAny_match_expr_once (Match v))
+    (opt_MatchAny_match_expr_once (Match va));
+opt_MatchAny_match_expr_once (MatchAnd (Match v) (MatchNot (Match vb))) =
+  MatchAnd (opt_MatchAny_match_expr_once (Match v))
+    (opt_MatchAny_match_expr_once (MatchNot (Match vb)));
+opt_MatchAny_match_expr_once (MatchAnd (Match v) (MatchNot (MatchNot vb))) =
+  MatchAnd (opt_MatchAny_match_expr_once (Match v))
+    (opt_MatchAny_match_expr_once (MatchNot (MatchNot vb)));
+opt_MatchAny_match_expr_once (MatchAnd (Match v) (MatchNot (MatchAnd vb vc))) =
+  MatchAnd (opt_MatchAny_match_expr_once (Match v))
+    (opt_MatchAny_match_expr_once (MatchNot (MatchAnd vb vc)));
+opt_MatchAny_match_expr_once (MatchAnd (Match v) (MatchAnd va vb)) =
+  MatchAnd (opt_MatchAny_match_expr_once (Match v))
+    (opt_MatchAny_match_expr_once (MatchAnd va vb));
+opt_MatchAny_match_expr_once (MatchAnd (MatchNot (Match vb)) (Match va)) =
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (Match vb)))
+    (opt_MatchAny_match_expr_once (Match va));
+opt_MatchAny_match_expr_once (MatchAnd (MatchNot (MatchNot vb)) (Match va)) =
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (MatchNot vb)))
+    (opt_MatchAny_match_expr_once (Match va));
+opt_MatchAny_match_expr_once (MatchAnd (MatchNot (MatchAnd vb vc)) (Match va)) =
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (MatchAnd vb vc)))
+    (opt_MatchAny_match_expr_once (Match va));
+opt_MatchAny_match_expr_once
+  (MatchAnd (MatchNot (Match va)) (MatchNot (Match vb))) =
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (Match va)))
+    (opt_MatchAny_match_expr_once (MatchNot (Match vb)));
+opt_MatchAny_match_expr_once
   (MatchAnd (MatchNot (MatchNot va)) (MatchNot (Match vb))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (MatchNot va)))
-    (opt_MatchAny_match_expr (MatchNot (Match vb)));
-opt_MatchAny_match_expr
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (MatchNot va)))
+    (opt_MatchAny_match_expr_once (MatchNot (Match vb)));
+opt_MatchAny_match_expr_once
   (MatchAnd (MatchNot (MatchAnd va vc)) (MatchNot (Match vb))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (MatchAnd va vc)))
-    (opt_MatchAny_match_expr (MatchNot (Match vb)));
-opt_MatchAny_match_expr
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (MatchAnd va vc)))
+    (opt_MatchAny_match_expr_once (MatchNot (Match vb)));
+opt_MatchAny_match_expr_once
   (MatchAnd (MatchNot (Match va)) (MatchNot (MatchNot vb))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (Match va)))
-    (opt_MatchAny_match_expr (MatchNot (MatchNot vb)));
-opt_MatchAny_match_expr
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (Match va)))
+    (opt_MatchAny_match_expr_once (MatchNot (MatchNot vb)));
+opt_MatchAny_match_expr_once
   (MatchAnd (MatchNot (MatchNot va)) (MatchNot (MatchNot vb))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (MatchNot va)))
-    (opt_MatchAny_match_expr (MatchNot (MatchNot vb)));
-opt_MatchAny_match_expr
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (MatchNot va)))
+    (opt_MatchAny_match_expr_once (MatchNot (MatchNot vb)));
+opt_MatchAny_match_expr_once
   (MatchAnd (MatchNot (MatchAnd va vc)) (MatchNot (MatchNot vb))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (MatchAnd va vc)))
-    (opt_MatchAny_match_expr (MatchNot (MatchNot vb)));
-opt_MatchAny_match_expr
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (MatchAnd va vc)))
+    (opt_MatchAny_match_expr_once (MatchNot (MatchNot vb)));
+opt_MatchAny_match_expr_once
   (MatchAnd (MatchNot (Match va)) (MatchNot (MatchAnd vb vc))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (Match va)))
-    (opt_MatchAny_match_expr (MatchNot (MatchAnd vb vc)));
-opt_MatchAny_match_expr
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (Match va)))
+    (opt_MatchAny_match_expr_once (MatchNot (MatchAnd vb vc)));
+opt_MatchAny_match_expr_once
   (MatchAnd (MatchNot (MatchNot va)) (MatchNot (MatchAnd vb vc))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (MatchNot va)))
-    (opt_MatchAny_match_expr (MatchNot (MatchAnd vb vc)));
-opt_MatchAny_match_expr
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (MatchNot va)))
+    (opt_MatchAny_match_expr_once (MatchNot (MatchAnd vb vc)));
+opt_MatchAny_match_expr_once
   (MatchAnd (MatchNot (MatchAnd va vd)) (MatchNot (MatchAnd vb vc))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (MatchAnd va vd)))
-    (opt_MatchAny_match_expr (MatchNot (MatchAnd vb vc)));
-opt_MatchAny_match_expr (MatchAnd (MatchNot (Match vc)) (MatchAnd va vb)) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (Match vc)))
-    (opt_MatchAny_match_expr (MatchAnd va vb));
-opt_MatchAny_match_expr (MatchAnd (MatchNot (MatchNot vc)) (MatchAnd va vb)) =
-  MatchAnd (opt_MatchAny_match_expr (MatchNot (MatchNot vc)))
-    (opt_MatchAny_match_expr (MatchAnd va vb));
-opt_MatchAny_match_expr (MatchAnd (MatchNot (MatchAnd vc vd)) (MatchAnd va vb))
-  = MatchAnd (opt_MatchAny_match_expr (MatchNot (MatchAnd vc vd)))
-      (opt_MatchAny_match_expr (MatchAnd va vb));
-opt_MatchAny_match_expr (MatchAnd (MatchAnd v va) (Match vb)) =
-  MatchAnd (opt_MatchAny_match_expr (MatchAnd v va))
-    (opt_MatchAny_match_expr (Match vb));
-opt_MatchAny_match_expr (MatchAnd (MatchAnd v va) (MatchNot (Match vc))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchAnd v va))
-    (opt_MatchAny_match_expr (MatchNot (Match vc)));
-opt_MatchAny_match_expr (MatchAnd (MatchAnd v va) (MatchNot (MatchNot vc))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchAnd v va))
-    (opt_MatchAny_match_expr (MatchNot (MatchNot vc)));
-opt_MatchAny_match_expr (MatchAnd (MatchAnd v va) (MatchNot (MatchAnd vc vd))) =
-  MatchAnd (opt_MatchAny_match_expr (MatchAnd v va))
-    (opt_MatchAny_match_expr (MatchNot (MatchAnd vc vd)));
-opt_MatchAny_match_expr (MatchAnd (MatchAnd v va) (MatchAnd vb vc)) =
-  MatchAnd (opt_MatchAny_match_expr (MatchAnd v va))
-    (opt_MatchAny_match_expr (MatchAnd vb vc));
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (MatchAnd va vd)))
+    (opt_MatchAny_match_expr_once (MatchNot (MatchAnd vb vc)));
+opt_MatchAny_match_expr_once (MatchAnd (MatchNot (Match vc)) (MatchAnd va vb)) =
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (Match vc)))
+    (opt_MatchAny_match_expr_once (MatchAnd va vb));
+opt_MatchAny_match_expr_once
+  (MatchAnd (MatchNot (MatchNot vc)) (MatchAnd va vb)) =
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (MatchNot vc)))
+    (opt_MatchAny_match_expr_once (MatchAnd va vb));
+opt_MatchAny_match_expr_once
+  (MatchAnd (MatchNot (MatchAnd vc vd)) (MatchAnd va vb)) =
+  MatchAnd (opt_MatchAny_match_expr_once (MatchNot (MatchAnd vc vd)))
+    (opt_MatchAny_match_expr_once (MatchAnd va vb));
+opt_MatchAny_match_expr_once (MatchAnd (MatchAnd v va) (Match vb)) =
+  MatchAnd (opt_MatchAny_match_expr_once (MatchAnd v va))
+    (opt_MatchAny_match_expr_once (Match vb));
+opt_MatchAny_match_expr_once (MatchAnd (MatchAnd v va) (MatchNot (Match vc))) =
+  MatchAnd (opt_MatchAny_match_expr_once (MatchAnd v va))
+    (opt_MatchAny_match_expr_once (MatchNot (Match vc)));
+opt_MatchAny_match_expr_once (MatchAnd (MatchAnd v va) (MatchNot (MatchNot vc)))
+  = MatchAnd (opt_MatchAny_match_expr_once (MatchAnd v va))
+      (opt_MatchAny_match_expr_once (MatchNot (MatchNot vc)));
+opt_MatchAny_match_expr_once
+  (MatchAnd (MatchAnd v va) (MatchNot (MatchAnd vc vd))) =
+  MatchAnd (opt_MatchAny_match_expr_once (MatchAnd v va))
+    (opt_MatchAny_match_expr_once (MatchNot (MatchAnd vc vd)));
+opt_MatchAny_match_expr_once (MatchAnd (MatchAnd v va) (MatchAnd vb vc)) =
+  MatchAnd (opt_MatchAny_match_expr_once (MatchAnd v va))
+    (opt_MatchAny_match_expr_once (MatchAnd vb vc));
+
+repeat_stabilize :: forall a. (Eq a) => Nat -> (a -> a) -> a -> a;
+repeat_stabilize n uu v =
+  (if equal_nat n zero_nat then v
+    else let {
+           v_new = uu v;
+         } in (if v == v_new then v
+                else repeat_stabilize (minus_nat n one_nat) uu v_new));
+
+opt_MatchAny_match_expr :: forall a. (Eq a) => Match_expr a -> Match_expr a;
+opt_MatchAny_match_expr m =
+  repeat_stabilize (nat_of_integer (2 :: Integer)) opt_MatchAny_match_expr_once
+    m;
 
 normalize_rules_dnf :: forall a. [Rule a] -> [Rule a];
 normalize_rules_dnf [] = [];
@@ -3786,14 +3836,6 @@ has_disc uu MatchAny = False;
 has_disc disc (Match a) = disc a;
 has_disc disc (MatchNot m) = has_disc disc m;
 has_disc disc (MatchAnd m1 m2) = has_disc disc m1 || has_disc disc m2;
-
-repeat_stabilize :: forall a. (Eq a) => Nat -> (a -> a) -> a -> a;
-repeat_stabilize n uu v =
-  (if equal_nat n zero_nat then v
-    else let {
-           v_new = uu v;
-         } in (if v == v_new then v
-                else repeat_stabilize (minus_nat n one_nat) uu v_new));
 
 rewrite_Goto_chain_safe ::
   forall a. ([Prelude.Char] -> Maybe [Rule a]) -> [Rule a] -> Maybe [Rule a];

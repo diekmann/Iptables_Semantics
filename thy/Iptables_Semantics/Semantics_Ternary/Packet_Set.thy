@@ -10,10 +10,9 @@ Very work in progress, such pre-alpha, wow.
 Probably everything here wants a simple ruleset.
 \<close>
 
+(* Not really used because it is not awesome :-( *)
 
-(*TODO: collect_by_action
-has_Default \<Longrightarrow> UNIV - collect_drop = collect_allow
-*)
+
 
 subsection\<open>The set of all accepted packets\<close>
   text\<open>
@@ -312,7 +311,7 @@ apply(simp_all add: simple_ruleset_def packet_set_union_correct packet_set_opt_c
 done
 
 
-text\<open>executable!\<close>
+text\<open>executable! But not really usable.\<close>
 export_code collect_allow_impl_v2 in SML
 
 
@@ -425,10 +424,5 @@ try0 now its fast*)
 by force (*>2s on my system!*)
 
 
-(*todo: compute intersection*)
-
-(*scratch*)
-(*can we use this to collect the Allow set?*)
-lemma "UNIV - ((P \<union> - A) \<inter> X) =  - ((-( - P \<inter> A)) \<inter> X)" by blast
 
 end

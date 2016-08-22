@@ -13,6 +13,7 @@ session "Bitmagic" = IP_Addresses +
   theories
   document_files
     "root.tex"
+    "root.bib"
     "mathpartir.sty"
 
 session "Iptables_Semantics" = Routing +
@@ -48,11 +49,11 @@ session "Iptables_Semantics" = Routing +
     "Primitive_Matchers/Primitive_Abstract"
     "Primitive_Matchers/Code_Interface"
     "Primitive_Matchers/Parser"
-    "Primitive_Matchers/Iface_Attic"
     "Simple_Firewall/SimpleFw_Compliance"
     "Examples/Code_haskell"
   document_files
     "root.tex"
+    "root.bib"
     "mathpartir.sty"
 
 session "Iptables_Semantics_Documentation" = Iptables_Semantics +
@@ -67,13 +68,16 @@ session "Iptables_Semantics_Documentation" = Iptables_Semantics +
     Documentation
   document_files
     "root.tex"
+    "root.bib"
     "mathpartir.sty"
 
 session "Iptables_Semantics_Examples" = Iptables_Semantics_Documentation +
    theories
     "Examples/Parser_Test/Parser_Test"
     "Examples/Parser_Test/Parser6_Test"
+    "Examples/Small_Examples"
     "Examples/Fail/Ports_Fail"
+    "Examples/Contrived/Contrived_Example"
     "Examples/Synology_Diskstation_DS414/Analyze_Synology_Diskstation"
     "Examples/Ringofsaturn_com/Analyze_Ringofsaturn_com"
     "Examples/SQRL_Shorewall/Analyze_SQRL_Shorewall"
@@ -84,6 +88,7 @@ session "Iptables_Semantics_Examples" = Iptables_Semantics_Documentation +
     "Examples/IPPartEval/IP_Address_Space_Examples_All_Small"
   document_files
     "root.tex"
+    "root.bib"
     "mathpartir.sty"
 
 
@@ -94,6 +99,7 @@ session "Iptables_Semantics_Examples_Large1" = Iptables_Semantics_Documentation 
     "Examples/TUM_Net_Firewall/TUM_Simple_FW"
   document_files
     "root.tex"
+    "root.bib"
     "mathpartir.sty"
     
 session "Iptables_Semantics_Examples_Large2" = Iptables_Semantics_Documentation +
@@ -101,4 +107,5 @@ session "Iptables_Semantics_Examples_Large2" = Iptables_Semantics_Documentation 
     "Examples/IPPartEval/IP_Address_Space_Examples_All_Large"
   document_files
     "root.tex"
+    "root.bib"
     "mathpartir.sty"
