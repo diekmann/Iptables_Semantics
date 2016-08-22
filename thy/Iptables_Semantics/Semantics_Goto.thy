@@ -1024,12 +1024,6 @@ begin
     "rewrite_Goto cs = the (rewrite_Goto_safe cs)"
 
 
-  private lemma "rewrite_Goto_chain_safe \<Gamma> rs = Some rs' \<Longrightarrow> rewrite_Goto_chain \<Gamma> rs = rs'"
-    apply(induction \<Gamma> rs arbitrary: rs' rule: rewrite_Goto_chain_safe.induct)
-    apply(auto split: option.split_asm)
-    done
-
-
   private lemma step_IH_cong: "(\<And>s. \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs1, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs2, s\<rangle> \<Rightarrow> t) \<Longrightarrow>
          \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>r#rs1, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>r#rs2, s\<rangle> \<Rightarrow> t"
   apply(rule iffI)
