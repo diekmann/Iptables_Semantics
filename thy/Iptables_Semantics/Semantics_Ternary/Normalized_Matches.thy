@@ -374,7 +374,6 @@ lemma "normalize_match (MatchNot (MatchAnd (Match ip_src) (Match tcp))) = [Match
 
 subsection\<open>Functions which preserve @{const normalized_nnf_match}\<close>
 
-(* TODO: this is the place to collect functions that maintain the normalized structure *)
 lemma optimize_matches_option_normalized_nnf_match: "(\<And> r. r \<in> set rs \<Longrightarrow> normalized_nnf_match (get_match r)) \<Longrightarrow>
      (\<And>m m'. normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m') \<Longrightarrow>
       \<forall> r \<in> set (optimize_matches_option f rs). normalized_nnf_match (get_match r)"

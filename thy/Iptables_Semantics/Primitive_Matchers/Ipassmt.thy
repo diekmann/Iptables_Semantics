@@ -123,7 +123,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
   (*TODO: proof nochmal ordentlich machen!*)
   lemma "distinct (map fst ipassmt) \<Longrightarrow>
     map_of (ipassmt_ignore_wildcard_list ipassmt) = ipassmt_ignore_wildcard (map_of ipassmt)"
-    apply(simp add: ipassmt_ignore_wildcard_list_def ipassmt_ignore_wildcard_def)
+      apply(simp add: ipassmt_ignore_wildcard_list_def ipassmt_ignore_wildcard_def)
       apply(simp add: wordinterval_eq_set_eq)
       apply(simp add: l2wi)
       apply(simp add: ipcidr_to_interval_def)
@@ -134,9 +134,11 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
       apply(simp)
       apply(simp split:option.split option.split_asm)
       apply(simp add: ipcidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
-      apply(safe)
-                        apply(simp_all)
-      by (simp add: rev_image_eqI)
+      apply(simp add: case_prod_unfold)
+      by blast
+      (*apply(safe)
+                       apply(simp_all)
+      by (simp add: rev_image_eqI)*)
       
 
   
