@@ -485,7 +485,6 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
     apply(simp add: ports_to_set)
     by auto
 
-
   lemma singletonize_L4Ports_normalized_generic:
     assumes wf_disc_sel: "wf_disc_sel (disc,sel) C"
     and "m' \<in> (\<lambda>spt. Match (C spt)) ` set (singletonize_L4Ports pt)"
@@ -494,7 +493,7 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
     apply(case_tac pt)
     apply(simp)
     apply(induction m')
-    by(auto simp: wf_disc_sel.simps)
+        by(auto simp: wf_disc_sel.simps)
 
   lemma singletonize_L4Ports_normalized_src_ports:
     "m' \<in> (\<lambda>spt. Match (Src_Ports spt)) ` set (singletonize_L4Ports pt) \<Longrightarrow> normalized_src_ports m'"
@@ -507,16 +506,6 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
     using singletonize_L4Ports_normalized_generic[OF wf_disc_sel_common_primitive(2)] by blast
 
   declare singletonize_L4Ports.simps[simp del]
-
-  (*
-  lemma normalized_src_ports_singletonize_combine_rst: 
-  "normalized_src_ports rst \<Longrightarrow>
-    m' \<in> (\<lambda>spt. MatchAnd (Match (Src_Ports spt)) rst) ` set (singletonize_L4Ports pt) \<Longrightarrow>
-      normalized_src_ports m'"
-   unfolding normalized_src_ports_def2
-   apply(rule normalized_n_primitive_MatchAnd_combine_map)
-     apply(simp_all)
-   using singletonize_L4Ports_normalized_src_ports[simplified normalized_src_ports_def2] by fastforce*)
 
 
   lemma normalized_ports_singletonize_combine_rst:
@@ -714,7 +703,6 @@ subsection\<open>Complete Normalization\<close>
     apply(rule not_has_disc_normalize_match)
      using noNeg n by blast+
 
-  (*TODO: isar*)
   lemma normalize_ports_generic:
     assumes n: "normalized_nnf_match m"
     and normalize_pos: "\<And>m. normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated disc False m \<Longrightarrow>
@@ -724,41 +712,48 @@ subsection\<open>Complete Normalization\<close>
     and noNeg: "\<And>m. normalized_nnf_match m \<Longrightarrow> \<not> has_disc_negated disc False (rewrite_neg m)"
     shows
         "match_list \<gamma> (normalize_ports_generic normalize_pos rewrite_neg m) a p \<longleftrightarrow> matches \<gamma> m a p"
-     apply(simp add: normalize_ports_generic_def)
-     apply(rule)
-      subgoal
-      apply(simp add: match_list_concat)
-      apply(clarify, rename_tac ls)
-      apply(subgoal_tac "normalized_nnf_match ls")
-       prefer 2
-       using normalized_nnf_match_normalize_match apply blast
+    unfolding normalize_ports_generic_def
+    proof
+      have 1: "ls \<in> set (normalize_match (rewrite_neg m)) \<Longrightarrow>
+          match_list \<gamma> (normalize_pos ls) a p \<Longrightarrow> normalized_nnf_match ls \<Longrightarrow> matches \<gamma> m a p"
+      for ls
       apply(subst(asm) normalize_pos)
         subgoal using normalized_nnf_match_normalize_match by blast
-       subgoal for ls
-       apply(rule_tac m="rewrite_neg m" in not_has_disc_normalize_match)
+       subgoal apply(rule_tac m="rewrite_neg m" in not_has_disc_normalize_match)
         using noNeg n apply blast
        by blast
       apply(subgoal_tac "matches \<gamma> (rewrite_neg m) a p")
        using rewrite_neg[OF n] apply blast
       using in_normalized_matches[where \<gamma>=\<gamma> and a=a and p=p] by blast
 
-     apply(subst(asm) rewrite_neg[OF n, symmetric])
-     apply(subst(asm) matches_to_match_list_normalize)
-     apply(subst(asm) match_list_matches)
-     apply(elim bexE, rename_tac ls)
-     apply(subgoal_tac "normalized_nnf_match ls")
-      prefer 2
-      using normalized_nnf_match_normalize_match apply blast
-     apply(simp add: match_list_concat)
-     apply(rule_tac x=ls in bexI)
-      prefer 2 apply(simp; fail)
-     apply(subst normalize_pos)
-       apply(simp_all)
-     subgoal for ls
-     apply(rule_tac m="rewrite_neg m" in not_has_disc_normalize_match) (*TODO: same as above*)
+      show "match_list \<gamma> (concat (map normalize_pos (normalize_match (rewrite_neg m)))) a p \<Longrightarrow> matches \<gamma> m a p"
+      apply(simp add: match_list_concat)
+      apply(clarify, rename_tac ls)
+      apply(subgoal_tac "normalized_nnf_match ls")
+       using 1 apply(simp; fail)
+      using normalized_nnf_match_normalize_match by blast
+    next
+      have 1: "ls \<in> set (normalize_match (rewrite_neg m)) \<Longrightarrow>
+          matches \<gamma> ls a p \<Longrightarrow>
+          normalized_nnf_match ls \<Longrightarrow>
+          match_list \<gamma> (concat (map normalize_pos (normalize_match (rewrite_neg m)))) a p" for ls
+       apply(simp add: match_list_concat)
+       apply(rule_tac x=ls in bexI)
+        prefer 2 apply(simp; fail)
+       apply(subst normalize_pos)
+         apply(simp_all)
+       apply(rule_tac m="rewrite_neg m" in not_has_disc_normalize_match)
         using noNeg n apply blast
        by blast
-     done
+      show "matches \<gamma> m a p \<Longrightarrow> match_list \<gamma> (concat (map normalize_pos (normalize_match (rewrite_neg m)))) a p"
+       apply(subst(asm) rewrite_neg[OF n, symmetric])
+       apply(subst(asm) matches_to_match_list_normalize)
+       apply(subst(asm) match_list_matches)
+       apply(elim bexE, rename_tac ls)
+       apply(subgoal_tac "normalized_nnf_match ls")
+        using 1 apply blast
+       using normalized_nnf_match_normalize_match by blast
+    qed
 
 
   lemma normalize_ports_generic_normalized_n_primitive:
@@ -983,7 +978,6 @@ subsection\<open>Complete Normalization\<close>
       by(simp_all add: disc2_noC disc2_noProt normalize_dst_ports_def normalize_ports_generic_def
                 normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
   
-  
   lemma normalize_src_ports_preserves_normalized_not_has_disc:
     assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc disc2 m"
       and disc2_noC: "\<forall>a. \<not> disc2 (Src_Ports a)"
@@ -1004,7 +998,6 @@ subsection\<open>Complete Normalization\<close>
       apply(simp add: disc2_noC disc2_noProt)+
   by (simp add: normalize_ports_generic_def normalize_positive_dst_ports_def normalize_dst_ports_def rewrite_negated_dst_ports_def)
   
-  
   lemma normalize_src_ports_preserves_normalized_not_has_disc_negated:
     assumes n: "normalized_nnf_match m" and nodisc: "\<not> has_disc_negated disc2 False m"
       and disc2_noProt: "(\<forall>a. \<not> disc2 (Prot a)) \<or> \<not> has_disc_negated is_Src_Ports False m"
@@ -1023,8 +1016,6 @@ subsection\<open>Complete Normalization\<close>
       apply(simp add: disc2_noProt)+
   by (simp add: normalize_ports_generic_def normalize_positive_dst_ports_def normalize_dst_ports_def rewrite_negated_dst_ports_def)
 
-
-(*TODO: die ganzen matchAnys gehoeren mal ordentlich weg!*)
 value[code] "normalize_src_ports
                 (MatchAnd (Match (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))
                    (MatchAnd (Match (Prot (Proto TCP)))
