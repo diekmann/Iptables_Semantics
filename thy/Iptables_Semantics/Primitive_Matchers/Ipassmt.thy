@@ -120,7 +120,6 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
     "ipassmt_ignore_wildcard_list ipassmt = filter (\<lambda>(_,ips).  \<not> wordinterval_eq (l2wi (map ipcidr_to_interval ips)) wordinterval_UNIV) ipassmt"
 
   (*distinct fst ipassmt notwendig?*)
-  (*TODO: proof nochmal ordentlich machen!*)
   lemma "distinct (map fst ipassmt) \<Longrightarrow>
     map_of (ipassmt_ignore_wildcard_list ipassmt) = ipassmt_ignore_wildcard (map_of ipassmt)"
       apply(simp add: ipassmt_ignore_wildcard_list_def ipassmt_ignore_wildcard_def)
@@ -221,25 +220,25 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
     apply(rule)
      apply(clarify)
      apply(simp)
-     apply(rename_tac i1 i2 ips1 ips2)
+     subgoal for i1 i2 ips1 ips2
      apply(erule_tac x=i1 in ballE)
       prefer 2
-      using dom_ipassmt_ignore_wildcard apply (metis domI option.sel) (*TODO: tune*)
+      using dom_ipassmt_ignore_wildcard  apply (metis domI option.sel)
      apply(erule_tac x=i2 in ballE)
       prefer 2
-      using dom_ipassmt_ignore_wildcard apply (metis domI domIff option.sel) (*TODO: tune*)
-     apply(simp add: ipassmt_ignore_wildcard_the; fail)
+      using dom_ipassmt_ignore_wildcard apply (metis domI domIff option.sel)
+     by(simp add: ipassmt_ignore_wildcard_the; fail)
     apply(clarify)
     apply(simp)
-    apply(rename_tac i1 i2 ips1 ips2)
+    subgoal for i1 i2 ips1 ips2
     apply(erule_tac x=i1 in ballE)
      prefer 2
      using dom_ipassmt_ignore_wildcard apply auto[1]
     apply(erule_tac x=i2 in ballE)
      prefer 2
      using dom_ipassmt_ignore_wildcard apply auto[1]
-    apply(simp add: ipassmt_ignore_wildcard_the)
-    done
+    by(simp add: ipassmt_ignore_wildcard_the)
+   done
 
   text\<open>Confusing names: @{const ipassmt_sanity_nowildcards} refers to wildcard interfaces.
        @{const ipassmt_ignore_wildcard} refers to the UNIV ip range.
@@ -279,7 +278,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
        assume "k \<noteq> ifce"
        show False
        proof(cases "(ipassmt_ignore_wildcard ipassmt) ifce")
-       case (Some i_ips') (*TODO: proofs mainly by sledgehammer*)
+       case (Some i_ips') (*proofs mainly by sledgehammer*)
          hence "i_ips' = i_ips" using ifce ipassmt_ignore_wildcard_the(2) by fastforce
          hence "(ipassmt_ignore_wildcard ipassmt) k = Some i_ips" using Some ifce ipassmt_ignore_wildcard_def k by auto 
          thus False using Some \<open>i_ips' = i_ips\<close> \<open>k \<noteq> ifce\<close> a ipassmt_disjoint ipassmt_disjoint_nonempty_inj by blast
