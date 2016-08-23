@@ -48,7 +48,7 @@ Checking all proofs:
 $ isabelle build -v -D . -o document=pdf
 ```
 This needs about 14 CPU hours (about 7 hours real time on an x220, i7 2.7GHz, 16GB ram).
-The session `Iptables_Semantics_Examples_Large1` needs about 5 hours CPU time and `Iptables_Semantics_Examples_Large2` needs about 7 hours of CPU time; you may want to skip those.
+The session `Iptables_Semantics_Examples_Large1` needs about 5-6 hours CPU time and `Iptables_Semantics_Examples_Large2` needs about 7 hours of CPU time; you may want to skip those.
 
 
 Building the documentation:

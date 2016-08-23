@@ -15,27 +15,22 @@ section\<open>Optimizing protocols in match expressions\<close>
 
   lemma compress_pos_protocols_Some: "compress_pos_protocols ps = Some proto \<Longrightarrow> 
           match_proto proto p_prot \<longleftrightarrow> (\<forall> p \<in> set ps. match_proto p p_prot)"
-    apply(induction ps rule: compress_pos_protocols.induct)
-      apply (simp; fail)
-     apply(simp; fail)
-    apply(simp)
-    apply(rename_tac p1 p2 pps)
-    apply(case_tac "simple_proto_conjunct p1 p2")
-     apply(simp; fail)
-    apply(simp)
-    using simple_proto_conjunct_Some by presburger
+    proof(induction ps rule: compress_pos_protocols.induct)
+    case (3 p1 p2 pps) thus ?case
+      apply(cases "simple_proto_conjunct p1 p2")
+       apply(simp; fail)
+      using simple_proto_conjunct_Some by(simp)
+    qed(simp)+
 
   lemma compress_pos_protocols_None: "compress_pos_protocols ps = None \<Longrightarrow> 
           \<not> (\<forall> proto \<in> set ps. match_proto proto p_prot)"
-    apply(induction ps rule: compress_pos_protocols.induct)
-      apply (simp; fail)
-     apply(simp; fail)
-    apply(simp)
-    apply(rename_tac i1 i2 iis)
-    apply(case_tac "simple_proto_conjunct i1 i2")
-     apply(simp_all)
-     using simple_proto_conjunct_None apply blast
-    using simple_proto_conjunct_Some by blast
+    proof(induction ps rule: compress_pos_protocols.induct)
+    case (3 i1 i2 iis) thus ?case
+      apply(cases "simple_proto_conjunct i1 i2")
+       apply(simp_all)
+       using simple_proto_conjunct_None apply blast
+      using simple_proto_conjunct_Some by blast
+    qed(simp)+
 
 (*the intuition behind the compress_protocols*)
 lemma "simple_proto_conjunct (Proto p1) (Proto p2) \<noteq> None \<Longrightarrow> \<forall>pkt. match_proto (Proto p1) pkt \<longleftrightarrow> match_proto (Proto p2) pkt"
@@ -74,11 +69,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   qed
 
   lemma set_word8_word_upto: "{0..(max_word :: 8 word)} = set (word_upto 0 255)"
-    apply(simp add: max_word_def)
-    apply(safe)
-     apply(simp add: word_upto_set_eq)
-    apply(simp add: word_upto_set_eq)
-    done
+    by(auto simp add: max_word_def word_upto_set_eq)
   lemma "(\<forall>p \<in> {0..max_word}. Proto p \<in> set (getNeg ps)) \<longleftrightarrow>
          ((\<forall>p \<in> set (word_upto 0 255). Proto p \<in> set (getNeg ps)))"
     by(simp add: set_word8_word_upto)
@@ -103,18 +94,12 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   lemma "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
     \<exists> p. ((\<forall>m\<in>set ps_pos. match_proto m p) \<and> (\<forall>m\<in>set ps_neg. \<not> match_proto m p))"
     apply(simp add: compress_protocols_def all_proto_hlp2 split: option.split_asm split_if_asm)
-     defer
-     apply(clarify)
-     subgoal for p
-     apply(case_tac p, simp)
-     apply(rename_tac p_primitive)
-     using simple_proto_conjunct_None by auto[1]
-    apply(subgoal_tac "\<exists>p. (Proto p) \<notin> set ps_neg")
-     apply(elim exE)
-     apply(rename_tac x2 p)
-     apply(rule_tac x=p in exI)
-     apply(blast elim: match_proto.elims)
-    apply(auto intro: protocol.exhaust)
+     apply(subgoal_tac "\<exists>p. (Proto p) \<notin> set ps_neg")
+      apply(elim exE)
+      apply(rename_tac x2 p)
+      apply(rule_tac x=p in exI)
+      apply(blast elim: match_proto.elims)
+     apply(auto intro: protocol.exhaust)
     done
   
   definition compress_normalize_protocols_step :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where 
