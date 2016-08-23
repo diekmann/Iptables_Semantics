@@ -146,6 +146,52 @@ end
 
 
 
+
+subsection\<open>L4 Ports Parser Helper\<close>
+
+context
+begin
+  text\<open>Replace all matches on ports with the unspecified @{term 0} protocol with the given @{typ primitive_protocol}.\<close>
+  private definition fill_l4_protocol_raw
+    :: "primitive_protocol \<Rightarrow> 'i::len common_primitive negation_type list \<Rightarrow> 'i common_primitive negation_type list"
+  where
+    "fill_l4_protocol_raw proto \<equiv> NegPos_map
+      (\<lambda> m. case m of Src_Ports (L4Ports x pts) \<Rightarrow> if x \<noteq> 0 then undefined else Src_Ports (L4Ports proto pts)
+                   |  Dst_Ports (L4Ports x pts) \<Rightarrow> if x \<noteq> 0 then undefined else Dst_Ports (L4Ports proto pts)
+                   |  Prot _ \<Rightarrow> undefined (*there should be no more match on the protocol if it was parsed from an iptables-save line*)
+                   | m \<Rightarrow> m
+      )"
+
+  lemma "fill_l4_protocol_raw TCP [Neg (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)), Pos (Src_Ports (L4Ports 0 [(22,22)]))] =
+          [Neg (Dst (IpAddrNetmask 0x7F000000 8)), Pos (Src_Ports (L4Ports 6 [(0x16, 0x16)]))]" by eval
+
+  fun fill_l4_protocol
+    :: "'i::len common_primitive negation_type list \<Rightarrow> 'i::len common_primitive negation_type list"
+  where
+    "fill_l4_protocol [] = []" |
+    "fill_l4_protocol (Pos (Prot (Proto proto)) # ms) = Pos (Prot (Proto proto)) # fill_l4_protocol_raw proto ms" |
+    "fill_l4_protocol (Pos (Src_Ports _) # _) = undefined" | (*need to find proto first*)
+    "fill_l4_protocol (Pos (Dst_Ports _) # _) = undefined" |
+    "fill_l4_protocol (m # ms) = m # fill_l4_protocol ms"
+
+  lemma "fill_l4_protocol [ Neg (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8))
+                                , Neg (Prot (Proto UDP))
+                                , Pos (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8))
+                                , Pos (Prot (Proto TCP))
+                                , Pos (Extra ''foo'')
+                                , Pos (Src_Ports (L4Ports 0 [(22,22)]))
+                                , Neg (Extra ''Bar'')] =
+  [ Neg (Dst (IpAddrNetmask 0x7F000000 8))
+  , Neg (Prot (Proto UDP))
+  , Pos (Src (IpAddrNetmask 0x7F000000 8))
+  , Pos (Prot (Proto TCP))
+  , Pos (Extra ''foo'')
+  , Pos (Src_Ports (L4Ports TCP [(0x16, 0x16)]))
+  , Neg (Extra ''Bar'')]" by eval
+end
+
+
+
 (*currently unused and unverifed. may be needed for future use*)
 definition prefix_to_strange_inverse_cisco_mask:: "nat \<Rightarrow> (nat \<times> nat \<times> nat \<times> nat)" where
  "prefix_to_strange_inverse_cisco_mask n \<equiv> dotdecimal_of_ipv4addr ( (NOT (((mask n)::ipv4addr) << (32 - n))) )"

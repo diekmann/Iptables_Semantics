@@ -49,6 +49,14 @@ lemma alist_and_append: "matches \<gamma> (alist_and (l1 @ l2)) a p \<longleftri
        by(simp_all add: matches_alist_and_alist_and' bunch_of_lemmata_about_matches)
     qed
 
+lemma alist_and_NegPos_map_getNeg_getPos_matches: 
+  "(\<forall>m\<in>set (getNeg spts). matches \<gamma> (MatchNot (Match (C m))) a p) \<and>
+   (\<forall>m\<in>set (getPos spts). matches \<gamma> (Match (C m)) a p)
+    \<longleftrightarrow>
+    matches \<gamma> (alist_and (NegPos_map C spts)) a p"
+  proof(induction spts rule: alist_and.induct)
+  qed(auto simp add: bunch_of_lemmata_about_matches)
+
 
 fun negation_type_to_match_expr_f :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a negation_type \<Rightarrow> 'b match_expr" where
   "negation_type_to_match_expr_f f (Pos a) = Match (f a)" |
@@ -100,6 +108,8 @@ lemma nt_match_list_simp: "nt_match_list \<gamma> a p ms \<longleftrightarrow>
 
 lemma matches_alist_and: "matches \<gamma> (alist_and l) a p \<longleftrightarrow> (\<forall>m \<in> set (getPos l). matches \<gamma> (Match m) a p) \<and> (\<forall>m \<in> set (getNeg l). matches \<gamma> (MatchNot (Match m)) a p)"
   using nt_match_list_matches nt_match_list_simp by fast
+
+
 
 
 end

@@ -165,7 +165,6 @@ lemma normalized_n_primitive_alist_and': "normalized_n_primitive disc_sel P (ali
   apply(induction as rule: alist_and'.induct)
       by(simp_all add: negation_type_to_match_expr_simps)
 
-
 lemma not_has_disc_NegPos_map: "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a\<in>set (NegPos_map C ls).
         \<not> has_disc disc (negation_type_to_match_expr a)"
 by(induction C ls rule: NegPos_map.induct) (simp add: negation_type_to_match_expr_def)+
@@ -179,12 +178,11 @@ lemma normalized_n_primitive_impossible_map: "\<forall>a. \<not> disc (C a) \<Lo
      normalized_n_primitive (disc, sel) f m"
   apply(intro ballI)
   apply(induction ls)
-   apply(simp)
+   apply(simp; fail)
   apply(simp)
   apply(case_tac m, simp_all) (*3 cases are impossible*)
    apply(fastforce)
   by force
-
 
 lemma normalized_n_primitive_alist_and'_append:
   "normalized_n_primitive (disc, sel) f (alist_and' (ls1 @ ls2)) \<longleftrightarrow>
@@ -198,6 +196,12 @@ done
 lemma normalized_n_primitive_if_no_primitive: "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> 
        normalized_n_primitive (disc, sel) f m"
   by(induction "(disc, sel)" f m rule: normalized_n_primitive.induct) (simp)+
+
+lemma normalized_n_primitive_MatchAnd_combine_map: "normalized_n_primitive disc_sel f rst \<Longrightarrow>
+       \<forall>m' \<in> (\<lambda>spt. Match (C spt)) ` set pts. normalized_n_primitive disc_sel f m' \<Longrightarrow>
+        m' \<in> (\<lambda>spt. MatchAnd (Match (C spt)) rst) ` set pts \<Longrightarrow> normalized_n_primitive disc_sel f m'"
+  by(induction disc_sel f m' rule: normalized_n_primitive.induct)
+     fastforce+
 
 subsection\<open>Primitive Extractor\<close>
 
@@ -958,6 +962,12 @@ lemma compress_normalize_primitive_monad_preserves:
     next
     case (Cons f fs) thus ?case by(simp split: option.split_asm) blast (*1s*)
     qed
-    
+
+
+
+
+(*TODO: move to generic place and use? ? ? *)
+datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
+
 
 end
