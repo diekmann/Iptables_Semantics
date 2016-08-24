@@ -25,6 +25,9 @@ definition routing_action_oiface_update :: "string \<Rightarrow> routing_rule \<
 lemma "routing_action_oiface_update h pk = pk\<lparr> routing_action := (routing_action pk)\<lparr> output_iface :=  h\<rparr> \<rparr>"
   by(simp add: routing_action_oiface_update_def)
 
+definition "sanity_ip_route r \<equiv> correct_routing r \<and> list_all (op \<noteq> '''' \<circ> routing_oiface) r"
+text\<open>The parser ensures that @{const sanity_ip_route} holds for any ruleset that is imported.\<close>
+
 (* Hide all the ugly ml in a file with the right extension *)
 (*Depends on the function parser_ipv4 from IP_Address_Parser*)
 ML_file "IpRoute_Parser.ml"
@@ -36,7 +39,7 @@ ML\<open>
 \<close>
 
 parse_ip_route "rtbl_parser_test1" = "ip-route-ex"
-lemma  "correct_routing rtbl_parser_test1" by eval (* TODO: Automatically make this check and export the fact *)
+lemma  "sanity_ip_route rtbl_parser_test1" by eval
 
 lemma "rtbl_parser_test1 =
   [\<lparr>routing_match = PrefixMatch 0xFFFFFF00 32, metric = 0, routing_action = \<lparr>output_iface = ''tun0'', next_hop = None\<rparr>\<rparr>,

@@ -1,6 +1,6 @@
 local
   fun define_const (t: term) (name: binding) (lthy: local_theory) : local_theory = let
-        val _ = writeln ("Defining constant `"^Binding.name_of name^"' ("^Binding.name_of name^"_def')");
+        val _ = writeln ("Defining constant `"^Binding.name_of name^"' ("^Binding.name_of name^"_def')...");
         val ((_, (_, thm)), lthy) = Local_Theory.define ((name, NoSyn), ((Binding.empty, []), t)) lthy;
         val (_, lthy) = Local_Theory.note ((Binding.suffix_name "_def" name, @{attributes [code]}), [thm]) lthy;
        in
@@ -8,7 +8,7 @@ local
   end
   fun load_file (thy: theory) (path: string list) =
       let val p =  File.full_path (Resources.master_directory thy) (Path.make path); in
-      let val _ = "loading file "^File.platform_path p |> writeln; in
+      let val _ = "Loading file "^File.platform_path p |> writeln; in
         if not (File.exists p) orelse (File.is_dir p) then raise Fail "File not found" else File.read_lines p
    end end;
 
@@ -63,14 +63,24 @@ local
     (parser_end ((parser_subnet >> (fn x => @{const empty_rr_hlp} $ x))
         -- Scan.repeat (parser_whitespace |-- (parser_via || parser_dev || parser_metric || parser_scope || parser_proto || parser_src)))) 
     #> swap #> (uncurry (fold (fn a => fn b => a b)))
+
+  fun sanity_check_ip_route (ctx: Proof.context) t = let
+    val _ = writeln "Checking sanity..."
+    val check = Code_Evaluation.dynamic_value_strict ctx (@{const sanity_ip_route} $ t)
+  in
+    if check <> @{term "True"} then raise ERROR "sanity_wf_ruleset failed" else t
+  end;
 in
 	fun register_ip_route (name,path) (lthy: local_theory) =
 	let
 	  val fcontent = load_file (Proof_Context.theory_of lthy) [path]
 	  (*val _ = map (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) fcontent (* keep this one, lets you see where it fails *)*)
 	  val r = map (parser o Symbol.explode) fcontent
+	  val c = @{const sort_rtbl} $ (HOLogic.mk_list @{typ "routing_rule"} r)
+	  val s = sanity_check_ip_route lthy c
+	  val d = define_const s name lthy
+	  val _ = writeln "Done."
 	in
-	  define_const (@{const sort_rtbl} $ (HOLogic.mk_list @{typ "routing_rule"} r)) name lthy
-	  (* TODO: Some kind of sanity check. Especially, output_iface \<noteq> [] *)
+	  d
 	end
 end
