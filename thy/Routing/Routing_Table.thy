@@ -1,9 +1,8 @@
 section\<open>Routing Table\<close>
 theory Routing_Table
-imports "../IP_Addresses/Prefix_Match"
-        "../IP_Addresses/IPv4" (*we could probably generalize*)
-        "~~/src/HOL/Library/Code_Target_Nat" (*!!, int_of_nat*)
+imports "../IP_Addresses/Prefix_Match" "../IP_Addresses/IPv4" (*we could probably generalize*) 
         "Linorder_Helper"
+        "../IP_Address/IP_Address_toString"
 begin
 
 text\<open>This section makes the necessary definitions to work with a routing table using longest prefix matching.\<close>
@@ -90,10 +89,12 @@ value "sort_key routing_rule_sort_key [
 definition "is_longest_prefix_routing \<equiv> sorted \<circ> map routing_rule_sort_key"
 
 definition correct_routing :: "prefix_routing \<Rightarrow> bool" where 
-  "correct_routing r \<equiv> is_longest_prefix_routing r \<and> has_default_route r \<and> valid_prefixes r"
+  "correct_routing r \<equiv> is_longest_prefix_routing r \<and> valid_prefixes r"
 text\<open>Many proofs and functions around routing require at least parts of @{const correct_routing} as an assumption.
 Obviously, @{const correct_routing} is not given for arbitrary routing tables. Therefore,
-@{const correct_routing} is made to be executable and should be checked for any routing table after parsing.\<close>
+@{const correct_routing} is made to be executable and should be checked for any routing table after parsing.
+Note: @{const correct_routing} used to also require @{const has_default_route},
+but none of the proofs require it anymore and it is not given for any routing table.\<close>
 
 lemma is_longest_prefix_routing_rule_exclusion:
   assumes "is_longest_prefix_routing (r1 # rn # rss)"
@@ -119,6 +120,21 @@ qed
 definition "sort_rtbl :: routing_rule list \<Rightarrow> routing_rule list \<equiv> sort_key routing_rule_sort_key"
 
 lemma is_longest_prefix_routing_sort: "is_longest_prefix_routing (sort_rtbl r)" unfolding sort_rtbl_def is_longest_prefix_routing_def by simp
+
+subsection\<open>Printing\<close>
+
+(* TODO: move on next update of IP_Addresses update *)
+definition prefix_match_32_toString :: "32 prefix_match \<Rightarrow> string" where
+  "prefix_match_32_toString pfx = (case pfx of PrefixMatch p l \<Rightarrow> ipv4addr_toString p @ (if l \<noteq> 32 then ''/'' @ string_of_nat l else []))"
+
+definition "routing_rule_toString (rr::routing_rule) \<equiv> 
+  prefix_match_32_toString (routing_match rr) 
+@ (case next_hop (routing_action rr) of Some nh \<Rightarrow> '' via '' @ ipv4addr_toString nh | _ \<Rightarrow> [])
+@ '' dev '' @ routing_oiface rr 
+@ '' metric '' @ string_of_nat (metric rr)"
+
+value "map routing_rule_toString [rr_ctor (42,0,0,0) 7 ''eth0'' None 808, 
+ rr_ctor (0,0,0,0) 0 ''eth1'' (Some (222,173,190,239)) 707]"
 
 section\<open>Routing table to Relation\<close>
 
