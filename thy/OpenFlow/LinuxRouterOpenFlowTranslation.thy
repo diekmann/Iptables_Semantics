@@ -857,7 +857,7 @@ by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_ref
 lemma route2match_correct_noupd: "valid_prefix (routing_match a) \<Longrightarrow> simple_matches (route2match a) p \<Longrightarrow> prefix_match_semantics (routing_match a) (p_dst p)"
 by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl prefix_match_semantics_ipset_from_netmask2)
 
-lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Longrightarrow> 
+lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route (rt::('i::len) prefix_routing) \<Longrightarrow> 
   \<exists>rm ra. generalized_sfw (lr_of_tran_s1 rt) p = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"
 	apply(induction rt)
 	 apply(simp;fail)
@@ -870,7 +870,7 @@ lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route rt \<Lo
 	 apply(case_tac routing_m)
 	 apply(simp add: valid_prefix_def pfxm_mask_def prefix_match_semantics_def generalized_sfw_def 
 	       lr_of_tran_s1_def route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipset_from_cidr_0
-	       max_word_mask[where 'a = 32, symmetric, simplified])
+	       max_word_mask[where 'a = 'i, symmetric, simplified])
 	done
 	apply(rule conjI)
 	 apply(simp add: generalized_sfw_def lr_of_tran_s1_def route2match_correct;fail)

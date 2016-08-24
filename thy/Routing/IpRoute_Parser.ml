@@ -40,9 +40,9 @@ local
   val parser_via = (Scan.this_string "via" -- parser_whitespace |-- parser_ipv4) 
     >> (fn ip => fn pk => @{const routing_action_next_hop_update} $ (mk_ipv4addr ip) $ pk)
   val parser_dev = (Scan.this_string "dev" -- parser_whitespace |-- parser_interface)
-    >> (fn dev => fn pk => @{term "routing_action_oiface_update :: string \<Rightarrow> routing_rule \<Rightarrow> routing_rule"} $ dev $ pk)
+    >> (fn dev => fn pk => @{term "routing_action_oiface_update :: string \<Rightarrow> 32 routing_rule \<Rightarrow> 32 routing_rule"} $ dev $ pk)
   val parser_metric = (Scan.this_string "metric" -- parser_whitespace |-- Scan.many1 Symbol.is_ascii_digit)
-    >> (fn metric => fn pk => @{term "metric_update :: (nat \<Rightarrow> nat) \<Rightarrow> routing_rule \<Rightarrow> routing_rule"} $ (@{term "(\<lambda> x _. x) :: nat \<Rightarrow> nat \<Rightarrow> nat"} $ (mk_nat 65535 (extract_int metric))) $ pk)
+    >> (fn metric => fn pk => @{term "metric_update :: (nat \<Rightarrow> nat) \<Rightarrow> 32 routing_rule \<Rightarrow> 32 routing_rule"} $ (@{term "(\<lambda> x _. x) :: nat \<Rightarrow> nat \<Rightarrow> nat"} $ (mk_nat 65535 (extract_int metric))) $ pk)
   (* these are going to be ignored anyway\<dots>(?) *)
   val parser_scope = (Scan.this_string "scope" -- parser_whitespace |-- (
     Scan.this_string "host" || Scan.this_string "link" || Scan.this_string "global" || (Scan.many1 Symbol.is_ascii_digit >> implode)))
@@ -76,7 +76,7 @@ in
 	  val fcontent = load_file (Proof_Context.theory_of lthy) [path]
 	  (*val _ = map (Pretty.writeln o Syntax.pretty_term @{context} o parser o Symbol.explode) fcontent (* keep this one, lets you see where it fails *)*)
 	  val r = map (parser o Symbol.explode) fcontent
-	  val c = @{const sort_rtbl} $ (HOLogic.mk_list @{typ "routing_rule"} r)
+	  val c = @{const sort_rtbl (32)} $ (HOLogic.mk_list @{typ "32 routing_rule"} r)
 	  val s = sanity_check_ip_route lthy c
 	  val d = define_const s name lthy
 	  val _ = writeln "Done."

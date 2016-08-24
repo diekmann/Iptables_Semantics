@@ -8,22 +8,22 @@ begin
 text\<open>This section makes the necessary definitions to work with a routing table using longest prefix matching.\<close>
 subsection\<open>Definition\<close>
 
-record routing_action = 
+record(overloaded) 'i routing_action = 
   output_iface :: string
-  next_hop :: "ipv4addr option" (* no next hop iff locally attached *)
+  next_hop :: "'i word option" (* no next hop iff locally attached *)
 
 (* Routing rule matching ip route unicast type *)
-record routing_rule =
-  routing_match :: "32 prefix_match" (* done on the dst *)
+record(overloaded) 'i routing_rule =
+  routing_match :: "('i::len) prefix_match" (* done on the dst *)
   metric :: nat
-  routing_action :: routing_action
+  routing_action :: "'i routing_action"
 
 context
 begin
 
 definition "default_metric = 0"
 
-type_synonym prefix_routing = "routing_rule list"
+type_synonym 'i prefix_routing = "('i routing_rule) list"
 
 abbreviation "routing_oiface a \<equiv> output_iface (routing_action a)" (* I needed this a lot... *)
 
@@ -41,7 +41,7 @@ lemma valid_prefixes_alt_def: "valid_prefixes r = (\<forall>e \<in> set r. valid
   unfolding foldr_True_set
   ..
   
-fun has_default_route :: "prefix_routing \<Rightarrow> bool" where
+fun has_default_route :: "('i::len) prefix_routing \<Rightarrow> bool" where
 "has_default_route (r#rs) = (((pfxm_length (routing_match r)) = 0) \<or> has_default_route rs)" |
 "has_default_route Nil = False"
 
@@ -49,10 +49,9 @@ lemma has_default_route_alt: "has_default_route rt \<longleftrightarrow> (\<exis
 
 subsection\<open>Single Packet Semantics\<close>
 
-fun routing_table_semantics :: "prefix_routing \<Rightarrow> ipv4addr \<Rightarrow> routing_action" where
-"routing_table_semantics [] _ = routing_action (undefined::routing_rule)" | 
+fun routing_table_semantics :: "('i::len) prefix_routing \<Rightarrow> 'i word \<Rightarrow> 'i routing_action" where
+"routing_table_semantics [] _ = routing_action (undefined::'i routing_rule)" | 
 "routing_table_semantics (r#rs) p = (if prefix_match_semantics (routing_match r) p then routing_action r else routing_table_semantics rs p)"
-
 lemma routing_table_semantics_ports_from_table: "valid_prefixes rtbl \<Longrightarrow> has_default_route rtbl \<Longrightarrow> 
   routing_table_semantics rtbl packet = r \<Longrightarrow> r \<in> routing_action ` set rtbl"
 proof(induction rtbl)
@@ -88,7 +87,7 @@ value "sort_key routing_rule_sort_key [
 
 definition "is_longest_prefix_routing \<equiv> sorted \<circ> map routing_rule_sort_key"
 
-definition correct_routing :: "prefix_routing \<Rightarrow> bool" where 
+definition correct_routing :: "('i::len) prefix_routing \<Rightarrow> bool" where 
   "correct_routing r \<equiv> is_longest_prefix_routing r \<and> valid_prefixes r"
 text\<open>Many proofs and functions around routing require at least parts of @{const correct_routing} as an assumption.
 Obviously, @{const correct_routing} is not given for arbitrary routing tables. Therefore,
@@ -117,7 +116,7 @@ next
   case Nil thus ?case by(auto simp add: is_longest_prefix_routing_def routing_rule_sort_key_def linord_helper_less_eq1_def less_eq_linord_helper_def int_of_nat_def)    
 qed
 
-definition "sort_rtbl :: routing_rule list \<Rightarrow> routing_rule list \<equiv> sort_key routing_rule_sort_key"
+definition "sort_rtbl :: ('i::len) routing_rule list \<Rightarrow> 'i routing_rule list \<equiv> sort_key routing_rule_sort_key"
 
 lemma is_longest_prefix_routing_sort: "is_longest_prefix_routing (sort_rtbl r)" unfolding sort_rtbl_def is_longest_prefix_routing_def by simp
 
@@ -126,14 +125,22 @@ subsection\<open>Printing\<close>
 (* TODO: move on next update of IP_Addresses update *)
 definition prefix_match_32_toString :: "32 prefix_match \<Rightarrow> string" where
   "prefix_match_32_toString pfx = (case pfx of PrefixMatch p l \<Rightarrow> ipv4addr_toString p @ (if l \<noteq> 32 then ''/'' @ string_of_nat l else []))"
+definition prefix_match_128_toString :: "128 prefix_match \<Rightarrow> string" where
+  "prefix_match_128_toString pfx = (case pfx of PrefixMatch p l \<Rightarrow> ipv6addr_toString p @ (if l \<noteq> 128 then ''/'' @ string_of_nat l else []))"
 
-definition "routing_rule_toString (rr::routing_rule) \<equiv> 
+definition "routing_rule_32_toString (rr::32 routing_rule) \<equiv> 
   prefix_match_32_toString (routing_match rr) 
 @ (case next_hop (routing_action rr) of Some nh \<Rightarrow> '' via '' @ ipv4addr_toString nh | _ \<Rightarrow> [])
 @ '' dev '' @ routing_oiface rr 
 @ '' metric '' @ string_of_nat (metric rr)"
 
-value "map routing_rule_toString [rr_ctor (42,0,0,0) 7 ''eth0'' None 808, 
+definition "routing_rule_128_toString (rr::128 routing_rule) \<equiv> 
+  prefix_match_128_toString (routing_match rr) 
+@ (case next_hop (routing_action rr) of Some nh \<Rightarrow> '' via '' @ ipv6addr_toString nh | _ \<Rightarrow> [])
+@ '' dev '' @ routing_oiface rr 
+@ '' metric '' @ string_of_nat (metric rr)"
+
+value "map routing_rule_32_toString [rr_ctor (42,0,0,0) 7 ''eth0'' None 808, 
  rr_ctor (0,0,0,0) 0 ''eth1'' (Some (222,173,190,239)) 707]"
 
 section\<open>Routing table to Relation\<close>
@@ -150,7 +157,7 @@ private lemma ipset_prefix_match_complete: "rpm = ipset_prefix_match pfx rg \<Lo
   (fst rpm) \<union> (snd rpm) = rg" by force
 private lemma rpm_m_dup_simp: "rg \<inter> fst (ipset_prefix_match (routing_match r) rg) = fst (ipset_prefix_match (routing_match r) rg)"
   by simp
-private definition range_prefix_match :: "'a::len prefix_match \<Rightarrow> 'a wordinterval \<Rightarrow> 'a wordinterval \<times> 'a wordinterval" where
+private definition range_prefix_match :: "'i::len prefix_match \<Rightarrow> 'i wordinterval \<Rightarrow> 'i wordinterval \<times> 'i wordinterval" where
   "range_prefix_match pfx rg \<equiv> (let pfxrg = prefix_to_wordinterval pfx in 
   (wordinterval_intersection rg pfxrg, wordinterval_setminus rg pfxrg))"
 private lemma range_prefix_match_set_eq:
@@ -170,8 +177,8 @@ text\<open>This split, although rather trivial,
 can be used to construct the sets (or rather: the intervals) 
 of IPs that are actually matched by an entry in a routing table.\<close>
 
-private fun routing_port_ranges :: "prefix_routing \<Rightarrow> 32 wordinterval \<Rightarrow> (string \<times> 32 wordinterval) list" where
-"routing_port_ranges [] lo = (if wordinterval_empty lo then [] else [(routing_oiface (undefined::routing_rule),lo)])" | (* insert default route to nirvana. has to match what routing_table_semantics does. *)
+private fun routing_port_ranges :: "'i prefix_routing \<Rightarrow> 'i wordinterval \<Rightarrow> (string \<times> ('i::len) wordinterval) list" where
+"routing_port_ranges [] lo = (if wordinterval_empty lo then [] else [(routing_oiface (undefined::'i routing_rule),lo)])" | (* insert default route to nirvana. has to match what routing_table_semantics does. *)
 "routing_port_ranges (a#as) lo = (
 	let rpm = range_prefix_match (routing_match a) lo; m = fst rpm; nm = snd rpm in (
 	(routing_oiface a,m) # routing_port_ranges as nm))"
