@@ -2,6 +2,7 @@ theory Interface_Replace
 imports
   No_Spoof
   Common_Primitive_toString
+  Output_Interface_Replace
 begin
 
 section\<open>Trying to connect inbound interfaces by their IP ranges\<close>

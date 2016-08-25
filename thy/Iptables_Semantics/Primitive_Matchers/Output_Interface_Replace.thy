@@ -87,6 +87,39 @@ begin
             primitive_matcher_generic.Iface_single[OF primitive_matcher_generic_common_matcher])
   qed(simp_all)
 
+  lemma ipassmt_disjoint_matcheq_iifce_dstip:
+        assumes ipassmt_nowild: "ipassmt_sanity_nowildcards ipassmt"
+            and ipassmt_disjoint: "ipassmt_sanity_disjoint ipassmt"
+            and ifce: "ipassmt ifce = Some i_ips"
+            and p_ifce: "ipassmt (Iface (p_oiface p)) = Some p_ips \<and> p_dst p \<in> ipcidr_union_set (set p_ips)"
+        shows   "match_iface ifce (p_oiface p) \<longleftrightarrow> p_dst p \<in> ipcidr_union_set (set i_ips)"
+    proof
+     assume "match_iface ifce (p_oiface p)"
+     thus "p_dst p \<in> ipcidr_union_set (set i_ips)"
+       apply(cases "ifce = Iface (p_oiface p)")
+        using ifce p_ifce apply force
+       by (metis domI iface.sel iface_is_wildcard_def ifce ipassmt_nowild ipassmt_sanity_nowildcards_def match_iface.elims(2) match_iface_case_nowildcard)
+   next
+     assume a: "p_dst p \<in> ipcidr_union_set (set i_ips)"
+     --\<open>basically, we need to reverse the map @{term ipassmt}\<close>
+
+     from ipassmt_disjoint_nonempty_inj[OF ipassmt_disjoint ifce] a have ipassmt_inj: "\<forall>k. ipassmt k = Some i_ips \<longrightarrow> k = ifce" by blast
+
+     from ipassmt_disjoint_inj_k[OF ipassmt_disjoint ifce _ a] have ipassmt_inj_k:
+      "\<And>k ips'. ipassmt k = Some ips' \<Longrightarrow> p_dst p \<in> ipcidr_union_set (set ips') \<Longrightarrow> k = ifce" by simp
+
+     have ipassmt_inj_p: "\<forall>ips'. p_dst p \<in> ipcidr_union_set (set ips') \<and> (\<exists>k. ipassmt k = Some ips') \<longrightarrow> ips' = i_ips"
+       apply(clarify)
+       apply(rename_tac ips' k)
+       apply(subgoal_tac "k = ifce")
+        using ifce apply simp
+       using ipassmt_inj_k by simp
+
+     from p_ifce have "(Iface (p_oiface p)) = ifce" using ipassmt_inj_p ipassmt_inj by blast 
+
+     thus "match_iface ifce (p_oiface p)" using match_iface_refl by blast 
+   qed
+
 
   (*helper2: used in induction base case*)
   private lemma matches_ipassmt_iface_replace_dstip_mexpr_case_Iface:
@@ -104,7 +137,7 @@ begin
           case None thus ?thesis by(simp add: matches_ipassmt_iface_replace_dstip_mexpr)
           next
           case (Some y) with assms(2) have "p_dst p \<in> ipcidr_union_set (set y) = match_iface ifce (p_oiface p)"
-            using assms(1) assms(3) ipassmt_disjoint_matcheq_iifce_srcip by blast
+            using assms(1) assms(3) ipassmt_disjoint_matcheq_iifce_dstip by blast
             with Some show ?thesis by(simp add: matches_ipassmt_iface_replace_dstip_mexpr)
         qed
     qed
@@ -139,7 +172,6 @@ begin
 
   lemma matches_oiface_rewrite:
        "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_nowildcards ipassmt (*TODO: check?*) \<Longrightarrow>
-        has_default_route rt \<Longrightarrow>
         correct_routing rt \<Longrightarrow>
         ipassmt = map_of (routing_ipassmt rt) \<Longrightarrow>
         routing_table_semantics rt (p_dst p) = \<lparr> output_iface = oifce, next_hop = ignored\<rparr> \<Longrightarrow>
@@ -153,7 +185,7 @@ begin
    apply(simp add: correct_routing_def; fail)
   apply(simp)
   apply(rule routing_ipassmt)
-     apply(simp_all add: correct_routing_def)
+    apply(simp_all add: correct_routing_def)
   done
 end
 

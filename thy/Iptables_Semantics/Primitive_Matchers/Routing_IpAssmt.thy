@@ -22,7 +22,9 @@ private lemma map_of_map_Iface: "map_of (map (\<lambda>x. (Iface (fst x), f (snd
         map_option f ((map_of xs) ifce)"
   by (induct xs) (auto)
 
-lemma routing_ipassmt: "has_default_route rt \<Longrightarrow>
+value "routing_ipassmt_wi ([]::32 prefix_routing)"  (* we're cheating a bit here\<dots> [(output_iface (routing_action undefined), WordInterval (0::32 word) (0xFFFFFFFF::32 word))] *)
+
+lemma routing_ipassmt: "
     valid_prefixes rt \<Longrightarrow>
     routing_table_semantics rt (p_dst p) = \<lparr>output_iface = oifce, next_hop = ignored\<rparr> \<Longrightarrow>
     p_oiface p = oifce \<Longrightarrow>
