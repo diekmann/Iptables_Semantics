@@ -145,8 +145,11 @@ definition "routing_rule_128_toString (rr::128 routing_rule) \<equiv>
 @ '' dev '' @ routing_oiface rr 
 @ '' metric '' @ string_of_nat (metric rr)"
 
-value "map routing_rule_32_toString [rr_ctor (42,0,0,0) 7 ''eth0'' None 808, 
- rr_ctor (0,0,0,0) 0 ''eth1'' (Some (222,173,190,239)) 707]"
+lemma "map routing_rule_32_toString 
+[rr_ctor (42,0,0,0) 7 ''eth0'' None 808, 
+ rr_ctor (0,0,0,0) 0 ''eth1'' (Some (222,173,190,239)) 707] =
+[''42.0.0.0/7 dev eth0 metric 808'',
+ ''0.0.0.0/0 via 222.173.190.239 dev eth1 metric 707'']" by eval
 
 section\<open>Routing table to Relation\<close>
 
@@ -308,7 +311,7 @@ private lemma routing_ipassmt_wi_subsetted:
 
 text\<open>This lemma should hold without the @{const valid_prefixes} assumption, but that would break the semantic argument and make the proof a lot harder.\<close>
 lemma routing_ipassmt_wi_disjoint:
-assumes vpfx: "valid_prefixes tbl"
+assumes vpfx: "valid_prefixes (tbl::('i::len) prefix_routing)"
   and dif: "a1 \<noteq> a2"
   and ins:  "(a1, b1) \<in> set (routing_ipassmt_wi tbl)" "(a2, b2) \<in> set (routing_ipassmt_wi tbl)"
 shows "wordinterval_to_set b1 \<inter> wordinterval_to_set b2 = {}"
