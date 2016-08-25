@@ -5,9 +5,13 @@ imports
 begin
 
 section\<open>Trying to connect inbound interfaces by their IP ranges\<close>
-subsection\<open>constraining interfaces\<close>
+subsection\<open>Constraining Interfaces\<close>
 
-definition ipassmt_iface_constrain_srcip_mexpr :: "'i::len ipassignment \<Rightarrow> iface \<Rightarrow> 'i common_primitive match_expr" where
+text\<open>We keep the match on the interface but add the corresponding IP address range.\<close>
+
+definition ipassmt_iface_constrain_srcip_mexpr
+  :: "'i::len ipassignment \<Rightarrow> iface \<Rightarrow> 'i common_primitive match_expr"
+where
   "ipassmt_iface_constrain_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
           None \<Rightarrow> Match (IIface ifce)
         | Some ips \<Rightarrow> MatchAnd
@@ -201,7 +205,8 @@ lemma
 
 
 subsection\<open>Replacing Interfaces Completely\<close>
-text\<open>This is a stringer rewriting since it removes the interface completely.
+
+text\<open>This is a stricter, true rewriting since it removes the interface match completely.
       However, it requires @{const ipassmt_sanity_disjoint}\<close>
 
 thm ipassmt_sanity_disjoint_def
@@ -370,11 +375,18 @@ end
 
 
 
-
-definition "iface_try_rewrite ipassmt rs \<equiv> if ipassmt_sanity_disjoint (map_of ipassmt) \<and> ipassmt_sanity_defined rs (map_of ipassmt) then
+definition iface_try_rewrite
+  :: "(iface \<times> ('i::len word \<times> nat) list) list
+   \<Rightarrow> 'i common_primitive rule list
+      \<Rightarrow> 'i common_primitive rule list"
+where
+  "iface_try_rewrite ipassmt rs \<equiv> if ipassmt_sanity_disjoint (map_of ipassmt) \<and> ipassmt_sanity_defined rs (map_of ipassmt) then
   optimize_matches (iiface_rewrite (map_of_ipassmt ipassmt)) rs
   else
   optimize_matches (iiface_constrain (map_of_ipassmt ipassmt)) rs"
+
+text\<open>Where @{typ "(iface \<times> ('i::len word \<times> nat) list) list"} is @{const map_of}@{typ "'i::len ipassignment"}. 
+ The sanity checkers need to iterate over the interfaces, hence we don't pass a map but a list of tuples.\<close>
 
 
 text\<open>In @{file "Transform.thy"} there should be the final correctness theorem for @{text "iface_try_rewrite"}. 
