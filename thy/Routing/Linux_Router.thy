@@ -63,7 +63,7 @@ or the usual mechanic of sending out an ARP request and caching the answer.
 Doing ARP requests in the restricted environment of, e.g., an OpenFlow ruleset seems impossible.
 Therefore, we present this model:\<close>
 definition simple_linux_router_nol12 ::
-    "'l routing_rule list \<Rightarrow> 'l simple_rule list \<Rightarrow> ('i,'a) simple_packet_scheme \<Rightarrow> ('i::len,'a) simple_packet_scheme option" where
+    "'i routing_rule list \<Rightarrow> 'i simple_rule list \<Rightarrow> ('i,'a) simple_packet_scheme \<Rightarrow> ('i::len,'a) simple_packet_scheme option" where
 "simple_linux_router_nol12 rt fw p \<equiv> do {
 	let rd = routing_table_semantics rt (p_dst p);
 	let p = p\<lparr>p_oiface := output_iface rd\<rparr>;

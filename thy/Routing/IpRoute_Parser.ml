@@ -46,11 +46,12 @@ local
   (* these are going to be ignored anyway\<dots>(?) *)
   val parser_scope = (Scan.this_string "scope" -- parser_whitespace |-- (
     Scan.this_string "host" || Scan.this_string "link" || Scan.this_string "global" || (Scan.many1 Symbol.is_ascii_digit >> implode)))
-    >> K I
+    >> K I (* K I -> constant ignore *)
   val parser_proto = (Scan.this_string "proto" -- parser_whitespace |-- (
     Scan.this_string "kernel" || Scan.this_string "boot" || Scan.this_string "static" || Scan.this_string "dhcp" || (Scan.many1 Symbol.is_ascii_digit >> implode)))
-    >> K I
-  val parser_src = (Scan.this_string "src" -- parser_whitespace |-- parser_ipv4) >> (*mk_quadrupel >>*) K I (*TODO: I removed the mk_quadrupel, what does it do here anyway?*)
+    >> K I (* ignore *)
+  val parser_src = (Scan.this_string "src" -- parser_whitespace |-- parser_ipv4) >> K I(* ignore *)
+  (* these three ignored values are not represented in the model *)
 
   fun parser_end p i = let
     val (r,es) = Scan.finite Symbol.stopper (p --| eater_whitespace) i
