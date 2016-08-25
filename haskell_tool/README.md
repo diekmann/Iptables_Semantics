@@ -186,7 +186,35 @@ Let’s visualize this:
 
 Ignore the 127.0.0.0/8 range at the bottom. We can see that the firewall implements the textbook DMZ architecture: Internet (cloud) on the top, internal machines on the left, servers (DMZ) on the right. Yay!
 
-### Longer Example
+
+### Another Small Example
+
+What does the following firewall do?
+```
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:CHAIN - [0:0]
+-A FORWARD -j CHAIN
+-A CHAIN -p tcp -m tcp --sport 22 -j RETURN
+-A CHAIN -p udp -m udp --dport 80 -j RETURN
+-A CHAIN -j DROP
+COMMIT
+```
+Here is the output of `fffuu`:
+```
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0   dports: 0:79
+DROP       udp  --  0.0.0.0/0            0.0.0.0/0   dports: 81:65535
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0   sports: 0:21 
+DROP       tcp  --  0.0.0.0/0            0.0.0.0/0   sports: 23:65535 
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0
+```
+Answer: it drops everything which is not udp dst port 80 or tcp src port 22.
+
+
+
+### Longer Real-World Example
 We will analyze the ruleset of a NAS. 
 The NAS runs a host-based firewall, so we are interested in the `INPUT` chain. 
 Here is the ruleset:

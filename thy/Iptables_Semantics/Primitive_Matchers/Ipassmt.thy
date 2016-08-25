@@ -3,7 +3,7 @@ imports Common_Primitive_Syntax
         "../Semantics_Ternary/Primitive_Normalization"
         "../../Simple_Firewall/Primitives/Iface"
         "../../Simple_Firewall/Common/IP_Addr_WordInterval_toString" (*for debug pretty-printing*)
-        "../../Automatic_Refinement/Lib/Misc" (*TODO: dependnecy!*)
+        "../../Automatic_Refinement/Lib/Misc" (*dependnecy!*)
 begin
 
   text\<open>A mapping from an interface to its assigned ip addresses in CIDR notation\<close>
@@ -30,9 +30,6 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
 
   (* use this in all exported code*)
   (*TODO: generate useful error message in exported code*)
-  (*consts undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces :: "'a"
-  declare [[code abort: undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces]]*)
-  (*pretty excpetion breaks value[code] and by eval*)
   definition map_of_ipassmt :: "(iface \<times> ('i word \<times> nat) list) list \<Rightarrow> iface \<rightharpoonup> ('i word \<times> nat) list" where
     "map_of_ipassmt ipassmt = (
       if
@@ -92,7 +89,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
     by(simp add: collect_ifaces_def mergesort_remdups_correct)
 
   text\<open>sanity check that all interfaces mentioned in the ruleset are also listed in the ipassmt. May fail for wildcard interfaces in the ruleset.\<close>
-  (*TODO: wildcards*)
+
   (*primitive_extractor requires normalized_nnf_primitives*)
   definition ipassmt_sanity_defined :: "'i::len common_primitive rule list \<Rightarrow> 'i ipassignment \<Rightarrow> bool" where
     "ipassmt_sanity_defined rs ipassmt \<equiv> \<forall> iface \<in> set (collect_ifaces rs). iface \<in> dom ipassmt"
@@ -123,10 +120,9 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
     "ipassmt_ignore_wildcard_list ipassmt = filter (\<lambda>(_,ips).  \<not> wordinterval_eq (l2wi (map ipcidr_to_interval ips)) wordinterval_UNIV) ipassmt"
 
   (*distinct fst ipassmt notwendig?*)
-  (*TODO: proof nochmal ordentlich machen!*)
   lemma "distinct (map fst ipassmt) \<Longrightarrow>
     map_of (ipassmt_ignore_wildcard_list ipassmt) = ipassmt_ignore_wildcard (map_of ipassmt)"
-    apply(simp add: ipassmt_ignore_wildcard_list_def ipassmt_ignore_wildcard_def)
+      apply(simp add: ipassmt_ignore_wildcard_list_def ipassmt_ignore_wildcard_def)
       apply(simp add: wordinterval_eq_set_eq)
       apply(simp add: l2wi)
       apply(simp add: ipcidr_to_interval_def)
@@ -137,18 +133,19 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
       apply(simp)
       apply(simp split:option.split option.split_asm)
       apply(simp add: ipcidr_union_set_def ipset_from_cidr_ipcidr_to_interval)
-      apply(safe)
-                        apply(simp_all)
-      by (simp add: rev_image_eqI)
+      apply(simp add: case_prod_unfold)
+      by blast
+      (*apply(safe)
+                       apply(simp_all)
+      by (simp add: rev_image_eqI)*)
       
 
   
   text\<open>Debug algorithm with human-readable output\<close>
-  (*TODO: ipv4 only!*)
-  definition debug_ipassmt_generic_ipv4
+  definition debug_ipassmt_generic
     :: "('i::len wordinterval \<Rightarrow> string) \<Rightarrow>
           (iface \<times> ('i word \<times> nat) list) list \<Rightarrow> 'i common_primitive rule list \<Rightarrow> string list" where
-    "debug_ipassmt_generic_ipv4 toStr ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
+    "debug_ipassmt_generic toStr ipassmt rs \<equiv> let ifaces = (map fst ipassmt) in [
       ''distinct: '' @ (if distinct ifaces then ''passed'' else ''FAIL!'')
       , ''ipassmt_sanity_nowildcards: '' @
           (if ipassmt_sanity_nowildcards (map_of ipassmt)
@@ -189,8 +186,8 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
             toStr (wordinterval_setminus wordinterval_UNIV (wordinterval_Union (map (l2wi \<circ> (map ipcidr_to_interval)) (map snd ipassmt))))))
       ]"
 
-  definition "debug_ipassmt_ipv4 \<equiv> debug_ipassmt_generic_ipv4 ipv4addr_wordinterval_toString"
-  definition "debug_ipassmt_ipv6 \<equiv> debug_ipassmt_generic_ipv4 ipv6addr_wordinterval_toString"
+  definition "debug_ipassmt_ipv4 \<equiv> debug_ipassmt_generic ipv4addr_wordinterval_toString"
+  definition "debug_ipassmt_ipv6 \<equiv> debug_ipassmt_generic ipv6addr_wordinterval_toString"
 
 
   lemma dom_ipassmt_ignore_wildcard:
@@ -223,25 +220,25 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
     apply(rule)
      apply(clarify)
      apply(simp)
-     apply(rename_tac i1 i2 ips1 ips2)
+     subgoal for i1 i2 ips1 ips2
      apply(erule_tac x=i1 in ballE)
       prefer 2
-      using dom_ipassmt_ignore_wildcard apply (metis domI option.sel) (*TODO: tune*)
+      using dom_ipassmt_ignore_wildcard  apply (metis domI option.sel)
      apply(erule_tac x=i2 in ballE)
       prefer 2
-      using dom_ipassmt_ignore_wildcard apply (metis domI domIff option.sel) (*TODO: tune*)
-     apply(simp add: ipassmt_ignore_wildcard_the; fail)
+      using dom_ipassmt_ignore_wildcard apply (metis domI domIff option.sel)
+     by(simp add: ipassmt_ignore_wildcard_the; fail)
     apply(clarify)
     apply(simp)
-    apply(rename_tac i1 i2 ips1 ips2)
+    subgoal for i1 i2 ips1 ips2
     apply(erule_tac x=i1 in ballE)
      prefer 2
      using dom_ipassmt_ignore_wildcard apply auto[1]
     apply(erule_tac x=i2 in ballE)
      prefer 2
      using dom_ipassmt_ignore_wildcard apply auto[1]
-    apply(simp add: ipassmt_ignore_wildcard_the)
-    done
+    by(simp add: ipassmt_ignore_wildcard_the)
+   done
 
   text\<open>Confusing names: @{const ipassmt_sanity_nowildcards} refers to wildcard interfaces.
        @{const ipassmt_ignore_wildcard} refers to the UNIV ip range.
@@ -281,7 +278,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
        assume "k \<noteq> ifce"
        show False
        proof(cases "(ipassmt_ignore_wildcard ipassmt) ifce")
-       case (Some i_ips') (*TODO: proofs mainly by sledgehammer*)
+       case (Some i_ips') (*proofs mainly by sledgehammer*)
          hence "i_ips' = i_ips" using ifce ipassmt_ignore_wildcard_the(2) by fastforce
          hence "(ipassmt_ignore_wildcard ipassmt) k = Some i_ips" using Some ifce ipassmt_ignore_wildcard_def k by auto 
          thus False using Some \<open>i_ips' = i_ips\<close> \<open>k \<noteq> ifce\<close> a ipassmt_disjoint ipassmt_disjoint_nonempty_inj by blast
@@ -344,11 +341,66 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
 
 
 
-
   definition ipassmt_generic_ipv4 :: "(iface \<times> (32 word \<times> nat) list) list" where
     "ipassmt_generic_ipv4 = [(Iface ''lo'', [(ipv4addr_of_dotdecimal (127,0,0,0),8)])]"
 
   definition ipassmt_generic_ipv6 :: "(iface \<times> (128 word \<times> nat) list) list" where
     "ipassmt_generic_ipv6 = [(Iface ''lo'', [(1,128)])]" (*::1/128*)
+
+
+
+subsection\<open>IP Assignment difference\<close>
+  text\<open>Compare two ipassmts. Returns a list of tuples
+    First entry of the tuple: things which are in the left ipassmt but not in the right.
+    Second entry of the tupls: things which are in the right ipassmt but not in the left.\<close>
+  definition ipassmt_diff
+    :: "(iface \<times> ('i::len word \<times> nat) list) list \<Rightarrow> (iface \<times> ('i::len word \<times> nat) list) list
+        \<Rightarrow> (iface \<times> ('i word \<times> nat) list \<times> ('i word \<times> nat) list) list"
+  where
+  "ipassmt_diff a b \<equiv> let
+      t = \<lambda>s. (case s of None \<Rightarrow> Empty_WordInterval
+                       | Some s \<Rightarrow> wordinterval_Union (map ipcidr_tuple_to_wordinterval s));
+      k = \<lambda>x y d. cidr_split (wordinterval_setminus (t (map_of x d)) (t (map_of y d)))
+    in
+      [(d, (k a b d, k b a d)). d \<leftarrow> remdups (map fst (a @ b))]"
+  
+  
+  text\<open>If an interface is defined in both ipassignments and there is no difference
+       then the two ipassignements describe the same IP range for this interface.\<close>
+  lemma ipassmt_diff_ifce_equal: "(ifce, [], []) \<in> set (ipassmt_diff ipassmt1 ipassmt2)  \<Longrightarrow>
+         ifce \<in> dom (map_of ipassmt1) \<Longrightarrow> ifce \<in> dom (map_of ipassmt2) \<Longrightarrow>
+           ipcidr_union_set (set (the ((map_of ipassmt1) ifce))) =
+           ipcidr_union_set (set (the ((map_of ipassmt2) ifce)))"
+    proof -
+    have cidr_empty: "[] = cidr_split r \<Longrightarrow> wordinterval_to_set r = {}" for r :: "'a wordinterval"
+      apply(subst cidr_split_prefix[symmetric])
+      by(simp)
+    show "(ifce, [], []) \<in> set (ipassmt_diff ipassmt1 ipassmt2)  \<Longrightarrow>
+         ifce \<in> dom (map_of ipassmt1) \<Longrightarrow> ifce \<in> dom (map_of ipassmt2) \<Longrightarrow>
+           ipcidr_union_set (set (the ((map_of ipassmt1) ifce))) =
+           ipcidr_union_set (set (the ((map_of ipassmt2) ifce)))"
+    apply(simp add: ipassmt_diff_def Let_def ipcidr_union_set_uncurry)
+    apply(simp add: Set.image_iff)
+    apply(elim conjE)
+    apply(drule cidr_empty)+
+    apply(simp)
+    apply(simp add: domIff)
+    apply(elim exE)
+    apply(simp add: wordinterval_Union wordinterval_to_set_ipcidr_tuple_to_wordinterval_uncurry)
+    done
+  qed
+  
+  text\<open>Explanation for interface @{term "Iface ''a''"}: 
+          Left ipassmt: The IP range 4/30 contains the addresses 4,5,6,7
+          Diff: right ipassmt contains 6/32, so 4,5,7 is only in the left ipassmt.
+          IP addresses 4,5 correspond to subnet 4/30.\<close>
+  lemma "ipassmt_diff (ipassmt_generic_ipv4 @ [(Iface ''a'', [(4,30)])])
+                       (ipassmt_generic_ipv4 @ [(Iface ''a'', [(6,32), (0,30)]), (Iface ''b'', [(42,32)])]) =
+    [(Iface ''lo'', [], []),
+     (Iface ''a'', [(4::32 word, 31::nat),
+                    (7::32 word, 32::nat)],
+                   [(0::32 word, 30::nat)]
+     ),
+     (Iface ''b'', [], [(42, 32)])]" by eval
 
 end

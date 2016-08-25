@@ -5,9 +5,13 @@ imports
 begin
 
 section\<open>Trying to connect inbound interfaces by their IP ranges\<close>
-subsection\<open>constraining interfaces\<close>
+subsection\<open>Constraining Interfaces\<close>
 
-definition ipassmt_iface_constrain_srcip_mexpr :: "'i::len ipassignment \<Rightarrow> iface \<Rightarrow> 'i common_primitive match_expr" where
+text\<open>We keep the match on the interface but add the corresponding IP address range.\<close>
+
+definition ipassmt_iface_constrain_srcip_mexpr
+  :: "'i::len ipassignment \<Rightarrow> iface \<Rightarrow> 'i common_primitive match_expr"
+where
   "ipassmt_iface_constrain_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
           None \<Rightarrow> Match (IIface ifce)
         | Some ips \<Rightarrow> MatchAnd
@@ -16,7 +20,8 @@ definition ipassmt_iface_constrain_srcip_mexpr :: "'i::len ipassignment \<Righta
         )"
 
 lemma matches_ipassmt_iface_constrain_srcip_mexpr: 
-    "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow> (case ipassmt ifce of
+    "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow>
+      (case ipassmt ifce of
             None \<Rightarrow> match_iface ifce (p_iiface p)
           | Some ips \<Rightarrow> match_iface ifce (p_iiface p) \<and> p_src p \<in> ipcidr_union_set (set ips)
           )"
@@ -58,7 +63,8 @@ begin
     proof(cases "ipassmt ifce")
     case None thus ?thesis
        apply(simp add: matches_ipassmt_iface_constrain_srcip_mexpr)
-       apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
+       apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def
+              primitive_matcher_generic.Iface_single_not[OF primitive_matcher_generic_common_matcher])
        done
      next
      case (Some ips)
@@ -91,7 +97,8 @@ begin
   (*helper2: used in induction base case*)
   private lemma matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface:
         fixes ifce::iface
-        assumes "ipassmt_sanity_nowildcards ipassmt" and "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips)"
+        assumes "ipassmt_sanity_nowildcards ipassmt"
+        and "\<And>ips. ipassmt (Iface (p_iiface p)) = Some ips \<Longrightarrow> p_src p \<in> ipcidr_union_set (set ips)"
         shows   "matches (common_matcher, \<alpha>) (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce) a p \<longleftrightarrow>
                  matches (common_matcher, \<alpha>) (Match (IIface ifce)) a p"
   proof -
@@ -133,7 +140,7 @@ begin
 
   lemma matches_iiface_constrain:
        "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_nowildcards ipassmt \<Longrightarrow>
-        (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips)) \<Longrightarrow>
+        (\<And>ips. ipassmt (Iface (p_iiface p)) = Some ips \<Longrightarrow> p_src p \<in> ipcidr_union_set (set ips)) \<Longrightarrow>
         matches (common_matcher, \<alpha>) (iiface_constrain ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
     proof(induction m)
     case MatchAny thus ?case by simp
@@ -144,7 +151,8 @@ begin
     next
     case(Match x) thus ?case
       proof(cases x)
-        case (IIface ifce) with Match show ?thesis using matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface by simp
+        case (IIface ifce) with Match show ?thesis
+        using matches_ipassmt_iface_constrain_srcip_mexpr_case_Iface by fastforce
       qed(simp_all)
     next
     case (MatchAnd m1 m2) thus ?case by(simp add: bunch_of_lemmata_about_matches)
@@ -160,15 +168,15 @@ subsection\<open>Sanity checking the assumption\<close>
   Also holds if EX replaced by ALL*)
 lemma "(\<exists>ips. ipassmt (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipcidr_union_set (set ips)) \<Longrightarrow>
        (case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips))"
-  apply(cases "ipassmt (Iface (p_iiface p))")
-   apply(simp_all)
-  done
-
-
+      "(case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips)) \<Longrightarrow>
+      (\<And>ips. ipassmt (Iface (p_iiface p)) = Some ips \<Longrightarrow> p_src p \<in> ipcidr_union_set (set ips))"
+  by(cases "ipassmt (Iface (p_iiface p))",simp_all)+
 
 text\<open>Sanity check:
       If we assume that there are no spoofed packets, spoofing protection is trivially fulfilled.\<close>
-lemma "\<forall> p:: ('i::len,'pkt_ext) tagged_packet_scheme. Iface (p_iiface p) \<in> dom ipassmt \<longrightarrow> p_src p \<in> ipcidr_union_set (set (the (ipassmt (Iface (p_iiface p))))) \<Longrightarrow> no_spoofing TYPE('pkt_ext) ipassmt rs"
+lemma "\<forall> p:: ('i::len,'pkt_ext) tagged_packet_scheme.
+        Iface (p_iiface p) \<in> dom ipassmt \<longrightarrow> p_src p \<in> ipcidr_union_set (set (the (ipassmt (Iface (p_iiface p))))) \<Longrightarrow>
+       no_spoofing TYPE('pkt_ext) ipassmt rs"
   apply(simp add: no_spoofing_def)
   apply(clarify)
   apply(rename_tac iface ips p)
@@ -201,16 +209,17 @@ lemma
 
 
 subsection\<open>Replacing Interfaces Completely\<close>
-text\<open>This is a stringer rewriting since it removes the interface completely.
+
+text\<open>This is a stricter, true rewriting since it removes the interface match completely.
       However, it requires @{const ipassmt_sanity_disjoint}\<close>
 
 thm ipassmt_sanity_disjoint_def
 
-definition ipassmt_iface_replace_srcip_mexpr :: "'i::len ipassignment \<Rightarrow> iface \<Rightarrow> 'i common_primitive match_expr" where
-  "ipassmt_iface_replace_srcip_mexpr ipassmt ifce = (case ipassmt ifce of
+definition ipassmt_iface_replace_srcip_mexpr
+  :: "'i::len ipassignment \<Rightarrow> iface \<Rightarrow> 'i common_primitive match_expr" where
+  "ipassmt_iface_replace_srcip_mexpr ipassmt ifce \<equiv> case ipassmt ifce of
           None \<Rightarrow> Match (IIface ifce)
-        | Some ips \<Rightarrow> (match_list_to_match_expr (map (Match \<circ> Src) (map (uncurry IpAddrNetmask) ips)))
-        )"
+        | Some ips \<Rightarrow> (match_list_to_match_expr (map (Match \<circ> Src) (map (uncurry IpAddrNetmask) ips)))"
 
 
 lemma matches_ipassmt_iface_replace_srcip_mexpr: 
@@ -233,7 +242,9 @@ case (Some ips)
 qed
 
 
-fun iiface_rewrite :: "'i::len ipassignment \<Rightarrow> 'i common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
+fun iiface_rewrite
+  :: "'i::len ipassignment \<Rightarrow> 'i common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr"
+where
   "iiface_rewrite _       MatchAny = MatchAny" |
   "iiface_rewrite ipassmt (Match (IIface ifce)) = ipassmt_iface_replace_srcip_mexpr ipassmt ifce" |
   "iiface_rewrite ipassmt (Match a) = Match a" |
@@ -370,11 +381,18 @@ end
 
 
 
-
-definition "iface_try_rewrite ipassmt rs \<equiv> if ipassmt_sanity_disjoint (map_of ipassmt) \<and> ipassmt_sanity_defined rs (map_of ipassmt) then
+definition iface_try_rewrite
+  :: "(iface \<times> ('i::len word \<times> nat) list) list
+   \<Rightarrow> 'i common_primitive rule list
+      \<Rightarrow> 'i common_primitive rule list"
+where
+  "iface_try_rewrite ipassmt rs \<equiv> if ipassmt_sanity_disjoint (map_of ipassmt) \<and> ipassmt_sanity_defined rs (map_of ipassmt) then
   optimize_matches (iiface_rewrite (map_of_ipassmt ipassmt)) rs
   else
   optimize_matches (iiface_constrain (map_of_ipassmt ipassmt)) rs"
+
+text\<open>Where @{typ "(iface \<times> ('i::len word \<times> nat) list) list"} is @{const map_of}@{typ "'i::len ipassignment"}. 
+ The sanity checkers need to iterate over the interfaces, hence we don't pass a map but a list of tuples.\<close>
 
 
 text\<open>In @{file "Transform.thy"} there should be the final correctness theorem for @{text "iface_try_rewrite"}. 
@@ -383,10 +401,6 @@ text\<open>In @{file "Transform.thy"} there should be the final correctness theo
 
 lemma iface_try_rewrite_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset (iface_try_rewrite ipassmt rs)"
     by(simp add: iface_try_rewrite_def optimize_matches_simple_ruleset)
-
-
-
-
 
 lemma iiface_rewrite_preserves_nodisc:
   "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_rewrite ipassmt m)"
@@ -401,6 +415,7 @@ lemma iiface_rewrite_preserves_nodisc:
       done
     with 2 show ?case by simp
   qed(simp_all)
+
 lemma iiface_constrain_preserves_nodisc:
   "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_constrain ipassmt m)"
   proof(induction ipassmt m rule: iiface_rewrite.induct)

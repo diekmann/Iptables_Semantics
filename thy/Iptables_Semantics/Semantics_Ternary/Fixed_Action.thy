@@ -130,10 +130,11 @@ text\<open>If the actions are equal, the @{term set} (position and replication i
 lemma approximating_bigstep_fun_fixaction_matchseteq: "set m1 = set m2 \<Longrightarrow>
         approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m1) s = 
        approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m2) s"
-(*TODO: why doesn't it work with just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided*)
-proof -
-  assume m1m2_seteq: "set m1 = set m2"
-  hence "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m1) Undecided = approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m2) Undecided"
+proof(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
+  assume m1m2_seteq: "set m1 = set m2" and "s = Undecided"
+  from m1m2_seteq have
+    "approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m1) Undecided =
+     approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) m2) Undecided"
   proof(induction m1 arbitrary: m2)
    case Nil thus ?case by simp
    next
@@ -199,10 +200,7 @@ proof -
         qed
       qed
   qed
-  thus ?thesis
-  apply -
-  apply(rule just_show_all_approximating_bigstep_fun_equalities_with_start_Undecided)
-  using m1m2_seteq by simp
+  thus ?thesis using \<open>s = Undecided\<close> by simp
 qed
 
 
@@ -272,52 +270,43 @@ subsection\<open>@{term match_list}\<close>
 
   lemma match_list_singleton: "match_list \<gamma> [m] a p \<longleftrightarrow> matches \<gamma> m a p" by(simp)
 
-  (*TODO: remove?*)
-  lemma empty_concat: "concat (map (\<lambda>x. []) ms) = []" by simp
-  (*
-  apply(induction ms)
-    by(simp_all)*)
-
   lemma match_list_append: "match_list \<gamma> (m1@m2) a p \<longleftrightarrow> (\<not> match_list \<gamma> m1 a p \<longrightarrow> match_list \<gamma> m2 a p)"
-      apply(induction m1)
-       apply(simp)
-      apply(simp)
-      done
+      by(induction m1) simp+
 
   lemma match_list_helper1: "\<not> matches \<gamma> m2 a p \<Longrightarrow> match_list \<gamma> (map (\<lambda>x. MatchAnd x m2) m1') a p \<Longrightarrow> False"
     apply(induction m1')
-     apply(simp)
+     apply(simp; fail)
     apply(simp split:split_if_asm)
     by(auto dest: matches_dest)
   lemma match_list_helper2: " \<not> matches \<gamma> m a p \<Longrightarrow> \<not> match_list \<gamma> (map (MatchAnd m) m2') a p"
     apply(induction m2')
-     apply(simp)
+     apply(simp; fail)
     apply(simp split:split_if_asm)
     by(auto dest: matches_dest)
   lemma match_list_helper3: "matches \<gamma> m a p \<Longrightarrow> match_list \<gamma> m2' a p \<Longrightarrow> match_list \<gamma> (map (MatchAnd m) m2') a p"
     apply(induction m2')
-     apply(simp)
+     apply(simp; fail)
     apply(simp split:split_if_asm)
     by (simp add: matches_simps)
   lemma match_list_helper4: "\<not> match_list \<gamma> m2' a p \<Longrightarrow> \<not> match_list \<gamma> (map (MatchAnd aa) m2') a p "
     apply(induction m2')
-     apply(simp)
+     apply(simp; fail)
     apply(simp split:split_if_asm)
     by(auto dest: matches_dest)
   lemma match_list_helper5: " \<not> match_list \<gamma> m2' a p \<Longrightarrow> \<not> match_list \<gamma> (concat (map (\<lambda>x. map (MatchAnd x) m2') m1')) a p "
     apply(induction m2')
-     apply(simp add:empty_concat)
+     apply(simp add:empty_concat; fail)
     apply(simp split:split_if_asm)
     apply(induction m1')
-     apply(simp)
+     apply(simp; fail)
     apply(simp add: match_list_append)
     by(auto dest: matches_dest)
   lemma match_list_helper6: "\<not> match_list \<gamma> m1' a p \<Longrightarrow> \<not> match_list \<gamma> (concat (map (\<lambda>x. map (MatchAnd x) m2') m1')) a p "
     apply(induction m2')
-     apply(simp add:empty_concat)
+     apply(simp add:empty_concat; fail)
     apply(simp split:split_if_asm)
     apply(induction m1')
-     apply(simp)
+     apply(simp; fail)
     apply(simp add: match_list_append split: split_if_asm)
     by(auto dest: matches_dest)
   
@@ -327,24 +316,24 @@ subsection\<open>@{term match_list}\<close>
   lemma match_list_map_And1: "matches \<gamma> m1 a p = match_list \<gamma> m1' a p \<Longrightarrow>
            matches \<gamma> (MatchAnd m1 m2) a p \<longleftrightarrow> match_list \<gamma>  (map (\<lambda>x. MatchAnd x m2) m1') a p"
     apply(induction m1')
-     apply(auto dest: matches_dest)[1]
+     apply(auto dest: matches_dest; fail)[1]
     apply(simp split: split_if_asm)
-    apply safe
-    apply(simp_all add: matches_simps)
-    apply(auto dest: match_list_helper(1))[1]
-    by(auto dest: matches_dest)
+     apply safe
+        apply(simp_all add: matches_simps)
+      apply(auto dest: match_list_helper(1))[1]
+     by(auto dest: matches_dest)
 
   lemma matches_list_And_concat: "matches \<gamma> m1 a p = match_list \<gamma> m1' a p \<Longrightarrow> matches \<gamma> m2 a p = match_list \<gamma> m2' a p \<Longrightarrow>
            matches \<gamma> (MatchAnd m1 m2) a p \<longleftrightarrow> match_list \<gamma> [MatchAnd x y. x <- m1', y <- m2'] a p"
     apply(induction m1')
-     apply(auto dest: matches_dest)[1]
+     apply(auto dest: matches_dest; fail)[1]
     apply(simp split: split_if_asm)
-    prefer 2
-    apply(simp add: match_list_append)
-    apply(subgoal_tac "\<not> match_list \<gamma> (map (MatchAnd aa) m2') a p")
-     apply(simp)
-    apply safe
-    apply(simp_all add: matches_simps match_list_append match_list_helper)
+     prefer 2
+     apply(simp add: match_list_append)
+     apply(subgoal_tac "\<not> match_list \<gamma> (map (MatchAnd aa) m2') a p")
+      apply(simp; fail)
+     apply safe
+               apply(simp_all add: matches_simps match_list_append match_list_helper)
     done
 
   lemma match_list_concat: "match_list \<gamma> (concat lss) a p \<longleftrightarrow> (\<exists>ls \<in> set lss. match_list \<gamma> ls a p)"
@@ -361,7 +350,7 @@ lemma fixedaction_wf_ruleset: "wf_ruleset \<gamma> p (map (\<lambda>m. Rule m a)
     apply(simp add: wf_ruleset_def)
     apply(rule helper)
     apply(induction ms)
-     apply(simp)
+     apply(simp; fail)
     apply(simp)
     done
   qed

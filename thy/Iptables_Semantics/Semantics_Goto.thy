@@ -991,17 +991,6 @@ begin
       apply(rule just_show_all_bigstep_semantics_equalities_with_start_Undecided)
       using assms replace_Goto_with_Call_in_terminal_chain_Undecided by fast
   
-  (*TODO: delete; only use safe function below*)  
-  private fun rewrite_Goto_chain :: "(string \<rightharpoonup> 'a rule list) \<Rightarrow> 'a rule list \<Rightarrow> 'a rule list" where
-    "rewrite_Goto_chain _ [] = []" |
-    "rewrite_Goto_chain \<Gamma> ((Rule m (Goto chain))#rs) =
-        (if terminal_chain (the (\<Gamma> chain)) then Rule m (Call chain) else undefined)#rewrite_Goto_chain \<Gamma> rs" |
-    "rewrite_Goto_chain \<Gamma> (r#rs) = r#rewrite_Goto_chain \<Gamma> rs"
-  
-  (*TODO: use rewrite_Goto_chain_safe*)
-  qualified definition rewrite_Goto :: "(string \<times> 'a rule list) list \<Rightarrow> (string \<times> 'a rule list) list" where
-    "rewrite_Goto cs = map (\<lambda>(chain_name, rs). (chain_name, rewrite_Goto_chain (map_of cs) rs)) cs"
-
 
   qualified fun rewrite_Goto_chain_safe :: "(string \<rightharpoonup> 'a rule list) \<Rightarrow> 'a rule list \<Rightarrow> ('a rule list) option" where
     "rewrite_Goto_chain_safe _ [] = Some []" |
@@ -1029,10 +1018,10 @@ begin
   qualified fun rewrite_Goto_safe :: "(string \<times> 'a rule list) list \<Rightarrow> (string \<times> 'a rule list) list option" where
     "rewrite_Goto_safe cs = rewrite_Goto_safe_internal cs cs"
 
-  private lemma "rewrite_Goto_chain_safe \<Gamma> rs = Some rs' \<Longrightarrow> rewrite_Goto_chain \<Gamma> rs = rs'"
-    apply(induction \<Gamma> rs arbitrary: rs' rule: rewrite_Goto_chain_safe.induct)
-    apply(auto split: option.split_asm)
-    done
+
+  (*use rewrite_Goto_chain_safe whenever possible!*)
+  qualified definition rewrite_Goto :: "(string \<times> 'a rule list) list \<Rightarrow> (string \<times> 'a rule list) list" where
+    "rewrite_Goto cs = the (rewrite_Goto_safe cs)"
 
 
   private lemma step_IH_cong: "(\<And>s. \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs1, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs2, s\<rangle> \<Rightarrow> t) \<Longrightarrow>

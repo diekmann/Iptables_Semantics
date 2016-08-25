@@ -15,5 +15,5 @@ lemma list_app_eq_cases:
         | (shorter) "ys\<^sub>1 = take (length ys\<^sub>1) xs\<^sub>1" "ys\<^sub>2 = drop (length ys\<^sub>1) xs\<^sub>1 @ xs\<^sub>2"
 using assms by (cases "length xs\<^sub>1 \<le> length ys\<^sub>1") (metis append_eq_append_conv_if)+
 
-
+lemma empty_concat: "concat (map (\<lambda>x. []) ms) = []" by simp
 end

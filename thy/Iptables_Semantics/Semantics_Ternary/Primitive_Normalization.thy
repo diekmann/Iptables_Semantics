@@ -165,7 +165,6 @@ lemma normalized_n_primitive_alist_and': "normalized_n_primitive disc_sel P (ali
   apply(induction as rule: alist_and'.induct)
       by(simp_all add: negation_type_to_match_expr_simps)
 
-
 lemma not_has_disc_NegPos_map: "\<forall>a. \<not> disc (C a) \<Longrightarrow> \<forall>a\<in>set (NegPos_map C ls).
         \<not> has_disc disc (negation_type_to_match_expr a)"
 by(induction C ls rule: NegPos_map.induct) (simp add: negation_type_to_match_expr_def)+
@@ -179,12 +178,11 @@ lemma normalized_n_primitive_impossible_map: "\<forall>a. \<not> disc (C a) \<Lo
      normalized_n_primitive (disc, sel) f m"
   apply(intro ballI)
   apply(induction ls)
-   apply(simp)
+   apply(simp; fail)
   apply(simp)
   apply(case_tac m, simp_all) (*3 cases are impossible*)
    apply(fastforce)
   by force
-
 
 lemma normalized_n_primitive_alist_and'_append:
   "normalized_n_primitive (disc, sel) f (alist_and' (ls1 @ ls2)) \<longleftrightarrow>
@@ -198,6 +196,12 @@ done
 lemma normalized_n_primitive_if_no_primitive: "normalized_nnf_match m \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> 
        normalized_n_primitive (disc, sel) f m"
   by(induction "(disc, sel)" f m rule: normalized_n_primitive.induct) (simp)+
+
+lemma normalized_n_primitive_MatchAnd_combine_map: "normalized_n_primitive disc_sel f rst \<Longrightarrow>
+       \<forall>m' \<in> (\<lambda>spt. Match (C spt)) ` set pts. normalized_n_primitive disc_sel f m' \<Longrightarrow>
+        m' \<in> (\<lambda>spt. MatchAnd (Match (C spt)) rst) ` set pts \<Longrightarrow> normalized_n_primitive disc_sel f m'"
+  by(induction disc_sel f m' rule: normalized_n_primitive.induct)
+     fastforce+
 
 subsection\<open>Primitive Extractor\<close>
 
@@ -250,7 +254,6 @@ theorem primitive_extractor_correct: assumes
   and "\<forall>disc2. \<not> has_disc_negated disc2 neg m \<longrightarrow> \<not> has_disc_negated disc2 neg ms"
   and "\<not> has_disc disc m \<Longrightarrow> as = [] \<and> ms = m"
   and "\<not> has_disc_negated disc False m \<longleftrightarrow> getNeg as = []"
-  (*TODO: preserves arbitrary P?*)
 proof -
   --"better simplification rule"
   from assms have assm3': "(as, ms) = primitive_extractor (disc, sel) m" by simp
@@ -452,7 +455,7 @@ subsection\<open>Normalizing and Optimizing Primitives\<close>
     "normalize_primitive_extract (disc_sel) C f m \<equiv> (case primitive_extractor (disc_sel) m 
                 of (spts, rst) \<Rightarrow> map (\<lambda>spt. (MatchAnd (Match (C spt))) rst) (f spts))"
   
-                (*TODO: if f spts is empty, we get back an empty list. problem? *)
+                (*if f spts is empty, we get back an empty list. *)
   
   text\<open>
     If @{text f} has the properties described above, then @{const normalize_primitive_extract} is a valid transformation of a match expression\<close>
@@ -618,7 +621,6 @@ lemma remove_unknowns_generic_normalized_n_primitive: "normalized_n_primitive di
 
 
 
-(*TODO: move to normalize_match*)
 lemma normalize_match_preserves_disc_negated: 
     shows "(\<exists>m_DNF \<in> set (normalize_match m). has_disc_negated disc neg m_DNF) \<Longrightarrow> has_disc_negated disc neg m"
   proof(induction m rule: normalize_match.induct)
@@ -674,13 +676,14 @@ lemma not_has_disc_normalize_match:
   using i_m_giving_this_a_funny_name_so_i_can_thank_my_future_me_when_sledgehammer_will_find_this_one_day by blast
 
 lemma normalize_match_preserves_normalized_n_primitive:
-  "normalized_n_primitive (disc, sel) f rst \<Longrightarrow>
-        \<forall> r \<in> set (normalize_match rst). normalized_n_primitive (disc, sel) f r"
+  "normalized_n_primitive disc_sel f rst \<Longrightarrow>
+        \<forall> m \<in> set (normalize_match rst). normalized_n_primitive disc_sel f m"
+apply(cases disc_sel, simp)
 apply(induction rst rule: normalize_match.induct)
       apply(simp; fail)
      apply(simp; fail)
     apply(simp; fail)
-   using normalized_n_primitive.simps(5) apply blast (*simp loops*)
+   using normalized_n_primitive.simps(5) apply metis (*simp loops*)
   by simp+
 
 
@@ -800,18 +803,17 @@ subsection\<open>Optimizing a match expression\<close>
         obtain as ms where asms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
         from am primitive_extractor_correct(4)[OF nm wf asms] have 1: "\<not> has_disc disc2 ms" by simp
         { fix is_pos is_neg
-          from disc have x1: "\<not> has_disc disc2 (alist_and (NegPos_map C (map Pos is_pos)))"
-            by(simp add: has_disc_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)
-          from disc have x2: "\<not> has_disc disc2 (alist_and (NegPos_map C (map Neg is_neg)))"
-            by(simp add: has_disc_alist_and NegPos_map_map_Neg negation_type_to_match_expr_simps)
-          from x1 x2 have "\<not> has_disc disc2 (alist_and (NegPos_map C (map Pos is_pos @ map Neg is_neg)))"
-            apply(simp add: NegPos_map_append has_disc_alist_and) by blast
+          from disc have x1: "\<not> has_disc disc2 (alist_and' (NegPos_map C (map Pos is_pos)))"
+            by(simp add: has_disc_alist_and' NegPos_map_map_Pos negation_type_to_match_expr_simps)
+          from disc have x2: "\<not> has_disc disc2 (alist_and' (NegPos_map C (map Neg is_neg)))"
+            by(simp add: has_disc_alist_and' NegPos_map_map_Neg negation_type_to_match_expr_simps)
+          from x1 x2 have "\<not> has_disc disc2 (alist_and' (NegPos_map C (map Pos is_pos @ map Neg is_neg)))"
+            apply(simp add: NegPos_map_append has_disc_alist_and') by blast
         }
         with some have "\<not> has_disc disc2 m'"
           apply(simp add: compress_normalize_primitive_def asms)
           apply(elim exE conjE)
-          (*TODO: confusing alist_and and alist_and'*)
-          using 1 by (meson has_disc.simps(4) has_disc_alist_and has_disc_alist_and')
+          using 1 by fastforce
         with goal1 show ?thesis by simp
    qed
   lemma compress_normalize_primitive_hasdisc_negated:
@@ -826,17 +828,17 @@ subsection\<open>Optimizing a match expression\<close>
         obtain as ms where asms: "primitive_extractor (disc, sel) m = (as, ms)" by fastforce
         from am primitive_extractor_correct(6)[OF nm wf asms] have 1: "\<not> has_disc_negated disc2 neg ms" by simp
         { fix is_pos is_neg
-          from disc have x1: "\<not> has_disc_negated disc2 neg (alist_and (NegPos_map C (map Pos is_pos)))"
-            by(simp add: has_disc_negated_alist_and NegPos_map_map_Pos negation_type_to_match_expr_simps)
-          from disc have x2: "\<not> has_disc_negated disc2 neg (alist_and (NegPos_map C (map Neg is_neg)))"
-            by(simp add: has_disc_negated_alist_and NegPos_map_map_Neg negation_type_to_match_expr_simps)
-          from x1 x2 have "\<not> has_disc_negated disc2 neg (alist_and (NegPos_map C (map Pos is_pos @ map Neg is_neg)))"
-            apply(simp add: NegPos_map_append has_disc_negated_alist_and) by blast
+          from disc have x1: "\<not> has_disc_negated disc2 neg (alist_and' (NegPos_map C (map Pos is_pos)))"
+            by(simp add: has_disc_negated_alist_and' NegPos_map_map_Pos negation_type_to_match_expr_simps)
+          from disc have x2: "\<not> has_disc_negated disc2 neg (alist_and' (NegPos_map C (map Neg is_neg)))"
+            by(simp add: has_disc_negated_alist_and' NegPos_map_map_Neg negation_type_to_match_expr_simps)
+          from x1 x2 have "\<not> has_disc_negated disc2 neg (alist_and' (NegPos_map C (map Pos is_pos @ map Neg is_neg)))"
+            apply(simp add: NegPos_map_append has_disc_negated_alist_and') by blast
         }
         with some have "\<not> has_disc_negated disc2 neg m'"
           apply(simp add: compress_normalize_primitive_def asms)
           apply(elim exE conjE)
-          using 1 by (meson has_disc_negated.simps(4) has_disc_negated_alist_and has_disc_negated_alist_and')
+          using 1 by fastforce
           
         with goal1 show ?thesis by simp
    qed
@@ -869,5 +871,103 @@ subsection\<open>Optimizing a match expression\<close>
                  normalized_n_primitive.simps(4) by blast 
         with goal1 show ?thesis by simp
    qed
+
+
+
+subsection\<open>Processing a list of normalization functions\<close>
+
+fun compress_normalize_primitive_monad :: "('a match_expr \<Rightarrow> 'a match_expr option) list \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr option" where
+  "compress_normalize_primitive_monad [] m = Some m" |
+  "compress_normalize_primitive_monad (f#fs) m = (case f m of None \<Rightarrow> None
+                                                           |  Some m' \<Rightarrow> compress_normalize_primitive_monad fs m')"
+
+lemma compress_normalize_primitive_monad: 
+      assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p"
+          and "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
+          and "normalized_nnf_match m"
+          and "(compress_normalize_primitive_monad fs m) = Some m'"
+      shows "matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p" (is ?goal1)
+        and "normalized_nnf_match m'"              (is ?goal2)
+  proof -
+    (*everything in one big induction*)
+    have goals: "?goal1 \<and> ?goal2"
+    using assms proof(induction fs arbitrary: m)
+    case Nil thus ?case by simp
+    next
+    case (Cons f fs)
+      from Cons.prems(1) have IH_prem1:
+        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)" by auto
+      from Cons.prems(2) have IH_prem2:
+        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m')" by auto
+      from Cons.IH IH_prem1 IH_prem2 have
+        IH: "\<And>m. normalized_nnf_match m \<Longrightarrow> compress_normalize_primitive_monad fs m = Some m' \<Longrightarrow>
+                  (matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p) \<and> ?goal2" by fast
+      show ?case
+        proof(cases "f m")
+          case None thus ?thesis using Cons.prems by auto
+        next
+          case(Some m'')
+            from Some Cons.prems(1)[of f] Cons.prems(3) have 1: "matches \<gamma> m'' a p = matches \<gamma> m a p" by simp
+            from Some Cons.prems(2)[of f] Cons.prems(3) have 2: "normalized_nnf_match m''" by simp
+            from Some have "compress_normalize_primitive_monad (f # fs) m = compress_normalize_primitive_monad fs m''" by simp
+            thus ?thesis using Cons.prems(4) IH 1 2 by auto 
+        qed
+    qed
+    from goals show ?goal1 by simp
+    from goals show ?goal2 by simp
+  qed
+
+(*proof is a bit sledgehammered*)
+lemma compress_normalize_primitive_monad_None: 
+      assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p"
+          and "\<And>m f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m a p"
+          and "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
+          and "normalized_nnf_match m"
+          and "(compress_normalize_primitive_monad fs m) = None"
+      shows "\<not> matches \<gamma> m a p"
+    using assms proof(induction fs arbitrary: m)
+    case Nil thus ?case by simp
+    next
+    case (Cons f fs)
+      from Cons.prems(1) have IH_prem1:
+        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)" by auto
+      from Cons.prems(2) have IH_prem2:
+        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m a p)" by auto
+      from Cons.prems(3) have IH_prem3:
+        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m')" by auto
+      from Cons.IH IH_prem1 IH_prem2 IH_prem3 have
+        IH: "\<And>m. normalized_nnf_match m \<Longrightarrow> compress_normalize_primitive_monad fs m = None \<Longrightarrow> \<not>  matches \<gamma> m a p" by blast
+      show ?case
+        proof(cases "f m")
+          case None thus ?thesis using Cons.prems(4) Cons.prems(2) Cons.prems(3) by auto
+        next
+          case(Some m'')
+            from Some Cons.prems(3)[of f] Cons.prems(4) have 2: "normalized_nnf_match m''" by simp
+            from Some have "compress_normalize_primitive_monad (f # fs) m = compress_normalize_primitive_monad fs m''" by simp
+            hence "\<not> matches \<gamma> m'' a p" using Cons.prems(5) IH 2 by simp
+            thus ?thesis using Cons.prems(1) Cons.prems(4) Some by auto 
+        qed
+    qed
+
+
+lemma compress_normalize_primitive_monad_preserves:
+      assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
+          and "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> P m \<Longrightarrow> f m = Some m' \<Longrightarrow> P m'"
+          and "normalized_nnf_match m"
+          and "P m"
+          and "(compress_normalize_primitive_monad fs m) = Some m'"
+      shows "normalized_nnf_match m' \<and> P m'"
+    using assms proof(induction fs arbitrary: m)
+    case Nil thus ?case by simp
+    next
+    case (Cons f fs) thus ?case by(simp split: option.split_asm) blast (*1s*)
+    qed
+
+
+
+
+(*TODO: move to generic place and use? ? ? *)
+datatype 'a match_compress = CannotMatch | MatchesAll | MatchExpr 'a
+
 
 end

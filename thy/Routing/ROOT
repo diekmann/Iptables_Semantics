@@ -1,7 +1,6 @@
 
 chapter Routing
 session Routing = Simple_Firewall +
-  options [document = pdf, document_output = "output"]
   theories [document = false]
     "~~/src/HOL/Library/Monad_Syntax"
   theories

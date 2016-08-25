@@ -233,7 +233,7 @@ lemma nomatch':
   assumes "\<And>r. r \<in> set rs \<Longrightarrow> \<not> matches \<gamma> (get_match r) p"
   shows "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> s"
   proof(cases s)
-    case Undecided (* TODO larsrh nested proof block *)
+    case Undecided
     have "\<forall>r\<in>set rs. \<not> matches \<gamma> (get_match r) p \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Undecided"
       proof(induction rs)
         case Nil
@@ -250,10 +250,10 @@ lemma nomatch':
 
 
 text\<open>there are only two cases when there can be a Return on top-level:
-\begin{enumerate}
-  \item the firewall is in a Decision state
-  \item the return does not match
-\end{enumerate}
+
+  \<^item> the firewall is in a Decision state
+  \<^item> the return does not match
+
 In both cases, it is not applied!
 \<close>
 lemma no_free_return: assumes "\<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule m Return], Undecided\<rangle> \<Rightarrow> t" and "matches \<gamma> m p" shows "False"

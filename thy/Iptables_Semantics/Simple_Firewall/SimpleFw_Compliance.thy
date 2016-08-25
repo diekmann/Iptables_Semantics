@@ -404,8 +404,8 @@ theorem transform_simple_fw_upper:
       "normalized_src_ports m \<and> normalized_dst_ports m \<and>
       normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
 
-    (*things break because upper closure could introduce negated protocols. should not happen if we don't have negated ports in it *)
-    (*TODO: rewrite in a way that it is in simp-normal form*)
+    (*things are complicated because upper closure could introduce negated protocols.
+      should not happen if we don't have negated ports in it *)
     from transform_upper_closure(5)[OF s3] iface_in iface_out have "\<forall>r\<in>set ?rs'.
      \<not> has_disc_negated is_Iiface False (get_match r) \<and> \<not> has_disc_negated is_Oiface False (get_match r)" by simp (*500ms*)
     with r have abstracted_ifaces: "normalized_ifaces m"

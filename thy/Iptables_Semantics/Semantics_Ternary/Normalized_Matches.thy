@@ -269,8 +269,6 @@ lemma in_normalized_matches: "ls \<in> set (normalize_match m) \<and> matches \<
   shows "\<forall>r \<in> set (normalize_rules f rs). P (get_match r)"
   using normalize_rules_property[OF assms(1) assms(2)] by simp
 
-
-(*TODO: generalize!*)
 fun normalize_rules_dnf :: "'a rule list \<Rightarrow> 'a rule list" where
   "normalize_rules_dnf [] = []" |
   "normalize_rules_dnf ((Rule m a)#rs) = (map (\<lambda>m. Rule m a) (normalize_match m))@(normalize_rules_dnf rs)"
@@ -376,7 +374,6 @@ lemma "normalize_match (MatchNot (MatchAnd (Match ip_src) (Match tcp))) = [Match
 
 subsection\<open>Functions which preserve @{const normalized_nnf_match}\<close>
 
-(* TODO: this is the place to collect functions that maintain the normalized structure *)
 lemma optimize_matches_option_normalized_nnf_match: "(\<And> r. r \<in> set rs \<Longrightarrow> normalized_nnf_match (get_match r)) \<Longrightarrow>
      (\<And>m m'. normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m') \<Longrightarrow>
       \<forall> r \<in> set (optimize_matches_option f rs). normalized_nnf_match (get_match r)"

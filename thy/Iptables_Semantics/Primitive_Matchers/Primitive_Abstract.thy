@@ -15,7 +15,7 @@ text\<open>Abstract over certain primitives. The first parameter is a function
   selectively abstract only over negated, non-negated, or both kinds of primitives.
   This functions requires a @{const normalized_nnf_match}.
 \<close>
-(*TODO: damn tosting function!*)
+(*requires toString function!*)
 fun abstract_primitive
   :: "('i::len common_primitive negation_type \<Rightarrow> bool) \<Rightarrow> 'i common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr"
 where

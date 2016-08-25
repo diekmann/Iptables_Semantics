@@ -3,96 +3,6 @@ imports Common_Primitive_Lemmas
 begin
 
 
-(*TODO move to separate file*)
-
-fun compress_normalize_primitive_monad :: "('a match_expr \<Rightarrow> 'a match_expr option) list \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr option" where
-  "compress_normalize_primitive_monad [] m = Some m" |
-  "compress_normalize_primitive_monad (f#fs) m = (case f m of None \<Rightarrow> None
-                                                           |  Some m' \<Rightarrow> compress_normalize_primitive_monad fs m')"
-
-lemma compress_normalize_primitive_monad: 
-      assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p"
-          and "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
-          and "normalized_nnf_match m"
-          and "(compress_normalize_primitive_monad fs m) = Some m'"
-      shows "matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p" (is ?goal1)
-        and "normalized_nnf_match m'"              (is ?goal2)
-  proof -
-    (*everything in one big induction*)
-    have goals: "?goal1 \<and> ?goal2"
-    using assms proof(induction fs arbitrary: m)
-    case Nil thus ?case by simp
-    next
-    case (Cons f fs)
-      from Cons.prems(1) have IH_prem1:
-        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)" by auto
-      from Cons.prems(2) have IH_prem2:
-        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m')" by auto
-      from Cons.IH IH_prem1 IH_prem2 have
-        IH: "\<And>m. normalized_nnf_match m \<Longrightarrow> compress_normalize_primitive_monad fs m = Some m' \<Longrightarrow>
-                  (matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p) \<and> ?goal2" by fast
-      show ?case
-        proof(cases "f m")
-          case None thus ?thesis using Cons.prems by auto
-        next
-          case(Some m'')
-            from Some Cons.prems(1)[of f] Cons.prems(3) have 1: "matches \<gamma> m'' a p = matches \<gamma> m a p" by simp
-            from Some Cons.prems(2)[of f] Cons.prems(3) have 2: "normalized_nnf_match m''" by simp
-            from Some have "compress_normalize_primitive_monad (f # fs) m = compress_normalize_primitive_monad fs m''" by simp
-            thus ?thesis using Cons.prems(4) IH 1 2 by auto 
-        qed
-    qed
-    from goals show ?goal1 by simp
-    from goals show ?goal2 by simp
-  qed
-
-(*TODO: proof is a bit too much sledgehammered in parts*)
-lemma compress_normalize_primitive_monad_None: 
-      assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p \<longleftrightarrow> matches \<gamma> m a p"
-          and "\<And>m f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m a p"
-          and "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
-          and "normalized_nnf_match m"
-          and "(compress_normalize_primitive_monad fs m) = None"
-      shows "\<not> matches \<gamma> m a p"
-    using assms proof(induction fs arbitrary: m)
-    case Nil thus ?case by simp
-    next
-    case (Cons f fs)
-      from Cons.prems(1) have IH_prem1:
-        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)" by auto
-      from Cons.prems(2) have IH_prem2:
-        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m a p)" by auto
-      from Cons.prems(3) have IH_prem3:
-        "(\<And>f m m'. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m')" by auto
-      from Cons.IH IH_prem1 IH_prem2 IH_prem3 have
-        IH: "\<And>m. normalized_nnf_match m \<Longrightarrow> compress_normalize_primitive_monad fs m = None \<Longrightarrow> \<not>  matches \<gamma> m a p" by blast
-      show ?case
-        proof(cases "f m")
-          case None thus ?thesis using Cons.prems(4) Cons.prems(2) Cons.prems(3) by auto
-        next
-          case(Some m'')
-            from Some Cons.prems(3)[of f] Cons.prems(4) have 2: "normalized_nnf_match m''" by simp
-            from Some have "compress_normalize_primitive_monad (f # fs) m = compress_normalize_primitive_monad fs m''" by simp
-            hence "\<not> matches \<gamma> m'' a p" using Cons.prems(5) IH 2 by simp
-            thus ?thesis using Cons.prems(1) Cons.prems(4) Some by auto 
-        qed
-    qed
-
-
-lemma compress_normalize_primitive_monad_preserves:
-      assumes "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> f m = Some m' \<Longrightarrow> normalized_nnf_match m'"
-          and "\<And>m m' f. f \<in> set fs \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> P m \<Longrightarrow> f m = Some m' \<Longrightarrow> P m'"
-          and "normalized_nnf_match m"
-          and "P m"
-          and "(compress_normalize_primitive_monad fs m) = Some m'"
-      shows "normalized_nnf_match m' \<and> P m'"
-    using assms proof(induction fs arbitrary: m)
-    case Nil thus ?case by simp
-    next
-    case (Cons f fs) thus ?case by(simp split: option.split_asm) blast (*1s*)
-    qed
-    
-
 
 subsection\<open>Optimizing interfaces in match expressions\<close>
 
@@ -113,10 +23,6 @@ subsection\<open>Optimizing interfaces in match expressions\<close>
                       else
                        Some ((if i = ifaceAny then [] else [i]), getNeg ifces)"
 
-  (*TODO: if positive iface is not a wildcard and whole expression is not none, then drop all negative interfaces from the expression*)
-
-
-term map_option
 
 context
 begin

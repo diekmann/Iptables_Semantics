@@ -170,6 +170,10 @@ definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Ri
 lemma optimize_matches_append: "optimize_matches f (rs1@rs2) = optimize_matches f rs1 @ optimize_matches f rs2"
   by(simp add: optimize_matches_def optimize_matches_option_append)
 
+(*Warning: simplifier loops with this lemma*)
+lemma optimize_matches_fst: "optimize_matches f (r#rs) = optimize_matches f [r]@optimize_matches f rs"
+by(cases r)(simp add: optimize_matches_def)
+
 lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P (f (get_match r))) \<Longrightarrow>
     \<forall> r \<in> set (optimize_matches f rs). P (get_match r)"
   unfolding optimize_matches_def

@@ -8,7 +8,6 @@ begin
 section\<open>Ports (layer 4)\<close>
 text\<open>E.g. source and destination ports for TCP/UDP\<close>
 
-(*TODO: rename to raw_ports everywhere*)
 text\<open>list of (start, end) port ranges\<close>
 type_synonym raw_ports = "(16 word \<times> 16 word) list"
 

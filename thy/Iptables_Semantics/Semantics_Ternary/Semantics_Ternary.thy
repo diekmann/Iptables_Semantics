@@ -476,7 +476,6 @@ using rm_LogEmpty_seq apply metis
 done
 
 
-(*TODO: move?*)
 lemma rm_LogEmpty_simple_but_Reject: 
   "good_ruleset rs \<Longrightarrow> \<forall>r \<in> set (rm_LogEmpty rs). get_action r = Accept \<or> get_action r = Reject \<or> get_action r = Drop"
   proof(induction rs)
@@ -505,7 +504,6 @@ lemma rw_Reject_fun_semantics:
       done
     qed
 
-(*TODO: move to common algorithms*)
 lemma rmLogEmpty_rwReject_good_to_simple: "good_ruleset rs \<Longrightarrow> simple_ruleset (rw_Reject (rm_LogEmpty rs))"
   apply(drule rm_LogEmpty_simple_but_Reject)
   apply(simp add: simple_ruleset_def)
