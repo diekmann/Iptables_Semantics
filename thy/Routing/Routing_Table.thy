@@ -19,6 +19,10 @@ record(overloaded) 'i routing_rule =
   metric :: nat
   routing_action :: "'i routing_action"
 
+text\<open>This definition is engineered to model routing tables on packet forwarding device.
+It eludes, e.g., the source address hint, which is only relevant for packets originating from the device itself.\<close>
+(* See also: http://linux-ip.net/html/routing-saddr-selection.html *)
+
 context
 begin
 
