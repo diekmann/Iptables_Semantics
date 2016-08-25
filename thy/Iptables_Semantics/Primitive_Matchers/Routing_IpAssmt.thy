@@ -18,6 +18,10 @@ private lemma ipcidr_union_cidr_split[simp]: "ipcidr_union_set (set (cidr_split 
   apply(fact ipcidr_union_set_uncurry)
 done
 
+private lemma map_of_map_Iface: "map_of (map (\<lambda>x. (Iface (fst x), f (snd x))) xs) (Iface ifce) = 
+        map_option f ((map_of xs) ifce)"
+  by (induct xs) (auto)
+
 lemma routing_ipassmt: "has_default_route rt \<Longrightarrow>
     valid_prefixes rt \<Longrightarrow>
     routing_table_semantics rt (p_dst p) = \<lparr>output_iface = oifce, next_hop = ignored\<rparr> \<Longrightarrow>
@@ -30,8 +34,11 @@ lemma routing_ipassmt: "has_default_route rt \<Longrightarrow>
   apply(rule_tac x="cidr_split ip_range" in exI)
   apply(simp)
   apply(simp add: comp_def)
-  TODO: sqrl
-  sorry
+  apply(simp add: map_of_map_Iface)
+  apply(rule_tac x="ip_range" in exI)
+  apply(simp)
+  by (simp add: routing_ipassmt_wi_distinct)
+
 
 lemma routing_ipassmt_ipassmt_sanity_disjoint: "valid_prefixes (rt::('i::len) prefix_routing) \<Longrightarrow>
     ipassmt_sanity_disjoint (map_of (routing_ipassmt rt))"
