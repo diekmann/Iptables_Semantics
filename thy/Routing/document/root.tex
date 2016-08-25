@@ -26,11 +26,15 @@
 \begin{document}
 
 \title{Routing}
-\author{Julius Michaelis}
+\author{Julius Michaelis, Cornelius Diekmann}
 \maketitle
 
 \begin{abstract}  
-  Linux Router.
+	This entry contains definitions for routing with routing tables/longest prefix matching.
+
+	A routing table entry is modelled as a record of a prefix match, a metric, an output port, and an optional next hop.
+	A routing table is a list of entries, sorted by prefix length and metric.
+	Additionally, a parser and serializer for the output of the ip-route command, a function to create a relation from output port to corresponding destination IP space, and a model of a linux style router are included.
 \end{abstract}
 
 \tableofcontents

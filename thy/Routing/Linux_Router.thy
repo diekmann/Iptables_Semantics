@@ -42,8 +42,8 @@ definition iface_packet_check ::  "interface list \<Rightarrow>('i::len,'b) simp
 where "iface_packet_check ifs p \<equiv> find (\<lambda>i. iface_name i = p_iiface p \<and> iface_mac i = p_l2dst p) ifs" 
 term simple_fw
 definition simple_linux_router ::
-  "routing_rule list \<Rightarrow> 32 simple_rule list \<Rightarrow> (32 word \<Rightarrow> 48 word option) \<Rightarrow> 
-      interface list \<Rightarrow> 32 simple_packet_ext \<Rightarrow> 32 simple_packet_ext option" where
+  "'i routing_rule list \<Rightarrow> 'i simple_rule list \<Rightarrow> (('i::len) word \<Rightarrow> 48 word option) \<Rightarrow> 
+         interface list \<Rightarrow> 'i simple_packet_ext \<Rightarrow> 'i simple_packet_ext option" where
 "simple_linux_router rt fw mlf ifl p \<equiv> do {
 	_ \<leftarrow> iface_packet_check ifl p;
 	let rd (* routing decision *) = routing_table_semantics rt (p_dst p);
@@ -63,7 +63,7 @@ or the usual mechanic of sending out an ARP request and caching the answer.
 Doing ARP requests in the restricted environment of, e.g., an OpenFlow ruleset seems impossible.
 Therefore, we present this model:\<close>
 definition simple_linux_router_nol12 ::
-    "routing_rule list \<Rightarrow> 32 simple_rule list \<Rightarrow> (32,'a) simple_packet_scheme \<Rightarrow> (32,'a) simple_packet_scheme option" where
+    "'l routing_rule list \<Rightarrow> 'l simple_rule list \<Rightarrow> ('i,'a) simple_packet_scheme \<Rightarrow> ('i::len,'a) simple_packet_scheme option" where
 "simple_linux_router_nol12 rt fw p \<equiv> do {
 	let rd = routing_table_semantics rt (p_dst p);
 	let p = p\<lparr>p_oiface := output_iface rd\<rparr>;
