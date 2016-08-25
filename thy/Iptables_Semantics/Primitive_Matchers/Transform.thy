@@ -1137,7 +1137,7 @@ theorem iiface_constrain:
   assumes simplers: "simple_ruleset rs"
       and normalized: "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)"
       and wf_ipassmt: "ipassmt_sanity_nowildcards ipassmt"
-      and nospoofing: "case ipassmt (Iface (p_iiface p)) of Some ips \<Rightarrow> p_src p \<in> ipcidr_union_set (set ips)"
+      and nospoofing: "\<And>ips. ipassmt (Iface (p_iiface p)) = Some ips \<Longrightarrow> p_src p \<in> ipcidr_union_set (set ips)"
   shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (iiface_constrain ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
     and "simple_ruleset (optimize_matches (iiface_constrain ipassmt) rs)"
   proof -
