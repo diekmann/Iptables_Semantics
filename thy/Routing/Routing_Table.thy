@@ -1,6 +1,7 @@
 section\<open>Routing Table\<close>
 theory Routing_Table
-imports "../IP_Addresses/Prefix_Match" "../IP_Addresses/IPv4" (*we could probably generalize*) 
+imports "../IP_Addresses/Prefix_Match"
+        "../IP_Addresses/IPv4" "../IP_Addresses/IPv6"
         "Linorder_Helper"
         "../IP_Address/IP_Address_toString"
 begin
@@ -17,6 +18,10 @@ record(overloaded) 'i routing_rule =
   routing_match :: "('i::len) prefix_match" (* done on the dst *)
   metric :: nat
   routing_action :: "'i routing_action"
+
+text\<open>This definition is engineered to model routing tables on packet forwarding device.
+It eludes, e.g., the source address hint, which is only relevant for packets originating from the device itself.\<close>
+(* See also: http://linux-ip.net/html/routing-saddr-selection.html *)
 
 context
 begin
