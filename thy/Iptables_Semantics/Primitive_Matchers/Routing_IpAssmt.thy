@@ -22,15 +22,18 @@ private lemma map_of_map_Iface: "map_of (map (\<lambda>x. (Iface (fst x), f (snd
         map_option f ((map_of xs) ifce)"
   by (induct xs) (auto)
 
-value "routing_ipassmt_wi ([]::32 prefix_routing)"  (* we're cheating a bit here\<dots> [(output_iface (routing_action undefined), WordInterval (0::32 word) (0xFFFFFFFF::32 word))] *)
+lemma "routing_ipassmt_wi ([]::32 prefix_routing) = [(output_iface (routing_action undefined), WordInterval 0 0xFFFFFFFF)]"
+apply code_simp
+apply (intro conjI)
+apply(simp_all)
+oops
 
 lemma routing_ipassmt: "
     valid_prefixes rt \<Longrightarrow>
-    routing_table_semantics rt (p_dst p) = \<lparr>output_iface = oifce, next_hop = ignored\<rparr> \<Longrightarrow>
-    p_oiface p = oifce \<Longrightarrow>
-    \<exists>p_ips. map_of (routing_ipassmt rt) (Iface oifce) = Some p_ips \<and> p_dst p \<in> ipcidr_union_set (set p_ips)"
+    output_iface (routing_table_semantics rt (p_dst p)) = p_oiface p \<Longrightarrow>
+    \<exists>p_ips. map_of (routing_ipassmt rt) (Iface (p_oiface p)) = Some p_ips \<and> p_dst p \<in> ipcidr_union_set (set p_ips)"
   apply(simp add: routing_ipassmt_def)
-  apply(drule routing_ipassmt_wi[where output_port=oifce and k="p_dst p"])
+  apply(drule routing_ipassmt_wi[where output_port="p_oiface p" and k="p_dst p"])
   apply(simp)
   apply(elim exE, rename_tac ip_range)
   apply(rule_tac x="cidr_split ip_range" in exI)
@@ -49,6 +52,15 @@ unfolding ipassmt_sanity_disjoint_def routing_ipassmt_def comp_def
   apply(drule map_of_SomeD)+
   apply(clarsimp split: iface.splits)
 using routing_ipassmt_wi_disjoint[where 'i = 'i] by meson
+
+lemma routing_ipassmt_distinct: "distinct (map fst (routing_ipassmt rtbl))"
+  using routing_ipassmt_wi_distinct[of rtbl]
+  unfolding routing_ipassmt_def
+  apply(simp add: comp_def)
+  apply(subst distinct_map[where f = Iface and xs = "map fst (routing_ipassmt_wi rtbl)", simplified, unfolded comp_def])
+  apply(auto intro: inj_onI)
+done
+  
 end
 
 end

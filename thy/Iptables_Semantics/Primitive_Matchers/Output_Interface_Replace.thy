@@ -30,9 +30,7 @@ case (Some ips)
        by(simp add: match_list_to_match_expr_disjunction[symmetric]
                     match_list_matches match_simplematcher_SrcDst ipt_iprange_to_set_uncurry_IpAddrNetmask)
   with Some show ?thesis
-    apply(simp add: ipassmt_iface_replace_dstip_mexpr_def bunch_of_lemmata_about_matches)
-    apply(simp add: ipcidr_union_set_uncurry)
-    done
+    by(simp add: ipassmt_iface_replace_dstip_mexpr_def bunch_of_lemmata_about_matches ipcidr_union_set_uncurry)
 qed
 
 
@@ -41,7 +39,7 @@ fun oiface_rewrite
 where
   "oiface_rewrite _       MatchAny = MatchAny" |
   "oiface_rewrite ipassmt (Match (OIface ifce)) = ipassmt_iface_replace_dstip_mexpr ipassmt ifce" |
-  "oiface_rewrite ipassmt (Match a) = Match a" |
+  "oiface_rewrite _       (Match a) = Match a" |
   "oiface_rewrite ipassmt (MatchNot m) = MatchNot (oiface_rewrite ipassmt m)" |
   "oiface_rewrite ipassmt (MatchAnd m1 m2) = MatchAnd (oiface_rewrite ipassmt m1) (oiface_rewrite ipassmt m2)"
 
@@ -109,11 +107,13 @@ begin
       "\<And>k ips'. ipassmt k = Some ips' \<Longrightarrow> p_dst p \<in> ipcidr_union_set (set ips') \<Longrightarrow> k = ifce" by simp
 
      have ipassmt_inj_p: "\<forall>ips'. p_dst p \<in> ipcidr_union_set (set ips') \<and> (\<exists>k. ipassmt k = Some ips') \<longrightarrow> ips' = i_ips"
-       apply(clarify)
-       apply(rename_tac ips' k)
-       apply(subgoal_tac "k = ifce")
-        using ifce apply simp
-       using ipassmt_inj_k by simp
+     (*using ipassmt_inj_k ifce by force*)
+     proof(intro allI impI; elim conjE exE)
+       fix ips' k
+       assume as: "p_dst p \<in> ipcidr_union_set (set ips')" "ipassmt k = Some ips'"
+       hence "k = ifce" using ipassmt_inj_k by simp
+       thus "ips' = i_ips" using ifce as by simp
+     qed
 
      from p_ifce have "(Iface (p_oiface p)) = ifce" using ipassmt_inj_p ipassmt_inj by blast 
 
@@ -174,22 +174,15 @@ begin
        "normalized_nnf_match m \<Longrightarrow> ipassmt_sanity_nowildcards ipassmt (*TODO: check?*) \<Longrightarrow>
         correct_routing rt \<Longrightarrow>
         ipassmt = map_of (routing_ipassmt rt) \<Longrightarrow>
-        routing_table_semantics rt (p_dst p) = \<lparr> output_iface = oifce, next_hop = ignored\<rparr> \<Longrightarrow>
-        (*packet correctly routed:*) p_oiface p = oifce \<Longrightarrow>
+        output_iface (routing_table_semantics rt (p_dst p)) = p_oiface p \<Longrightarrow>
         matches (common_matcher, \<alpha>) (oiface_rewrite ipassmt m) a p \<longleftrightarrow> matches (common_matcher, \<alpha>) m a p"
-  apply(rule matches_oiface_rewrite_ipassmt)
-     apply(simp; fail)
-    apply(simp; fail)
-   apply(simp)
-   apply(rule routing_ipassmt_ipassmt_sanity_disjoint)
-   apply(simp add: correct_routing_def; fail)
+  apply(rule matches_oiface_rewrite_ipassmt; assumption?)
+   apply(simp add: correct_routing_def routing_ipassmt_ipassmt_sanity_disjoint; fail)
   apply(simp)
-  apply(rule routing_ipassmt)
-    apply(simp_all add: correct_routing_def)
+  apply(rule routing_ipassmt; assumption?)
+   apply(simp add: correct_routing_def; fail)
   done
 end
-
-
 
 lemma oiface_rewrite_preserves_nodisc:
   "\<forall>a. \<not> disc (Dst a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (oiface_rewrite ipassmt m)"

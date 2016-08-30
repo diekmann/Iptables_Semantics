@@ -44,7 +44,7 @@ lemma "map simple_rule_ipv4_toString
 
 
 lemma "map simple_rule_ipv4_toString
-              (to_simple_firewall_without_interfaces ipassmt_generic_ipv4 (upper_closure
+              (to_simple_firewall_without_interfaces ipassmt_generic_ipv4 None (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new
                     (unfold_ruleset_FORWARD example_fw_FORWARD_default_policy
@@ -59,7 +59,7 @@ lemma "map simple_rule_ipv4_toString
 
 
 lemma "access_matrix_pretty_ipv4 parts_connection_ssh
-              (to_simple_firewall_without_interfaces ipassmt_generic_ipv4 (upper_closure
+              (to_simple_firewall_without_interfaces ipassmt_generic_ipv4 None (upper_closure
                 (optimize_matches abstract_for_simple_firewall
                   (upper_closure (packet_assume_new
                     (unfold_ruleset_FORWARD example_fw_FORWARD_default_policy
