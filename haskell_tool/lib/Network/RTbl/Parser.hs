@@ -8,7 +8,7 @@ where
 
 import           Text.Parsec
 import           Data.Functor ((<$>), ($>))
-import           Control.Applicative ((<*), (*>), (<$>))
+import           Control.Applicative ((<*), (*>), (<$>), (<*>))
 import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.Ruleset
 import           Network.IPTables.ParserHelper
@@ -17,7 +17,6 @@ import qualified Network.IPTables.Generated as Isabelle
 import           Network.IPTables.Generated (metric_update, routing_action_next_hop_update, routing_action_oiface_update, empty_rr_hlp)
 import           Data.Maybe (catMaybes, Maybe (Just, Nothing), fromMaybe)
 import           Control.Monad (void,liftM)
-import qualified Data.Functor.Identity
 
 type Routing_rule a = Isabelle.Routing_rule_ext a ()
 data RTbl a = RTbl [Routing_rule a]
@@ -63,7 +62,7 @@ ignoreSrc ippars = do
 	ippars
 	return id
 
-parseOIF :: Isabelle.Len a => ParsecT String s Data.Functor.Identity.Identity (Routing_rule a -> Routing_rule a)
+parseOIF :: Isabelle.Len a => Parsec String s (Routing_rule a -> Routing_rule a)
 parseOIF = do
 	lit "dev"
 	skipWS
@@ -74,7 +73,7 @@ parseNH ippars = do
 	skipWS
 	routing_action_next_hop_update <$> ippars
 
-parseMetric :: Isabelle.Len a => ParsecT String s Data.Functor.Identity.Identity (Routing_rule a -> Routing_rule a)
+parseMetric :: Isabelle.Len a => Parsec String s (Routing_rule a -> Routing_rule a)
 parseMetric = do
 	lit "metric"
 	skipWS
