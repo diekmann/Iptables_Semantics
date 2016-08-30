@@ -27,6 +27,8 @@ definition to_ipassmt
   :: "(iface \<times> 'i::len ipt_iprange list negation_type) list \<Rightarrow> (iface \<times> ('i word \<times> nat) list) list" where
   "to_ipassmt assmt = map (\<lambda>(ifce, ips). (ifce, ipassmt_iprange_translate ips)) assmt"
 
+definition "zero_word \<equiv> 0 :: ('a :: len) word"
+
 export_code Rule
   Match MatchNot MatchAnd MatchAny
   Src Dst IIface OIface Prot Src_Ports Dst_Ports CT_State Extra
@@ -65,7 +67,7 @@ export_code Rule
   sanity_wf_ruleset
   has_default_policy
   (*spoofing:*) ipassmt_generic_ipv4 ipassmt_generic_ipv6
-  no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt
+  no_spoofing_iface ipassmt_sanity_defined map_of_ipassmt to_ipassmt ipassmt_diff
   Pos Neg
   (*debug*)
   simple_fw_valid
@@ -76,6 +78,8 @@ export_code Rule
   (* routing *)
   PrefixMatch routing_rule_ext routing_action_ext
   routing_action_oiface_update metric_update routing_action_next_hop_update empty_rr_hlp sort_rtbl
+  prefix_match_32_toString routing_rule_32_toString prefix_match_128_toString routing_rule_128_toString
+  zero_word
   in Haskell module_name "Network.IPTables.Generated" file "generated_code/"
 
 end

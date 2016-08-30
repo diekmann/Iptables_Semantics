@@ -397,9 +397,8 @@ subsection\<open>IP Assignment difference\<close>
   lemma "ipassmt_diff (ipassmt_generic_ipv4 @ [(Iface ''a'', [(4,30)])])
                        (ipassmt_generic_ipv4 @ [(Iface ''a'', [(6,32), (0,30)]), (Iface ''b'', [(42,32)])]) =
     [(Iface ''lo'', [], []),
-     (Iface ''a'', [(4::32 word, 31::nat),
-                    (7::32 word, 32::nat)],
-                   [(0::32 word, 30::nat)]
+     (Iface ''a'', [(4, 31),(7, 32)],
+                   [(0, 30)]
      ),
      (Iface ''b'', [], [(42, 32)])]" by eval
 

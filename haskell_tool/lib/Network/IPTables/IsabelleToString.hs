@@ -50,3 +50,11 @@ instance Show (Isabelle.Rule (Isabelle.Common_primitive Word32)) where
 instance Show (Isabelle.Rule (Isabelle.Common_primitive Word128)) where
     --TODO: unify with Isabelle.common_primitive_rule_toString
     show (Isabelle.Rule m a) = "(" ++ show m ++ ", " ++ show a ++ ")"    
+
+{- I'm hesitant to make an instance (Show (Isabelle.Word Word32)), there may be other things than IP addresses -}
+instance Show (Isabelle.Prefix_match Word32) where
+    show = Isabelle.prefix_match_32_toString
+instance Show (Isabelle.Routing_rule_ext Word32 ()) where 
+    show = Isabelle.routing_rule_32_toString 
+instance Show (Isabelle.Routing_rule_ext Word128 ()) where 
+    show = Isabelle.routing_rule_128_toString 

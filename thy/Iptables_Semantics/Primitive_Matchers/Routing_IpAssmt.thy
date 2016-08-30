@@ -44,7 +44,6 @@ lemma routing_ipassmt: "
   apply(simp)
   by (simp add: routing_ipassmt_wi_distinct)
 
-
 lemma routing_ipassmt_ipassmt_sanity_disjoint: "valid_prefixes (rt::('i::len) prefix_routing) \<Longrightarrow>
     ipassmt_sanity_disjoint (map_of (routing_ipassmt rt))"
 unfolding ipassmt_sanity_disjoint_def routing_ipassmt_def comp_def

@@ -47,8 +47,8 @@ toSimpleFirewall = check_simpleFw_sanity .
 
 -- Theorem: to_simple_firewall_without_interfaces
 toSimpleFirewallWithoutInterfaces
-    :: Isabelle.Len a => IsabelleIpAssmt a -> [Isabelle.Rule (Isabelle.Common_primitive a)] -> [Isabelle.Simple_rule a]
-toSimpleFirewallWithoutInterfaces ipassmt = check_simpleFw_sanity . Isabelle.to_simple_firewall_without_interfaces ipassmt
+    :: Isabelle.Len a => IsabelleIpAssmt a -> Maybe [Isabelle.Routing_rule_ext a ()] -> [Isabelle.Rule (Isabelle.Common_primitive a)] -> [Isabelle.Simple_rule a]
+toSimpleFirewallWithoutInterfaces ipassmt rtblo = check_simpleFw_sanity . Isabelle.to_simple_firewall_without_interfaces ipassmt rtblo
 
 
 -- Theorem: no_spoofing_executable_set
@@ -82,16 +82,16 @@ certifySpoofingProtection_ipv6 = certifySpoofingProtection_generic Isabelle.debu
 -- TODO: in Main.hs we directly have upper_simple available. Make a specific function which gets upper_simple?
 -- This is slightly faster (tested!) but dangerously because someone might call it wrong (e.g. with a firewall with interfaces)
 --accessMatrix_generic :: IsabelleIpAssmt Word32 -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> Integer -> Integer -> ([(String, String)], [(String, String)])
-accessMatrix_generic access_matrix_pretty ipassmt rs sport dport = if sport >= 65536 || dport >= 65536 then error "ports are 16 bit"
+accessMatrix_generic access_matrix_pretty ipassmt rtblo rs sport dport = if sport >= 65536 || dport >= 65536 then error "ports are 16 bit"
     -- Theorem: access_matrix
     else access_matrix_pretty parts_connection upper_simple
     -- Theorem: to_simple_firewall_without_interfaces
-    where upper_simple = toSimpleFirewallWithoutInterfaces ipassmt rs
+    where upper_simple = toSimpleFirewallWithoutInterfaces ipassmt rtblo rs
           parts_connection = Isabelle.mk_parts_connection_TCP (Isabelle.integer_to_16word sport) (Isabelle.integer_to_16word dport)
 
-accessMatrix_ipv4 :: IsabelleIpAssmt Word32 -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> Integer -> Integer -> ([(String, String)], [(String, String)])
+accessMatrix_ipv4 :: IsabelleIpAssmt Word32 -> Maybe [Isabelle.Routing_rule_ext Word32 ()] -> [Isabelle.Rule (Isabelle.Common_primitive Word32)] -> Integer -> Integer -> ([(String, String)], [(String, String)])
 accessMatrix_ipv4 = accessMatrix_generic Isabelle.access_matrix_pretty_ipv4
 
-accessMatrix_ipv6 :: IsabelleIpAssmt Word128 -> [Isabelle.Rule (Isabelle.Common_primitive Word128)] -> Integer -> Integer -> ([(String, String)], [(String, String)])
+accessMatrix_ipv6 :: IsabelleIpAssmt Word128 -> Maybe [Isabelle.Routing_rule_ext Word128 ()] -> [Isabelle.Rule (Isabelle.Common_primitive Word128)] -> Integer -> Integer -> ([(String, String)], [(String, String)])
 accessMatrix_ipv6 = accessMatrix_generic Isabelle.access_matrix_pretty_ipv6
 

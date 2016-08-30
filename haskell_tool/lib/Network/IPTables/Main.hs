@@ -12,11 +12,12 @@ module Network.IPTables.Main (Operations(Operations), main') where
 import Data.Functor ((<$>))
 import Data.Maybe (fromJust)
 import Control.Applicative ((<*>))
-import Control.Monad (when)
+import Control.Monad (when, liftM)
 import qualified Data.List as L
 import Network.IPTables.Ruleset
 import Network.IPTables.Parser
 import Network.IPTables.IpassmtParser
+import Network.RTbl.Parser (Routing_rule, RTbl, rTblToIsabelle)
 import qualified System.IO
 import Options.Generic
 import Common.Util
@@ -27,10 +28,11 @@ import Text.Parsec.Error (ParseError)
 
 data Operations a = Operations
     { parseAssmt :: FilePath -> String -> Either ParseError (IpAssmt a)
+    , parseRTbl :: FilePath -> String -> Either ParseError (RTbl a)
     , parseSave :: FilePath -> String -> Either ParseError (Ruleset a)
     , genericAssmt :: IsabelleIpAssmt a
     , certifySpoofing :: IsabelleIpAssmt a -> [Isabelle.Rule (Isabelle.Common_primitive a)] -> ([String], [(Isabelle.Iface, Bool)])
-    , accessMatrix :: IsabelleIpAssmt a ->  [Isabelle.Rule (Isabelle.Common_primitive a)] -> Integer -> Integer -> ([(String, String)], [(String, String)])
+    , accessMatrix :: IsabelleIpAssmt a -> Maybe [Routing_rule a] -> [Isabelle.Rule (Isabelle.Common_primitive a)] -> Integer -> Integer -> ([(String, String)], [(String, String)])
     }
 
 
@@ -41,6 +43,7 @@ putErrStrLn = System.IO.hPutStrLn System.IO.stderr
 data CommandLineArgsLabeled = CommandLineArgsLabeled
         { verbose :: Bool <?> "Show verbose debug output (for example, of the parser)."
         , ipassmt :: Maybe FilePath  <?> "Optional path to an IP assignment file. If not specified, it only loads `lo = [127.0.0.0/8]`."
+        , routingtbl :: Maybe FilePath  <?> "Optional path to a routing table."
         , table :: Maybe String <?> "The table to load for analysis. Default: `filter`. Note: This tool does not support packet modification, so loading tables such as `nat` will most likeley fail."
         , chain :: Maybe String <?> "The chain to start the analysis. Default: `FORWARD`. Use `INPUT` for a host-based firewall."
         --TODO: we need some grouping for specific options for the analysis
@@ -74,18 +77,26 @@ readIpAssmt ops filename = do
                         putStrLn (show res)
                         return $ ipAssmtToIsabelle res
 
+readRTbl ops filename = do
+    src <- readFile filename
+    case parseRTbl ops filename src of
+        Left err -> do print err
+                       error $ "could not parse " ++ filename
+        Right res -> do putStrLn "Parsed routing table"
+                        putStrLn (show res)
+                        return $ rTblToIsabelle res
 
 readArgs ops (CommandLineArgs labeled unlabeled) = do 
-    (verbose, assmt, tbl, chn, smOptions) <- readArgsLabeled labeled
+    (verbose, assmt, rtbl, tbl, chn, smOptions) <- readArgsLabeled labeled
     firewall <- readArgsUnlabeled unlabeled
-    return (verbose, assmt, tbl, chn, smOptions, firewall)
+    return (verbose, assmt, rtbl, tbl, chn, smOptions, firewall)
     where
         readArgsUnlabeled (CommandLineArgsUnlabeled (Helpful rsFilePath)) = (rsFilePath,) <$> readFile rsFilePath
             -- TODO: support stdin
             --where readInput [] = ("<stdin>",) <$> getContents
 
         readArgsLabeled (CommandLineArgsLabeled (Helpful verbose)
-                            (Helpful ipassmtFilePath) (Helpful table) (Helpful chain)
+                            (Helpful ipassmtFilePath) (Helpful routingtblFilePath) (Helpful table) (Helpful chain)
                             (Helpful serviceMatrixSrcPort) (Helpful serviceMatrixDstPort)
                         ) = do
             assmt <- case ipassmtFilePath of
@@ -93,6 +104,9 @@ readArgs ops (CommandLineArgs labeled unlabeled) = do
                         Nothing -> do
                             putErrStrLn "WARNING: no IP assignment specified, loading a generic file"
                             return $ genericAssmt ops
+            rtbl <- case routingtblFilePath of
+                        Just path -> Just `liftM` readRTbl ops path
+                        Nothing -> return Nothing
             let tbl = case table of Just t -> t
                                     Nothing -> "filter"
             let chn = case chain of Just c -> c
@@ -106,7 +120,7 @@ readArgs ops (CommandLineArgs labeled unlabeled) = do
                                                              then return ps
                                                              else error ("Invalid dst ports " ++ (show (filter (not . sanityCheckPort) ps)))
             let smOptions = map (\d -> (smSrcPort, d)) smDstPorts
-            return (verbose, assmt, tbl, chn, smOptions)
+            return (verbose, assmt, rtbl, tbl, chn, smOptions)
                 where sanityCheckPort p = (p >= 0 && p < 65536)
 
 
@@ -120,7 +134,7 @@ main' ops = do
                     \Then it runs a number of analysis. \
                     \Overapproximation means: if the anaylsis concludes that the packets you want to be dropped are dropped in the loaded overapproximation, then they are also dropped for your real firewall (without approximation)."
     --print (cmdArgs::CommandLineArgs)
-    (verbose, ipassmt, table, chain, smOptions, (srcname, src)) <- readArgs ops cmdArgs
+    (verbose, ipassmt, rtbl, table, chain, smOptions, (srcname, src)) <- readArgs ops cmdArgs
     
     case parseSave ops srcname src of
         Left err -> do
@@ -132,13 +146,14 @@ main' ops = do
         Right res -> do
             when verbose $ putStrLn $ "== Parser output =="
             when verbose $ putStrLn $ show res
+            {- TODO: When a routing table got loaded, show its diff with the ipassmt -}
             unfolded <- loadUnfoldedRuleset verbose table chain res
             putStrLn $"== unfolded "++chain++" chain (upper closure) =="
             putStrLn $ L.intercalate "\n" $ map show (Isabelle.upper_closure $ unfolded)
             putStrLn "== to simple firewall =="
             putStrLn $ L.intercalate "\n" $ map show (Analysis.toSimpleFirewall unfolded)
             putStrLn "== to even-simpler firewall =="
-            let upper_simple = Analysis.toSimpleFirewallWithoutInterfaces ipassmt unfolded
+            let upper_simple = Analysis.toSimpleFirewallWithoutInterfaces ipassmt rtbl unfolded
             putStrLn $ L.intercalate "\n" $ map show upper_simple
             putStrLn "== checking spoofing protection =="
             let (warnings, spoofResult) = certifySpoofing ops ipassmt unfolded
@@ -148,7 +163,7 @@ main' ops = do
             putStrLn "== calculating service matrices =="
             mapM_ (\(s,d) -> 
                         putStrLn ("=========== TCP port "++ show s ++ "->" ++ show d ++" =========")
-                     >> putStrLn (showServiceMatrix (accessMatrix ops ipassmt unfolded s d))) smOptions
+                     >> putStrLn (showServiceMatrix (accessMatrix ops ipassmt rtbl unfolded s d))) smOptions
         where showServiceMatrix (nodes, edges) = concatMap (\(n, desc) -> renameNode n ++ " |-> " ++ desc ++ "\n") nodes ++ "\n" ++
                                                  concatMap (\e -> (renameEdge e) ++ "\n") edges
                   where renaming = zip (map fst nodes) prettyNames

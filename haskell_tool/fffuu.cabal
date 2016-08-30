@@ -28,6 +28,7 @@ library
     , Network.IPTables.Ruleset
     , Network.IPTables.Analysis
     , Network.IPTables.Main
+    , Network.RTbl.Parser
     , Common.Util
   build-depends:
       base >=4.7 && <5

@@ -38,7 +38,7 @@ local
   val eater_whitespace = Scan.many isSpace; (* I refuse to have this eat \r to make the parser work with windows newlines. *)
 
   val parser_via = (Scan.this_string "via" -- parser_whitespace |-- parser_ipv4) 
-    >> (fn ip => fn pk => @{const routing_action_next_hop_update} $ (mk_ipv4addr ip) $ pk)
+    >> (fn ip => fn pk => @{const routing_action_next_hop_update (32)} $ (mk_ipv4addr ip) $ pk)
   val parser_dev = (Scan.this_string "dev" -- parser_whitespace |-- parser_interface)
     >> (fn dev => fn pk => @{term "routing_action_oiface_update :: string \<Rightarrow> 32 routing_rule \<Rightarrow> 32 routing_rule"} $ dev $ pk)
   val parser_metric = (Scan.this_string "metric" -- parser_whitespace |-- Scan.many1 Symbol.is_ascii_digit)
@@ -62,7 +62,7 @@ local
   end end
 
   val parser =
-    (parser_end ((parser_subnet >> (fn x => @{const empty_rr_hlp} $ x))
+    (parser_end ((parser_subnet >> (fn x => @{const empty_rr_hlp (32)} $ x))
         -- Scan.repeat (parser_whitespace |-- (parser_via || parser_dev || parser_metric || parser_scope || parser_proto || parser_src)))) 
     #> swap #> (uncurry (fold (fn a => fn b => a b)))
 
