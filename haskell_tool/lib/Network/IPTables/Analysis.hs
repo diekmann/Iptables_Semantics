@@ -27,7 +27,7 @@ check_simpleFw_sanity rs =
     then
         error "simple firewall does not have a default rule!"
     else if
-        not (Isabelle.sanity_check_simple_firewall rs)
+        not (Isabelle.simple_fw_valid rs)
     then
         error "something went wrong with the simple firewall (matching on port numbers without a protocol)"
     else
