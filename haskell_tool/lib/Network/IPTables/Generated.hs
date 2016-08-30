@@ -22,14 +22,13 @@ module
                               ipv4addr_of_dotdecimal, empty_rr_hlp,
                               sanity_wf_ruleset, map_of_string, nat_to_16word,
                               ipassmt_generic_ipv4, ipassmt_generic_ipv6,
-                              compress_parsed_extra, mk_ipv6addr,
-                              integer_to_16word, fill_l4_protocol,
-                              rewrite_Goto_safe, mk_parts_connection_TCP,
+                              mk_ipv6addr, fill_l4_protocol, integer_to_16word,
+                              rewrite_Goto_safe, simple_fw_valid,
+                              compress_parsed_extra, mk_parts_connection_TCP,
                               to_simple_firewall, unfold_ruleset_CHAIN_safe,
                               metric_update, access_matrix_pretty_ipv4,
                               access_matrix_pretty_ipv6, action_toString,
-                              sanity_check_simple_firewall, packet_assume_new,
-                              routing_action_oiface_update,
+                              packet_assume_new, routing_action_oiface_update,
                               simple_rule_ipv4_toString,
                               simple_rule_ipv6_toString,
                               routing_action_next_hop_update,
@@ -998,13 +997,11 @@ data Simple_rule a = SimpleRule (Simple_match_ext a ()) Simple_action;
 
 data Match_compress a = CannotMatch | MatchesAll | MatchExpr a;
 
-data Routing_action_ext a =
-  Routing_action_ext [Prelude.Char]
-    (Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))) a;
+data Routing_action_ext a b =
+  Routing_action_ext [Prelude.Char] (Maybe (Word a)) b;
 
-data Routing_rule_ext a =
-  Routing_rule_ext (Prefix_match (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) Nat
-    (Routing_action_ext ()) a;
+data Routing_rule_ext a b =
+  Routing_rule_ext (Prefix_match a) Nat (Routing_action_ext a ()) b;
 
 data Simple_packet_ext a b =
   Simple_packet_ext [Prelude.Char] [Prelude.Char] (Word a) (Word a)
@@ -1344,21 +1341,6 @@ char_of_nat =
 mk_Set :: forall a. [a] -> Set a;
 mk_Set = Set;
 
-is_pos_Extra :: forall a. (Len a) => Negation_type (Common_primitive a) -> Bool;
-is_pos_Extra a = (case a of {
-                   Pos (Src _) -> False;
-                   Pos (Dst _) -> False;
-                   Pos (IIface _) -> False;
-                   Pos (OIface _) -> False;
-                   Pos (Prot _) -> False;
-                   Pos (Src_Ports _) -> False;
-                   Pos (Dst_Ports _) -> False;
-                   Pos (L4_Flags _) -> False;
-                   Pos (CT_State _) -> False;
-                   Pos (Extra _) -> True;
-                   Neg _ -> False;
-                 });
-
 word_next :: forall a. (Len a) => Word a -> Word a;
 word_next a =
   (if equal_word a max_word then max_word else plus_word a one_word);
@@ -1440,12 +1422,6 @@ getPos :: forall a. [Negation_type a] -> [a];
 getPos [] = [];
 getPos (Pos x : xs) = x : getPos xs;
 getPos (Neg v : xs) = getPos xs;
-
-get_pos_Extra ::
-  forall a. (Len a) => Negation_type (Common_primitive a) -> [Prelude.Char];
-get_pos_Extra a = let {
-                    (Pos (Extra e)) = a;
-                  } in e;
 
 pc_oiface :: forall a. Parts_connection_ext a -> [Prelude.Char];
 pc_oiface
@@ -1993,16 +1969,15 @@ to_ipassmt assmt =
 matchOr :: forall a. Match_expr a -> Match_expr a -> Match_expr a;
 matchOr m1 m2 = MatchNot (MatchAnd (MatchNot m1) (MatchNot m2));
 
-routing_match ::
-  forall a.
-    Routing_rule_ext a -> Prefix_match (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))));
+routing_match :: forall a b. (Len a) => Routing_rule_ext a b -> Prefix_match a;
 routing_match (Routing_rule_ext routing_match metric routing_action more) =
   routing_match;
 
-metric :: forall a. Routing_rule_ext a -> Nat;
+metric :: forall a b. (Len a) => Routing_rule_ext a b -> Nat;
 metric (Routing_rule_ext routing_match metric routing_action more) = metric;
 
-routing_rule_sort_key :: forall a. Routing_rule_ext a -> Linord_helper Int Nat;
+routing_rule_sort_key ::
+  forall a b. (Len a) => Routing_rule_ext a b -> Linord_helper Int Nat;
 routing_rule_sort_key =
   (\ r ->
     LinordHelper
@@ -2035,7 +2010,8 @@ sort_key f xs =
       } in sort_key f lts ++ eqs ++ sort_key f gts;
   });
 
-sort_rtbl :: [Routing_rule_ext ()] -> [Routing_rule_ext ()];
+sort_rtbl ::
+  forall a. (Len a) => [Routing_rule_ext a ()] -> [Routing_rule_ext a ()];
 sort_rtbl = sort_key routing_rule_sort_key;
 
 getOneIp :: forall a. (Len a) => Wordinterval a -> Word a;
@@ -2196,6 +2172,17 @@ upper_closure_matchexpr vc (MatchNot MatchAny) = MatchNot MatchAny;
 upper_closure_matchexpr a (MatchAnd m1 m2) =
   MatchAnd (upper_closure_matchexpr a m1) (upper_closure_matchexpr a m2);
 
+compress_normalize_primitive_monad ::
+  forall a.
+    [Match_expr a -> Maybe (Match_expr a)] ->
+      Match_expr a -> Maybe (Match_expr a);
+compress_normalize_primitive_monad [] m = Just m;
+compress_normalize_primitive_monad (f : fs) m =
+  (case f m of {
+    Nothing -> Nothing;
+    Just a -> compress_normalize_primitive_monad fs a;
+  });
+
 alist_and :: forall a. [Negation_type a] -> Match_expr a;
 alist_and [] = MatchAny;
 alist_and [Pos e] = Match e;
@@ -2258,17 +2245,6 @@ compress_normalize_input_interfaces ::
 compress_normalize_input_interfaces m =
   compress_normalize_primitive (is_Iiface, iiface_sel) IIface
     compress_interfaces m;
-
-compress_normalize_primitive_monad ::
-  forall a.
-    [Match_expr a -> Maybe (Match_expr a)] ->
-      Match_expr a -> Maybe (Match_expr a);
-compress_normalize_primitive_monad [] m = Just m;
-compress_normalize_primitive_monad (f : fs) m =
-  (case f m of {
-    Nothing -> Nothing;
-    Just a -> compress_normalize_primitive_monad fs a;
-  });
 
 prot_sel :: forall a. (Len a) => Common_primitive a -> Protocol;
 prot_sel (Prot x5) = x5;
@@ -3175,12 +3151,12 @@ ipassmt_sanity_defined ::
 ipassmt_sanity_defined rs ipassmt =
   all (\ iface -> not (is_none (ipassmt iface))) (collect_ifaces rs);
 
-debug_ipassmt_generic_ipv4 ::
+debug_ipassmt_generic ::
   forall a.
     (Len a) => (Wordinterval a -> [Prelude.Char]) ->
                  [(Iface, [(Word a, Nat)])] ->
                    [Rule (Common_primitive a)] -> [[Prelude.Char]];
-debug_ipassmt_generic_ipv4 toStr ipassmt rs =
+debug_ipassmt_generic toStr ipassmt rs =
   let {
     ifaces = map fst ipassmt;
   } in ["distinct: " ++ (if distinct ifaces then "passed" else "FAIL!"),
@@ -3290,7 +3266,7 @@ debug_ipassmt_ipv4 ::
   [(Iface, [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))), Nat)])] ->
     [Rule (Common_primitive (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))] ->
       [[Prelude.Char]];
-debug_ipassmt_ipv4 = debug_ipassmt_generic_ipv4 ipv4addr_wordinterval_toString;
+debug_ipassmt_ipv4 = debug_ipassmt_generic ipv4addr_wordinterval_toString;
 
 string_of_word_single :: forall a. (Len a) => Bool -> Word a -> [Prelude.Char];
 string_of_word_single lc w =
@@ -3381,7 +3357,7 @@ debug_ipassmt_ipv6 ::
     [Rule (Common_primitive
             (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))))] ->
       [[Prelude.Char]];
-debug_ipassmt_ipv6 = debug_ipassmt_generic_ipv4 ipv6addr_wordinterval_toString;
+debug_ipassmt_ipv6 = debug_ipassmt_generic ipv6addr_wordinterval_toString;
 
 get_exists_matching_src_ips_executable ::
   forall a.
@@ -3480,6 +3456,21 @@ no_spoofing_iface iface ipassmt rs =
   no_spoofing_algorithm_executable iface ipassmt rs empty_WordInterval
     empty_WordInterval;
 
+is_pos_Extra :: forall a. (Len a) => Negation_type (Common_primitive a) -> Bool;
+is_pos_Extra a = (case a of {
+                   Pos (Src _) -> False;
+                   Pos (Dst _) -> False;
+                   Pos (IIface _) -> False;
+                   Pos (OIface _) -> False;
+                   Pos (Prot _) -> False;
+                   Pos (Src_Ports _) -> False;
+                   Pos (Dst_Ports _) -> False;
+                   Pos (L4_Flags _) -> False;
+                   Pos (CT_State _) -> False;
+                   Pos (Extra _) -> True;
+                   Neg _ -> False;
+                 });
+
 nat_to_8word :: Nat -> Word (Bit0 (Bit0 (Bit0 Num1)));
 nat_to_8word i = of_nat i;
 
@@ -3510,15 +3501,13 @@ ipv4addr_of_dotdecimal (a, (b, (c, d))) =
         (times_nat (nat_of_integer (65536 :: Integer)) b))
       (times_nat (nat_of_integer (16777216 :: Integer)) a));
 
-makea ::
-  [Prelude.Char] ->
-    Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
-      Routing_action_ext ();
+makea :: forall a. [Prelude.Char] -> Maybe (Word a) -> Routing_action_ext a ();
 makea output_iface next_hop = Routing_action_ext output_iface next_hop ();
 
 make ::
-  Prefix_match (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
-    Nat -> Routing_action_ext () -> Routing_rule_ext ();
+  forall a.
+    (Len a) => Prefix_match a ->
+                 Nat -> Routing_action_ext a () -> Routing_rule_ext a ();
 make routing_match metric routing_action =
   Routing_rule_ext routing_match metric routing_action ();
 
@@ -3526,7 +3515,8 @@ default_metric :: forall a. (Zero a) => a;
 default_metric = zero;
 
 empty_rr_hlp ::
-  Prefix_match (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) -> Routing_rule_ext ();
+  Prefix_match (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
+    Routing_rule_ext (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ();
 empty_rr_hlp pm = make pm default_metric (makea [] Nothing);
 
 all_pairs :: forall a. [a] -> [(a, a)];
@@ -3550,6 +3540,12 @@ sanity_wf_ruleset gamma =
 })))
                          ran;
 
+get_pos_Extra ::
+  forall a. (Len a) => Negation_type (Common_primitive a) -> [Prelude.Char];
+get_pos_Extra a = let {
+                    (Pos (Extra e)) = a;
+                  } in e;
+
 map_of_string ::
   forall a.
     [([Prelude.Char], [Rule (Common_primitive a)])] ->
@@ -3572,18 +3568,6 @@ ipassmt_generic_ipv6 ::
      [(Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))), Nat)])];
 ipassmt_generic_ipv6 =
   [(Iface "lo", [(one_word, nat_of_integer (128 :: Integer))])];
-
-compress_parsed_extra ::
-  forall a.
-    (Len a) => [Negation_type (Common_primitive a)] ->
-                 [Negation_type (Common_primitive a)];
-compress_parsed_extra [] = [];
-compress_parsed_extra (a1 : a2 : asa) =
-  (if is_pos_Extra a1 && is_pos_Extra a2
-    then compress_parsed_extra
-           (Pos (Extra (get_pos_Extra a1 ++ " " ++ get_pos_Extra a2)) : asa)
-    else a1 : compress_parsed_extra (a2 : asa));
-compress_parsed_extra [a] = a : compress_parsed_extra [];
 
 ipv6_unparsed_compressed_to_preferred ::
   [Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] -> Maybe Ipv6addr_syntax;
@@ -3738,6 +3722,52 @@ simple_ruleset rs =
         equal_action (get_action r) Accept || equal_action (get_action r) Drop)
     rs;
 
+fill_l4_protocol_raw ::
+  forall a.
+    (Len a) => Word (Bit0 (Bit0 (Bit0 Num1))) ->
+                 [Negation_type (Common_primitive a)] ->
+                   [Negation_type (Common_primitive a)];
+fill_l4_protocol_raw protocol =
+  negPos_map
+    (\ a ->
+      (case a of {
+        Src aa -> Src aa;
+        Dst aa -> Dst aa;
+        IIface aa -> IIface aa;
+        OIface aa -> OIface aa;
+        Src_Ports (L4Ports x pts) ->
+          (if not (equal_word x zero_word) then error "undefined"
+            else Src_Ports (L4Ports protocol pts));
+        Dst_Ports (L4Ports x pts) ->
+          (if not (equal_word x zero_word) then error "undefined"
+            else Dst_Ports (L4Ports protocol pts));
+        L4_Flags aa -> L4_Flags aa;
+        CT_State aa -> CT_State aa;
+        Extra aa -> Extra aa;
+      }));
+
+fill_l4_protocol ::
+  forall a.
+    (Len a) => [Negation_type (Common_primitive a)] ->
+                 [Negation_type (Common_primitive a)];
+fill_l4_protocol [] = [];
+fill_l4_protocol (Pos (Prot (Proto protocol)) : ms) =
+  Pos (Prot (Proto protocol)) : fill_l4_protocol_raw protocol ms;
+fill_l4_protocol (Pos (Src_Ports uu) : uv) = error "undefined";
+fill_l4_protocol (Pos (Dst_Ports uw) : ux) = error "undefined";
+fill_l4_protocol (Pos (Src va) : ms) = Pos (Src va) : fill_l4_protocol ms;
+fill_l4_protocol (Pos (Dst va) : ms) = Pos (Dst va) : fill_l4_protocol ms;
+fill_l4_protocol (Pos (IIface va) : ms) = Pos (IIface va) : fill_l4_protocol ms;
+fill_l4_protocol (Pos (OIface va) : ms) = Pos (OIface va) : fill_l4_protocol ms;
+fill_l4_protocol (Pos (Prot ProtoAny) : ms) =
+  Pos (Prot ProtoAny) : fill_l4_protocol ms;
+fill_l4_protocol (Pos (L4_Flags va) : ms) =
+  Pos (L4_Flags va) : fill_l4_protocol ms;
+fill_l4_protocol (Pos (CT_State va) : ms) =
+  Pos (CT_State va) : fill_l4_protocol ms;
+fill_l4_protocol (Pos (Extra va) : ms) = Pos (Extra va) : fill_l4_protocol ms;
+fill_l4_protocol (Neg v : ms) = Neg v : fill_l4_protocol ms;
+
 integer_to_16word :: Integer -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 integer_to_16word i = nat_to_16word (nat_of_integer i);
 
@@ -3784,52 +3814,6 @@ iiface_rewrite ipassmt (Match (Extra v)) = Match (Extra v);
 iiface_rewrite ipassmt (MatchNot m) = MatchNot (iiface_rewrite ipassmt m);
 iiface_rewrite ipassmt (MatchAnd m1 m2) =
   MatchAnd (iiface_rewrite ipassmt m1) (iiface_rewrite ipassmt m2);
-
-fill_l4_protocol_raw ::
-  forall a.
-    (Len a) => Word (Bit0 (Bit0 (Bit0 Num1))) ->
-                 [Negation_type (Common_primitive a)] ->
-                   [Negation_type (Common_primitive a)];
-fill_l4_protocol_raw proto =
-  negPos_map
-    (\ a ->
-      (case a of {
-        Src aa -> Src aa;
-        Dst aa -> Dst aa;
-        IIface aa -> IIface aa;
-        OIface aa -> OIface aa;
-        Src_Ports (L4Ports x pts) ->
-          (if not (equal_word x zero_word) then error "undefined"
-            else Src_Ports (L4Ports proto pts));
-        Dst_Ports (L4Ports x pts) ->
-          (if not (equal_word x zero_word) then error "undefined"
-            else Dst_Ports (L4Ports proto pts));
-        L4_Flags aa -> L4_Flags aa;
-        CT_State aa -> CT_State aa;
-        Extra aa -> Extra aa;
-      }));
-
-fill_l4_protocol ::
-  forall a.
-    (Len a) => [Negation_type (Common_primitive a)] ->
-                 [Negation_type (Common_primitive a)];
-fill_l4_protocol [] = [];
-fill_l4_protocol (Pos (Prot (Proto proto)) : ms) =
-  Pos (Prot (Proto proto)) : fill_l4_protocol_raw proto ms;
-fill_l4_protocol (Pos (Src_Ports uu) : uv) = error "undefined";
-fill_l4_protocol (Pos (Dst_Ports uw) : ux) = error "undefined";
-fill_l4_protocol (Pos (Src va) : ms) = Pos (Src va) : fill_l4_protocol ms;
-fill_l4_protocol (Pos (Dst va) : ms) = Pos (Dst va) : fill_l4_protocol ms;
-fill_l4_protocol (Pos (IIface va) : ms) = Pos (IIface va) : fill_l4_protocol ms;
-fill_l4_protocol (Pos (OIface va) : ms) = Pos (OIface va) : fill_l4_protocol ms;
-fill_l4_protocol (Pos (Prot ProtoAny) : ms) =
-  Pos (Prot ProtoAny) : fill_l4_protocol ms;
-fill_l4_protocol (Pos (L4_Flags va) : ms) =
-  Pos (L4_Flags va) : fill_l4_protocol ms;
-fill_l4_protocol (Pos (CT_State va) : ms) =
-  Pos (CT_State va) : fill_l4_protocol ms;
-fill_l4_protocol (Pos (Extra va) : ms) = Pos (Extra va) : fill_l4_protocol ms;
-fill_l4_protocol (Neg v : ms) = Neg v : fill_l4_protocol ms;
 
 has_disc :: forall a. (a -> Bool) -> Match_expr a -> Bool;
 has_disc uu MatchAny = False;
@@ -4000,6 +3984,20 @@ ports_toString descr (s, e) =
 valid_prefix_fw :: forall a. (Len a) => (Word a, Nat) -> Bool;
 valid_prefix_fw m = valid_prefix (uncurry PrefixMatch m);
 
+simple_fw_valid :: forall a. (Len a) => [Simple_rule a] -> Bool;
+simple_fw_valid =
+  all ((\ m ->
+         let {
+           c = (\ (s, e) ->
+                 not (equal_word s zero_word) || not (equal_word e max_word));
+         } in (if c (sports m) || c (dports m)
+                then equal_protocol (proto m) (Proto tcp) ||
+                       (equal_protocol (proto m) (Proto udp) ||
+                         equal_protocol (proto m) (Proto sctp))
+                else True) &&
+           valid_prefix_fw (src m) && valid_prefix_fw (dst m)) .
+        match_sel);
+
 iface_try_rewrite ::
   forall a.
     (Len a) => [(Iface, [(Word a, Nat)])] ->
@@ -4075,6 +4073,18 @@ simple_match_and (Simple_match_ext iif1 oif1 sip1 dip1 p1 sps1 dps1 ())
           });
       });
   });
+
+compress_parsed_extra ::
+  forall a.
+    (Len a) => [Negation_type (Common_primitive a)] ->
+                 [Negation_type (Common_primitive a)];
+compress_parsed_extra [] = [];
+compress_parsed_extra (a1 : a2 : asa) =
+  (if is_pos_Extra a1 && is_pos_Extra a2
+    then compress_parsed_extra
+           (Pos (Extra (get_pos_Extra a1 ++ " " ++ get_pos_Extra a2)) : asa)
+    else a1 : compress_parsed_extra (a2 : asa));
+compress_parsed_extra [a] = a : compress_parsed_extra [];
 
 ctstate_set_toString :: Set Ctstate -> [Prelude.Char];
 ctstate_set_toString s =
@@ -4568,7 +4578,8 @@ unfold_ruleset_CHAIN_safe =
   unfold_optimize_ruleset_CHAIN optimize_primitive_univ;
 
 metric_update ::
-  forall a. (Nat -> Nat) -> Routing_rule_ext a -> Routing_rule_ext a;
+  forall a b.
+    (Len a) => (Nat -> Nat) -> Routing_rule_ext a b -> Routing_rule_ext a b;
 metric_update metrica
   (Routing_rule_ext routing_match metric routing_action more) =
   Routing_rule_ext routing_match (metrica metric) routing_action more;
@@ -4656,7 +4667,8 @@ action_toString Log = "-j LOG";
 action_toString Return = "-j RETURN";
 action_toString Unknown = "!!!!!!!!!!! UNKNOWN !!!!!!!!!!!";
 
-routing_action :: forall a. Routing_rule_ext a -> Routing_action_ext ();
+routing_action ::
+  forall a b. (Len a) => Routing_rule_ext a b -> Routing_action_ext a ();
 routing_action (Routing_rule_ext routing_match metric routing_action more) =
   routing_action;
 
@@ -4668,21 +4680,6 @@ match_tcp_flags_conjunct (TCP_Flags fmask1 c1) (TCP_Flags fmask2 c2) =
             (inf_set (inf_set fmask1 fmask2) c2)
     then TCP_Flags (sup_set fmask1 fmask2) (sup_set c1 c2)
     else ipt_tcp_flags_NoMatch);
-
-sanity_check_simple_firewall :: forall a. (Len a) => [Simple_rule a] -> Bool;
-sanity_check_simple_firewall rs =
-  all (\ r ->
-        let {
-          c = (\ (s, e) ->
-                not (equal_word s zero_word) || not (equal_word e max_word));
-        } in (if c (sports (match_sel r)) || c (dports (match_sel r))
-               then equal_protocol (proto (match_sel r)) (Proto tcp) ||
-                      (equal_protocol (proto (match_sel r)) (Proto udp) ||
-                        equal_protocol (proto (match_sel r)) (Proto sctp))
-               else True) &&
-          valid_prefix_fw (src (match_sel r)) &&
-            valid_prefix_fw (dst (match_sel r)))
-    rs;
 
 match_tcp_flags_conjunct_option ::
   Ipt_tcp_flags -> Ipt_tcp_flags -> Maybe Ipt_tcp_flags;
@@ -4756,23 +4753,25 @@ packet_assume_new ::
 packet_assume_new = ctstate_assume_new . ipt_tcp_flags_assume_syn;
 
 routing_action_update ::
-  forall a.
-    (Routing_action_ext () -> Routing_action_ext ()) ->
-      Routing_rule_ext a -> Routing_rule_ext a;
+  forall a b.
+    (Len a) => (Routing_action_ext a () -> Routing_action_ext a ()) ->
+                 Routing_rule_ext a b -> Routing_rule_ext a b;
 routing_action_update routing_actiona
   (Routing_rule_ext routing_match metric routing_action more) =
   Routing_rule_ext routing_match metric (routing_actiona routing_action) more;
 
 output_iface_update ::
-  forall a.
+  forall a b.
     ([Prelude.Char] -> [Prelude.Char]) ->
-      Routing_action_ext a -> Routing_action_ext a;
+      Routing_action_ext a b -> Routing_action_ext a b;
 output_iface_update output_ifacea
   (Routing_action_ext output_iface next_hop more) =
   Routing_action_ext (output_ifacea output_iface) next_hop more;
 
 routing_action_oiface_update ::
-  [Prelude.Char] -> Routing_rule_ext () -> Routing_rule_ext ();
+  [Prelude.Char] ->
+    Routing_rule_ext (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) () ->
+      Routing_rule_ext (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ();
 routing_action_oiface_update h pk =
   routing_action_update (output_iface_update (\ _ -> h)) pk;
 
@@ -4816,16 +4815,16 @@ simple_rule_ipv6_toString
                             " " ++ ports_toString "dports: " dps;
 
 next_hop_update ::
-  forall a.
-    (Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))) ->
-      Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))))) ->
-      Routing_action_ext a -> Routing_action_ext a;
+  forall a b.
+    (Maybe (Word a) -> Maybe (Word a)) ->
+      Routing_action_ext a b -> Routing_action_ext a b;
 next_hop_update next_hopa (Routing_action_ext output_iface next_hop more) =
   Routing_action_ext output_iface (next_hopa next_hop) more;
 
 routing_action_next_hop_update ::
   Word (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
-    Routing_rule_ext () -> Routing_rule_ext ();
+    Routing_rule_ext (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) () ->
+      Routing_rule_ext (Bit0 (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ();
 routing_action_next_hop_update h pk =
   routing_action_update
     (\ _ -> next_hop_update (\ _ -> Just h) (routing_action pk)) pk;
