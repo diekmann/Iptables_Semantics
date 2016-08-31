@@ -12,9 +12,9 @@ module
                               Routing_action_ext(..), Routing_rule_ext(..),
                               Parts_connection_ext, ah, esp, gre, tcp, udp,
                               icmp, sctp, mk_Set, ipassmt_diff, iPv6ICMP,
-                              zero_word, map_of_ipassmt, to_ipassmt, sort_rtbl,
-                              alist_and, optimize_matches, upper_closure,
-                              word_to_nat, has_default_policy, word_less_eq,
+                              map_of_ipassmt, to_ipassmt, sort_rtbl, alist_and,
+                              optimize_matches, upper_closure, word_to_nat,
+                              has_default_policy, word_less_eq,
                               int_to_ipv6preferred, ipv6preferred_to_int,
                               ipassmt_sanity_defined, debug_ipassmt_ipv4,
                               debug_ipassmt_ipv6, no_spoofing_iface,
@@ -22,9 +22,10 @@ module
                               ipv4addr_of_dotdecimal, empty_rr_hlp,
                               sanity_wf_ruleset, map_of_string, nat_to_16word,
                               ipassmt_generic_ipv4, ipassmt_generic_ipv6,
-                              mk_ipv6addr, fill_l4_protocol, integer_to_16word,
-                              rewrite_Goto_safe, simple_fw_valid,
-                              compress_parsed_extra, prefix_match_32_toString,
+                              mk_ipv6addr, default_prefix, fill_l4_protocol,
+                              integer_to_16word, rewrite_Goto_safe,
+                              simple_fw_valid, compress_parsed_extra,
+                              prefix_match_32_toString,
                               routing_rule_32_toString, mk_parts_connection_TCP,
                               to_simple_firewall, prefix_match_128_toString,
                               routing_rule_128_toString,
@@ -266,11 +267,11 @@ instance (Len0 a) => Plus (Word a) where {
 zero_int :: Int;
 zero_int = Int_of_integer (0 :: Integer);
 
-zero_worda :: forall a. (Len0 a) => Word a;
-zero_worda = word_of_int zero_int;
+zero_word :: forall a. (Len0 a) => Word a;
+zero_word = word_of_int zero_int;
 
 instance (Len0 a) => Zero (Word a) where {
-  zero = zero_worda;
+  zero = zero_word;
 };
 
 class (Plus a) => Semigroup_add a where {
@@ -1270,7 +1271,7 @@ the :: forall a. Maybe a -> a;
 the (Just x2) = x2;
 
 empty_WordInterval :: forall a. (Len a) => Wordinterval a;
-empty_WordInterval = WordInterval one_word zero_worda;
+empty_WordInterval = WordInterval one_word zero_word;
 
 l2wi :: forall a. (Len a) => [(Word a, Word a)] -> Wordinterval a;
 l2wi [] = empty_WordInterval;
@@ -1303,9 +1304,9 @@ goup_by_zeros ::
     [[Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))]];
 goup_by_zeros [] = [];
 goup_by_zeros (x : xs) =
-  (if equal_word x zero_worda
-    then takeWhile (\ xa -> equal_word xa zero_worda) (x : xs) :
-           goup_by_zeros (dropWhile (\ xa -> equal_word xa zero_worda) xs)
+  (if equal_word x zero_word
+    then takeWhile (\ xa -> equal_word xa zero_word) (x : xs) :
+           goup_by_zeros (dropWhile (\ xa -> equal_word xa zero_word) xs)
     else [x] : goup_by_zeros xs);
 
 size_list :: forall a. [a] -> Nat;
@@ -1353,7 +1354,7 @@ word_next a =
 
 word_prev :: forall a. (Len a) => Word a -> Word a;
 word_prev a =
-  (if equal_word a zero_worda then zero_worda else minus_word a one_word);
+  (if equal_word a zero_word then zero_word else minus_word a one_word);
 
 word_uptoa :: forall a. (Len0 a) => Word a -> Word a -> [Word a];
 word_uptoa a b =
@@ -1470,17 +1471,17 @@ wordinterval_setminusa ::
 wordinterval_setminusa (WordInterval s e) (WordInterval ms me) =
   (if less_word e s || less_word me ms then WordInterval s e
     else (if less_eq_word e me
-           then WordInterval (if equal_word ms zero_worda then one_word else s)
+           then WordInterval (if equal_word ms zero_word then one_word else s)
                   (min e (word_prev ms))
            else (if less_eq_word ms s
                   then WordInterval (max s (word_next me))
-                         (if equal_word me max_word then zero_worda else e)
+                         (if equal_word me max_word then zero_word else e)
                   else RangeUnion
                          (WordInterval
-                           (if equal_word ms zero_worda then one_word else s)
+                           (if equal_word ms zero_word then one_word else s)
                            (word_prev ms))
                          (WordInterval (word_next me)
-                           (if equal_word me max_word then zero_worda
+                           (if equal_word me max_word then zero_word
                              else e)))));
 wordinterval_setminusa (RangeUnion r1 r2) t =
   RangeUnion (wordinterval_setminusa r1 t) (wordinterval_setminusa r2 t);
@@ -1615,7 +1616,7 @@ wordinterval_subset r1 r2 = wordinterval_empty (wordinterval_setminus r1 r2);
 
 valid_prefix :: forall a. (Len a) => Prefix_match a -> Bool;
 valid_prefix pf =
-  equal_word (bitAND_word (pfxm_mask pf) (pfxm_prefix pf)) zero_worda;
+  equal_word (bitAND_word (pfxm_mask pf) (pfxm_prefix pf)) zero_word;
 
 largest_contained_prefix ::
   forall a. (Len a) => Word a -> Wordinterval a -> Maybe (Prefix_match a);
@@ -1848,9 +1849,6 @@ runFw s d c rs =
     (Simple_packet_ext (pc_iiface c) (pc_oiface c) s d (pc_proto c) (pc_sport c)
       (pc_dport c) (insert TCP_SYN bot_set) [] ());
 
-zero_word :: forall a. (Len a) => Word a;
-zero_word = zero_worda;
-
 oiface_sel :: forall a. (Len a) => Common_primitive a -> Iface;
 oiface_sel (OIface x4) = x4;
 
@@ -1932,7 +1930,7 @@ map_of_ipassmt ipassmt =
     then map_of ipassmt else error "undefined");
 
 wordinterval_UNIV :: forall a. (Len a) => Wordinterval a;
-wordinterval_UNIV = WordInterval zero_worda max_word;
+wordinterval_UNIV = WordInterval zero_word max_word;
 
 wordinterval_invert :: forall a. (Len a) => Wordinterval a -> Wordinterval a;
 wordinterval_invert r = wordinterval_setminus wordinterval_UNIV r;
@@ -2317,7 +2315,7 @@ compress_protocols ps =
     Just proto ->
       (if membera (getNeg ps) ProtoAny ||
             all (\ p -> membera (getNeg ps) (Proto p))
-              (word_upto zero_worda
+              (word_upto zero_word
                 (word_of_int (Int_of_integer (255 :: Integer))))
         then Nothing
         else (if equal_protocol proto ProtoAny then Just ([], getNeg ps)
@@ -2980,10 +2978,9 @@ equal_simple_match_ext
 
 simple_match_any :: forall a. (Len a) => Simple_match_ext a ();
 simple_match_any =
-  Simple_match_ext ifaceAny ifaceAny (zero_worda, zero_nat)
-    (zero_worda, zero_nat) ProtoAny
-    (zero_worda, word_of_int (Int_of_integer (65535 :: Integer)))
-    (zero_worda, word_of_int (Int_of_integer (65535 :: Integer))) ();
+  Simple_match_ext ifaceAny ifaceAny (zero_word, zero_nat) (zero_word, zero_nat)
+    ProtoAny (zero_word, word_of_int (Int_of_integer (65535 :: Integer)))
+    (zero_word, word_of_int (Int_of_integer (65535 :: Integer))) ();
 
 has_default_policy :: forall a. (Len a) => [Simple_rule a] -> Bool;
 has_default_policy [] = False;
@@ -3343,7 +3340,7 @@ ipv6_preferred_to_compressed (IPv6AddrPreferred a b c d e f g h) =
     lss = goup_by_zeros [a, b, c, d, e, f, g, h];
     max_zero_seq = foldr (\ xs -> max (size_list xs)) lss zero_nat;
     aa = (if less_nat one_nat max_zero_seq
-           then list_replace1 (replicate max_zero_seq zero_worda) [] lss
+           then list_replace1 (replicate max_zero_seq zero_word) [] lss
            else lss);
   } in list_explode aa;
 
@@ -3504,7 +3501,7 @@ mk_L4Ports_pre ::
   [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
      Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] ->
     Ipt_l4_ports;
-mk_L4Ports_pre ports_raw = L4Ports zero_worda ports_raw;
+mk_L4Ports_pre ports_raw = L4Ports zero_word ports_raw;
 
 rm_LogEmpty :: forall a. [Rule a] -> [Rule a];
 rm_LogEmpty [] = [];
@@ -3803,7 +3800,7 @@ ipv6_unparsed_compressed_to_preferred ls =
                (plus_nat (size_list before_omission)
                  (size_list after_omission));
            a = before_omission ++
-                 replicate num_omissions zero_worda ++ after_omission;
+                 replicate num_omissions zero_word ++ after_omission;
          } in (case a of {
                 [] -> Nothing;
                 aa : b ->
@@ -3890,6 +3887,9 @@ mk_ipv6addr partslist =
                   -> Nothing;
               }));
 
+default_prefix :: forall a. (Len a) => Prefix_match a;
+default_prefix = PrefixMatch zero_word zero_nat;
+
 tcp_flag_toString :: Tcp_flag -> [Prelude.Char];
 tcp_flag_toString TCP_SYN = "TCP_SYN";
 tcp_flag_toString TCP_ACK = "TCP_ACK";
@@ -3954,10 +3954,10 @@ fill_l4_protocol_raw protocol =
         IIface aa -> IIface aa;
         OIface aa -> OIface aa;
         Src_Ports (L4Ports x pts) ->
-          (if not (equal_word x zero_worda) then error "undefined"
+          (if not (equal_word x zero_word) then error "undefined"
             else Src_Ports (L4Ports protocol pts));
         Dst_Ports (L4Ports x pts) ->
-          (if not (equal_word x zero_worda) then error "undefined"
+          (if not (equal_word x zero_word) then error "undefined"
             else Dst_Ports (L4Ports protocol pts));
         L4_Flags aa -> L4_Flags aa;
         CT_State aa -> CT_State aa;
@@ -4123,7 +4123,7 @@ ports_toString ::
       Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))))) ->
       [Prelude.Char];
 ports_toString descr (s, e) =
-  (if equal_word s zero_worda && equal_word e max_word then []
+  (if equal_word s zero_word && equal_word e max_word then []
     else descr ++
            (if equal_word s e then port_toString s
              else port_toString s ++ ":" ++ port_toString e));
@@ -4136,7 +4136,7 @@ simple_fw_valid =
   all ((\ m ->
          let {
            c = (\ (s, e) ->
-                 not (equal_word s zero_worda) || not (equal_word e max_word));
+                 not (equal_word s zero_word) || not (equal_word e max_word));
          } in (if c (sports m) || c (dports m)
                 then equal_protocol (proto m) (Proto tcp) ||
                        (equal_protocol (proto m) (Proto udp) ||

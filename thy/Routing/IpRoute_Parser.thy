@@ -22,9 +22,13 @@ lemma "routing_action_next_hop_update h pk = routing_action_update (next_hop_upd
 definition routing_action_oiface_update :: "string \<Rightarrow> 'a routing_rule \<Rightarrow> ('a::len) routing_rule"
   where
   "routing_action_oiface_update h pk = routing_action_update (output_iface_update (\<lambda>_. h)) (pk::'a routing_rule)"
-
 lemma "routing_action_oiface_update h pk = pk\<lparr> routing_action := (routing_action pk)\<lparr> output_iface :=  h\<rparr> \<rparr>"
   by(simp add: routing_action_oiface_update_def)
+
+(* Could be moved to Bitmagic *)
+definition "default_prefix = PrefixMatch 0 0"
+lemma default_prefix_matchall: "prefix_match_semantics default_prefix ip"
+  unfolding default_prefix_def by (simp add: valid_prefix_00 zero_prefix_match_all)
 
 definition "sanity_ip_route (r::32 prefix_routing) \<equiv> correct_routing r \<and> list_all (op \<noteq> '''' \<circ> routing_oiface) r"
 text\<open>The parser ensures that @{const sanity_ip_route} holds for any ruleset that is imported.\<close>

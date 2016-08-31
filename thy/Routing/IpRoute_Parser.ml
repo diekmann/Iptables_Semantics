@@ -32,7 +32,7 @@ local
   
   val parser_subnet = parser_ip_cidr ||
     (parser_ipv4 >> (fn ip => ipprefix_to_hol (ip,32))) ||
-    (Scan.this_string "default" >> K @{term "PrefixMatch 0 0 :: 32 prefix_match"})
+    (Scan.this_string "default" >> K @{const default_prefix (32)})
   val isSpace = (fn x => x = " " orelse  x = "\t")
   val parser_whitespace = Scan.many1 isSpace;
   val eater_whitespace = Scan.many isSpace; (* I refuse to have this eat \r to make the parser work with windows newlines. *)

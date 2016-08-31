@@ -34,7 +34,7 @@ parseRTblEntry ippars = do
 	many1 (char '\n')
 	return $ opts . empty_rr_hlp $ pfx
 	where
-		defaultParser = Prelude.const (Isabelle.PrefixMatch Isabelle.zero_word (Isabelle.Nat 0)) <$> lit "default"
+		defaultParser = Prelude.const (Isabelle.default_prefix) <$> lit "default"
 	
 parseOpt :: Isabelle.Len a => Parsec String s (Isabelle.Word a) -> Parsec String s (Routing_rule a -> Routing_rule a)
 parseOpt ippars = choice (map try [parseOIF, parseNH ippars, parseMetric, ignoreScope, ignoreProto, ignoreSrc ippars])
