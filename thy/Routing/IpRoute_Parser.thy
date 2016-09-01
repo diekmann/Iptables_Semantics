@@ -64,5 +64,4 @@ parse_ip_6_route "rtbl_parser_test2" = "ip-6-route-ex"
 value[code] rtbl_parser_test2
 lemma  "sanity_ip_route rtbl_parser_test2" by eval
 
-
 end

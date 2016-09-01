@@ -21,7 +21,7 @@ import           Control.Monad (void,liftM)
 type Routing_rule a = Isabelle.Routing_rule_ext a ()
 data RTbl a = RTbl [Routing_rule a]
 
-parseRTbl ippars = flip runParser () $ RTbl . Isabelle.sort_rtbl <$> many (parseRTblEntry ippars)
+parseRTbl ippars = flip runParser () $ RTbl . (\t -> if Isabelle.sanity_ip_route t then t else error "Routing table sanity check failed.") . Isabelle.sort_rtbl <$> many (parseRTblEntry ippars)
 
 parseRTbl_ipv4 = parseRTbl ipv4dotdecimal
 parseRTbl_ipv6 = parseRTbl ipv6colonsep

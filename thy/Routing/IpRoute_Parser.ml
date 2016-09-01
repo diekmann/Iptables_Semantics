@@ -6,9 +6,8 @@ fun register_ip_route bitness (name,path) (lthy: local_theory) =
     | _   => raise Fail("Unable to decide on IPv4 or IPv6")
 
 	(* Bitness dependent stuff *)
-	val v4 = (bitness = 32)
-	val parser_ip = if v4 then (parser_ipv4 >> (fn ip => mk_ipv4addr ip))
-	                      else (parser_ipv6 >> (fn ip => mk_ipv6addr ip))
+  val v4 = (bitness = 32)
+  val parser_ip = if v4 then (parser_ipv4 >> (fn ip => mk_ipv4addr ip)) else (parser_ipv6 >> (fn ip => mk_ipv6addr ip))
   val next_hop_update = if v4 then @{const routing_action_next_hop_update (32)} else @{const routing_action_next_hop_update (128)}
   val construct_prefix = if v4 then @{term "PrefixMatch :: 32 word \<Rightarrow> nat \<Rightarrow> 32 prefix_match"} else @{term "PrefixMatch :: 128 word \<Rightarrow> nat \<Rightarrow> 128 prefix_match"}
   val default_prefix = if v4 then @{const default_prefix (32)} else @{const default_prefix (128)}

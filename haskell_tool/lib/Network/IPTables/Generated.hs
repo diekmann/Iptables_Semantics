@@ -22,10 +22,10 @@ module
                               ipv4addr_of_dotdecimal, empty_rr_hlp,
                               sanity_wf_ruleset, map_of_string, nat_to_16word,
                               ipassmt_generic_ipv4, ipassmt_generic_ipv6,
-                              mk_ipv6addr, default_prefix, fill_l4_protocol,
-                              integer_to_16word, rewrite_Goto_safe,
-                              simple_fw_valid, compress_parsed_extra,
-                              prefix_match_32_toString,
+                              mk_ipv6addr, default_prefix, sanity_ip_route,
+                              fill_l4_protocol, integer_to_16word,
+                              rewrite_Goto_safe, simple_fw_valid,
+                              compress_parsed_extra, prefix_match_32_toString,
                               routing_rule_32_toString, mk_parts_connection_TCP,
                               to_simple_firewall, prefix_match_128_toString,
                               routing_rule_128_toString,
@@ -3382,6 +3382,11 @@ debug_ipassmt_ipv6 ::
       [[Prelude.Char]];
 debug_ipassmt_ipv6 = debug_ipassmt_generic ipv6addr_wordinterval_toString;
 
+sorted :: forall a. (Linorder a) => [a] -> Bool;
+sorted [x] = True;
+sorted [] = True;
+sorted (x : y : zs) = less_eq x y && sorted (y : zs);
+
 get_exists_matching_src_ips_executable ::
   forall a.
     (Len a) => Iface -> Match_expr (Common_primitive a) -> Wordinterval a;
@@ -3784,6 +3789,10 @@ ipassmt_generic_ipv6 ::
 ipassmt_generic_ipv6 =
   [(Iface "lo", [(one_word, nat_of_integer (128 :: Integer))])];
 
+valid_prefixes :: forall a b. (Len a) => [Routing_rule_ext a b] -> Bool;
+valid_prefixes r =
+  foldr ((\ a b -> a && b) . (\ rr -> valid_prefix (routing_match rr))) r True;
+
 ipv6_unparsed_compressed_to_preferred ::
   [Maybe (Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))] -> Maybe Ipv6addr_syntax;
 ipv6_unparsed_compressed_to_preferred ls =
@@ -3904,6 +3913,13 @@ ipt_tcp_syn =
     (insert TCP_SYN (insert TCP_RST (insert TCP_ACK (insert TCP_FIN bot_set))))
     (insert TCP_SYN bot_set);
 
+is_longest_prefix_routing ::
+  forall a b. (Len a) => [Routing_rule_ext a b] -> Bool;
+is_longest_prefix_routing = sorted . map routing_rule_sort_key;
+
+correct_routing :: forall a. (Len a) => [Routing_rule_ext a ()] -> Bool;
+correct_routing r = is_longest_prefix_routing r && valid_prefixes r;
+
 terminal_chain :: forall a. [Rule a] -> Bool;
 terminal_chain [] = False;
 terminal_chain [Rule MatchAny Accept] = True;
@@ -3939,6 +3955,11 @@ simple_ruleset rs =
   all (\ r ->
         equal_action (get_action r) Accept || equal_action (get_action r) Drop)
     rs;
+
+sanity_ip_route :: forall a. (Len a) => [Routing_rule_ext a ()] -> Bool;
+sanity_ip_route r =
+  correct_routing r &&
+    all ((\ y -> not (null y)) . (\ a -> output_iface (routing_action a))) r;
 
 fill_l4_protocol_raw ::
   forall a.

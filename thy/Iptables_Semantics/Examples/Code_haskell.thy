@@ -79,7 +79,7 @@ export_code Rule
   PrefixMatch routing_rule_ext routing_action_ext
   routing_action_oiface_update metric_update routing_action_next_hop_update empty_rr_hlp sort_rtbl
   prefix_match_32_toString routing_rule_32_toString prefix_match_128_toString routing_rule_128_toString
-  default_prefix
+  default_prefix sanity_ip_route
   in Haskell module_name "Network.IPTables.Generated" file "generated_code/"
 
 end
