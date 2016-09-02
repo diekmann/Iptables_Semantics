@@ -17,6 +17,7 @@ import qualified Data.List as L
 import Network.IPTables.Ruleset
 import Network.IPTables.Parser
 import Network.IPTables.IpassmtParser
+import Network.IPTables.Ipassmt (showIpAssmtDiff)
 import Network.RTbl.Parser (Routing_rule, RTbl, rTblToIsabelle)
 import qualified System.IO
 import Options.Generic
@@ -146,7 +147,8 @@ main' ops = do
         Right res -> do
             when verbose $ putStrLn $ "== Parser output =="
             when verbose $ putStrLn $ show res
-            {- TODO: When a routing table got loaded, show its diff with the ipassmt -}
+            case rtbl of Just rtbl -> putStr $ "== Difference between used IP assignment and routing table ==\n" ++ showIpAssmtDiff ipassmt rtbl
+                         Nothing -> return ()
             unfolded <- loadUnfoldedRuleset verbose table chain res
             putStrLn $"== unfolded "++chain++" chain (upper closure) =="
             putStrLn $ L.intercalate "\n" $ map show (Isabelle.upper_closure $ unfolded)

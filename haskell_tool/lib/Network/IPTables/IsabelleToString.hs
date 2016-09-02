@@ -35,9 +35,9 @@ instance Show Isabelle.Iface where
     show (Isabelle.Iface i) = i
 
 instance Show (Isabelle.Ipt_iprange Word32) where
-  show = Isabelle.ipt_ipv4range_toString
+    show = Isabelle.ipt_ipv4range_toString
 instance Show (Isabelle.Ipt_iprange Word128) where
-  show = Isabelle.ipt_ipv6range_toString
+    show = Isabelle.ipt_ipv6range_toString
 
 instance Show (Isabelle.Match_expr (Isabelle.Common_primitive Word32)) where
     show = Isabelle.common_primitive_match_expr_ipv4_toString
@@ -54,6 +54,8 @@ instance Show (Isabelle.Rule (Isabelle.Common_primitive Word128)) where
 {- I'm hesitant to make an instance (Show (Isabelle.Word Word32)), there may be other things than IP addresses -}
 instance Show (Isabelle.Prefix_match Word32) where
     show = Isabelle.prefix_match_32_toString
+instance Show (Isabelle.Prefix_match Word128) where
+    show = Isabelle.prefix_match_128_toString
 instance Show (Isabelle.Routing_rule_ext Word32 ()) where 
     show = Isabelle.routing_rule_32_toString 
 instance Show (Isabelle.Routing_rule_ext Word128 ()) where 

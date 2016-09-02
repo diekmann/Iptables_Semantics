@@ -22,11 +22,9 @@ private lemma map_of_map_Iface: "map_of (map (\<lambda>x. (Iface (fst x), f (snd
         map_option f ((map_of xs) ifce)"
   by (induct xs) (auto)
 
-lemma "routing_ipassmt_wi ([]::32 prefix_routing) = [(output_iface (routing_action undefined), WordInterval 0 0xFFFFFFFF)]"
-apply code_simp
-apply (intro conjI)
-apply(simp_all)
-oops
+lemma "routing_ipassmt_wi ([]::32 prefix_routing) = [(output_iface (routing_action (undefined :: 32 routing_rule)), WordInterval 0 0xFFFFFFFF)]"
+  by code_simp
+
 
 lemma routing_ipassmt: "
     valid_prefixes rt \<Longrightarrow>
