@@ -4,7 +4,7 @@ license:             BSD2
 license-file:        LICENSE
 author:              Cornelius Diekmann
 maintainer:          diekmann@net.in.tum.de
-copyright:           BSD2
+copyright:           2016 Cornelius Diekmann
 category:            Network
 build-type:          Simple
 homepage:            http://iptables.isabelle.systems/
@@ -12,6 +12,9 @@ bug-reports:         https://github.com/diekmann/Iptables_Semantics/issues
 cabal-version:       >= 1.22
 -- ghc8 needs cabal >= 1.24 or some dependency fails to install
 tested-with:         GHC >= 7.8 && < 8.1
+synopsis:            A tool to verify and simplify iptables firewall rules
+description:         This library and tool statically checks properties about 
+    your iptables firewall rules. Just dump `iptables-save' into the tool.
 
 library
   hs-source-dirs:      lib
