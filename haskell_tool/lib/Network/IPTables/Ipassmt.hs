@@ -1,5 +1,4 @@
-{-# Language FlexibleContexts #-}
-{-# Language UndecidableInstances #-}
+{-# Language FlexibleContexts, UndecidableInstances, StandaloneDeriving #-}
 module Network.IPTables.Ipassmt
 ( IpAssmt(..)
 , IsabelleIpAssmt) where
@@ -11,8 +10,7 @@ import           Network.IPTables.IsabelleToString (Word32)
 
 data IpAssmt a = IpAssmt [(Isabelle.Iface, Isabelle.Negation_type [Isabelle.Ipt_iprange a])]
 
-instance Show (Isabelle.Ipt_iprange a) => Show (IpAssmt a) where
-    show (IpAssmt ipassmt) = "IpAssmt " ++ show ipassmt
+deriving instance Show (Isabelle.Ipt_iprange a) => Show (IpAssmt a)
 
 type IsabelleIpAssmt a = [(Isabelle.Iface, [(Isabelle.Word a, Isabelle.Nat)])]
 
