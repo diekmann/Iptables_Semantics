@@ -1,3 +1,4 @@
+section\<open>Optimizing and Normalizing Primitives\<close>
 theory Transform
 imports Common_Primitive_Lemmas
         "../Semantics_Ternary/Semantics_Ternary"
@@ -11,8 +12,16 @@ imports Common_Primitive_Lemmas
         "../Semantics_Ternary/Optimizing"
 begin
 
+text\<open>This transform theory plugs a lot of stuff together. We perform several normalization and
+  optimization steps on complete firewall rulesets. We show that it preserves the semantics and also,
+  that structural properties are preserved. For example, if you normalize interfaces and afterwards
+  normalize protocols, the interfaces remain normalized and no new interfaces are added when 
+  doing the protocol normalization.\<close>
 
-section\<open>Optimizing and normalizing primitives\<close>
+
+(*Maintainer note: we plug a lot of lemmata together to show that structural properties are preserved.
+  Yes, there is a huge set of apply style in there but there is no magic happening, it is just
+  pushing through invariants about structural properties.*)
 
 definition compress_normalize_besteffort
   :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr option" where
@@ -107,18 +116,6 @@ context begin
                         compress_normalize_protocols_hasdisc
                         compress_normalize_input_interfaces_hasdisc)
     done
-
-  (* not needed, I probably want it to introduce Prot!
-  lemma compress_normalize_besteffort_not_introduces_Prot:
-      "\<not> has_disc is_Prot m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
-       \<not> has_disc is_Prot m'"
-    unfolding compress_normalize_besteffort_def
-    apply(rule compress_normalize_primitive_monad_preserves[THEN conjunct2])
-        apply(drule(3) compress_normalize_besteffort_normalized)
-       apply(auto dest: compress_normalize_input_interfaces_hasdisc compress_normalize_protocols_not_introduces_Prot
-             compress_normalize_output_interfaces_hasdisc)
-    done
-  *)
   
   lemma compress_normalize_besteffort_not_introduces_Iiface_negated:
       "\<not> has_disc_negated is_Iiface False m \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_besteffort m = Some m' \<Longrightarrow>
@@ -567,16 +564,6 @@ definition transform_normalize_primitives :: "'i::len common_primitive rule list
       normalize_rules normalize_dst_ports (*may introduce new matches on protocols*) \<circ>
       normalize_rules normalize_src_ports (*may introduce new matches in protocols*)
     "
-      
-      (*optimizing ports may introduce matches on protocols. optimize away
-
-       We are still not optimizing away: Proto udp \<and> L4Ports tcp _
-           the simple firewall takes care of this
-
-       We are still not optimizing away: \<not>Proto tcp \<and> L4Ports tcp _
-           the simple firewall takes NOT care of this
-       *)
-
 
 
  thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive
@@ -913,7 +900,7 @@ theorem transform_normalize_primitives:
    { fix rs
      assume "(\<forall>a. \<not> disc1 (IIface a)) \<or> disc1 = is_Iiface"
         and "((\<forall>a. \<not> disc1 (OIface a)) \<or> disc1 = is_Oiface)"
-        and "(\<forall>a. \<not> disc1 (Prot a)) (*\<or> disc1 = is_Prot*)"
+        and "(\<forall>a. \<not> disc1 (Prot a))"
      hence "\<forall>m\<in>set rs. \<not> has_disc disc1 (get_match m) \<and> normalized_nnf_match (get_match m) \<Longrightarrow>
               \<forall>m\<in>set (optimize_matches_option compress_normalize_besteffort rs).
                   normalized_nnf_match (get_match m) \<and> \<not> has_disc disc1 (get_match m)"
@@ -928,7 +915,7 @@ theorem transform_normalize_primitives:
    have "\<forall>a. \<not> disc1 (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst_Ports a) \<Longrightarrow> 
          \<forall>a. \<not> disc1 (Src a) \<Longrightarrow> \<forall>a. \<not> disc1 (Dst a) \<Longrightarrow>
          (\<forall>a. \<not> disc1 (IIface a)) \<or> disc1 = is_Iiface \<Longrightarrow>
-         (\<forall>a. \<not> disc1 (OIface a)) \<or> disc1 = is_Oiface \<Longrightarrow> (\<forall>a. \<not> disc1 (Prot a)) (*\<or> disc1 = is_Prot*) \<Longrightarrow>
+         (\<forall>a. \<not> disc1 (OIface a)) \<or> disc1 = is_Oiface \<Longrightarrow> (\<forall>a. \<not> disc1 (Prot a)) \<Longrightarrow>
          \<forall> r\<in>set rs. \<not> has_disc disc1 (get_match r) \<and> normalized_nnf_match (get_match r) \<Longrightarrow>
     \<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r) \<and> \<not> has_disc disc1 (get_match r)"
    unfolding transform_normalize_primitives_def
@@ -1037,9 +1024,7 @@ theorem transform_normalize_primitives:
          \<forall>a. \<not> disc3 (Src a) \<Longrightarrow> \<forall>a. \<not> disc3 (Dst a) \<Longrightarrow>
          (\<forall>a. \<not> disc3 (IIface a)) \<or> disc3 = is_Iiface \<Longrightarrow>
          (\<forall>a. \<not> disc3 (OIface a)) \<or> disc3 = is_Oiface \<Longrightarrow>
-         (\<forall>a. \<not> disc3 (Prot a)) (*\<or>
-          disc3 = is_Prot \<and> (\<forall>r \<in> set rs.
-            \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r))*) \<Longrightarrow>
+         (\<forall>a. \<not> disc3 (Prot a)) \<Longrightarrow>
          \<forall> r \<in> set rs. \<not> has_disc_negated disc3 False (get_match r) \<and> normalized_nnf_match (get_match r) \<Longrightarrow>
     \<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r) \<and> \<not> has_disc_negated disc3 False (get_match r)"
    unfolding transform_normalize_primitives_def
@@ -1213,7 +1198,7 @@ lemma transform_upper_closure:
   -- "no new primitives are introduced"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
        \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
-       \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
+       \<forall>a. \<not> disc (Prot a) \<Longrightarrow>
         \<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow> \<forall> r \<in> set (upper_closure rs). \<not> has_disc disc (get_match r)"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
        \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
@@ -1297,7 +1282,7 @@ lemma transform_upper_closure:
 
     show "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
           \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
-          \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
+          \<forall>a. \<not> disc (Prot a) \<Longrightarrow>
             \<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow> \<forall> r \<in> set (upper_closure rs). \<not> has_disc disc (get_match r)"
     using simplers
     unfolding upper_closure_def
@@ -1394,7 +1379,7 @@ lemma transform_lower_closure:
   -- "no new primitives are introduced"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
        \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
-       \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
+       \<forall>a. \<not> disc (Prot a) \<Longrightarrow>
         \<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
         \<forall> r \<in> set (lower_closure rs). \<not> has_disc disc (get_match r)"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
@@ -1478,7 +1463,7 @@ lemma transform_lower_closure:
 
     show "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
           \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
-          \<forall>a. \<not> disc (Prot a) (*\<or> disc = is_Prot*) \<Longrightarrow>
+          \<forall>a. \<not> disc (Prot a) \<Longrightarrow>
             \<forall> r \<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow> \<forall> r \<in> set (lower_closure rs). \<not> has_disc disc (get_match r)"
     using simplers
     unfolding lower_closure_def
