@@ -1,3 +1,4 @@
+section\<open>Iptables to Simple Firewall and Vice Versa\<close>
 theory SimpleFw_Compliance
 imports "../../Simple_Firewall/SimpleFw_Semantics"
         "../Primitive_Matchers/Transform"
