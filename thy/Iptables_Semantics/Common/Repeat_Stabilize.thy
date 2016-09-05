@@ -21,7 +21,7 @@ lemma repeat_stabilize_funpow: "repeat_stabilize n f v = (f^^n) v"
 lemma repeat_stabilize_induct: "(P m) \<Longrightarrow> (\<And>m. P m \<Longrightarrow> P (f m)) \<Longrightarrow> P (repeat_stabilize n f m)"
   apply(simp add: repeat_stabilize_funpow)
   apply(induction n)
-   by(simp)+  
+   by(simp)+
 
 
 end
