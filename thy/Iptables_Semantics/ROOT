@@ -1,21 +1,5 @@
 chapter Iptables_Semantics
 
-session "Bitmagic" = IP_Addresses +
-  theories[document=false]
-    "~~/src/HOL/Word/Word"
-    "~~/src/HOL/Word/WordBitwise"
-    "../Native_Word/More_Bits_Int"
-    "../Native_Word/Code_Target_Bits_Int"
-    "~~/src/HOL/Library/Code_Target_Nat"
-    "~~/src/HOL/Library/Code_Target_Int"
-    "~~/src/HOL/Library/Code_Char"
-    "../Automatic_Refinement/Lib/Misc" (* mergesort *)
-  theories
-  document_files
-    "root.tex"
-    "root.bib"
-    "mathpartir.sty"
-
 session "Iptables_Semantics" = Routing +
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
@@ -57,22 +41,8 @@ session "Iptables_Semantics" = Routing +
     "root.bib"
     "mathpartir.sty"
 
-session "Iptables_Semantics_Documentation" = Iptables_Semantics +
-  theories[document=false]
-    (*TODO: will this speed up the examples?*)
-    "../Native_Word/More_Bits_Int"
-    "../Native_Word/Code_Target_Bits_Int"
-    "~~/src/HOL/Library/Code_Target_Nat"
-    "~~/src/HOL/Library/Code_Target_Int"
-    "~~/src/HOL/Library/Code_Char"
-  theories
-    Documentation
-  document_files
-    "root.tex"
-    "root.bib"
-    "mathpartir.sty"
 
-session "Iptables_Semantics_Examples" = Iptables_Semantics_Documentation +
+session "Iptables_Semantics_Examples" = Iptables_Semantics +
    theories
     "Examples/Parser_Test/Parser_Test"
     "Examples/Parser_Test/Parser6_Test"
@@ -87,25 +57,10 @@ session "Iptables_Semantics_Examples" = Iptables_Semantics_Documentation +
     "Examples/medium-sized-company/Analyze_medium_sized_company"
     "Examples/topoS_generated/Analyze_topos_generated"
     "Examples/IPPartEval/IP_Address_Space_Examples_All_Small"
-  document_files
-    "root.tex"
-    "root.bib"
-    "mathpartir.sty"
-
-
-session "Iptables_Semantics_Examples_Large1" = Iptables_Semantics_Documentation +
-   theories
+    "Examples/IPPartEval/IP_Address_Space_Examples_All_Large"
     "Examples/TUM_Net_Firewall/Analyze_TUM_Net_Firewall"
     "Examples/TUM_Net_Firewall/TUM_Spoofing_new3"
     "Examples/TUM_Net_Firewall/TUM_Simple_FW"
-  document_files
-    "root.tex"
-    "root.bib"
-    "mathpartir.sty"
-    
-session "Iptables_Semantics_Examples_Large2" = Iptables_Semantics_Documentation +
-   theories
-    "Examples/IPPartEval/IP_Address_Space_Examples_All_Large"
   document_files
     "root.tex"
     "root.bib"
