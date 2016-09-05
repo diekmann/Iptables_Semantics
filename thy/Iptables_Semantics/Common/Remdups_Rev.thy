@@ -1,8 +1,7 @@
+section\<open>Reverse Remdups\<close>
 theory Remdups_Rev
 imports Main
 begin
-
-section\<open>Reverse Remdups\<close>
 
 definition remdups_rev :: "'a list \<Rightarrow> 'a list" where
   "remdups_rev rs \<equiv> rev (remdups (rev rs))"

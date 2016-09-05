@@ -1,8 +1,8 @@
-theory RepeatStabilize
+section\<open>Repeat finitely Until it Stabilizes\<close>
+theory Repeat_Stabilize
 imports Main
 begin
 
-section\<open>Repeat finitely Until it Stabilizes\<close>
 text\<open>Repeating something a number of times\<close>
 
 

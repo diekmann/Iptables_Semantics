@@ -9,16 +9,36 @@ text\<open>
 The assumption we apply in general is that the firewall does not alter any packets.
 \<close>
 
+text\<open>A firewall ruleset is a map of chain names
+  (e.g., INPUT, OUTPUT, FORWARD, arbitrary-user-defined-chain) to a list of rules.
+  The list of rules is processed sequentially.\<close>
 type_synonym 'a ruleset = "string \<rightharpoonup> 'a rule list"
 
+text\<open>A matcher (parameterized by the type of primitive @{typ 'a} and packet @{typ 'p})
+     is a function which just tells whether a given primitive and packet matches.\<close>
 type_synonym ('a, 'p) matcher = "'a \<Rightarrow> 'p \<Rightarrow> bool"
 
+text\<open>Example: Assume a network packet only has a destination street number
+    (for simplicity, of type @{typ "nat"}) and we only support the following match expression:
+    Is the packet's street number within a certain range?
+    The type for the primitive could then be @{typ "nat \<times> nat"} and a possible implementation
+    for @{typ "(nat \<times> nat, nat) matcher"} could be
+    @{term "match_street_number (a,b) p \<longleftrightarrow> p \<in> {a .. b}"}.
+    Usually, the primitives are a datatype which supports interfaces, IP addresses, protocols,
+    ports, payload, ...\<close>
+
+
+text\<open>Given an @{typ "('a, 'p) matcher"} and a match expression, does a packet of type @{typ 'p}
+     match the match expression?\<close>
 fun matches :: "('a, 'p) matcher \<Rightarrow> 'a match_expr \<Rightarrow> 'p \<Rightarrow> bool" where
 "matches \<gamma> (MatchAnd e1 e2) p \<longleftrightarrow> matches \<gamma> e1 p \<and> matches \<gamma> e2 p" |
-"matches \<gamma> (MatchNot me) p \<longleftrightarrow> \<not> matches \<gamma> me p" | (*does not work for ternary logic. Here: ok*)
+"matches \<gamma> (MatchNot me) p \<longleftrightarrow> \<not> matches \<gamma> me p" |
 "matches \<gamma> (Match e) p \<longleftrightarrow> \<gamma> e p" |
 "matches _ MatchAny _ \<longleftrightarrow> True"
 
+
+(*Note: "matches \<gamma> (MatchNot me) p \<longleftrightarrow> \<not> matches \<gamma> me p" does not work for ternary logic.
+  Here, we have Boolean logic and everything is fine.*)
 
 
 inductive iptables_bigstep :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool"
