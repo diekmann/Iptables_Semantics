@@ -134,9 +134,9 @@ The routing system in linux features multiple tables and a system that can use t
 Based on our directive, we only focused on the single most used \texttt{main} routing table.\<close>
 text\<open>
 We define a routing table entry to be a record (named tuple) of a prefix match, a metric and the routing action, which in turn is a record of an output interface and an optional next-hop address.\<close>
-schematic_goal "(?rtbl_entry :: routing_rule) = \<lparr> routing_match = PrefixMatch pfx len, metric = met, routing_action = \<lparr> output_iface = oif_string, next_hop = (h :: ipv4addr option) \<rparr> \<rparr>" by rule
+schematic_goal "(?rtbl_entry :: ('a::len) routing_rule) = \<lparr> routing_match = PrefixMatch pfx len, metric = met, routing_action = \<lparr> output_iface = oif_string, next_hop = (h :: 'a word option) \<rparr> \<rparr>" ..
 text\<open>A routing table is then a list of these entries:\<close>
-lemma "(rtbl :: prefix_routing) = (rtbl :: routing_rule list)" by rule
+lemma "(rtbl :: ('a :: len) prefix_routing) = (rtbl :: 'a routing_rule list)" by rule
 text\<open>Not all members of the type @{type prefix_routing} are sane routing tables. There are three different validity criteria that we require so that our definitions are adequate.
 \begin{itemize}
   \item The prefixes have to be 0 in bits exceeding their length.
@@ -419,7 +419,7 @@ unfolding Let_def lr_of_tran_def lr_of_tran_fbs_def lr_of_tran_s1_def comp_def r
 text_raw\<open>
 }
 }
-  \caption{Function for translating a @{typ "'i::len simple_rule list"}, a @{typ "routing_rule list"} and a list of interfaces to a flow table.}
+  \caption{Function for translating a @{typ "'i::len simple_rule list"}, a @{typ "'i routing_rule list"} and a list of interfaces to a flow table.}
   \label{fig:convi}
 \end{figure*}
 \<close>
