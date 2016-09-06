@@ -308,7 +308,7 @@ subsubsection\<open>Optimizing\<close>
     apply blast+*)
     done
     
-  export_code packet_set_opt2_internal in SML
+  export_code packet_set_opt2_internal checking SML
 
   fun packet_set_opt2 :: "'a packet_set \<Rightarrow> 'a packet_set" where
     "packet_set_opt2 (PacketSet ps) = PacketSet (packet_set_opt2_internal ps)" 

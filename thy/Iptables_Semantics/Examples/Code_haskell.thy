@@ -76,6 +76,6 @@ export_code Rule
   (* routing *)
   PrefixMatch routing_rule_ext routing_action_ext
   routing_action_oiface_update metric_update routing_action_next_hop_update empty_rr_hlp sort_rtbl
-  in Haskell module_name "Network.IPTables.Generated" file "generated_code/"
+  checking SML (*Haskell module_name "Network.IPTables.Generated" file "generated_code/"*)
 
 end

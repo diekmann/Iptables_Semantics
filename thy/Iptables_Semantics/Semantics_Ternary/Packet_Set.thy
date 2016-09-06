@@ -312,7 +312,7 @@ done
 
 
 text\<open>executable! But not really usable.\<close>
-export_code collect_allow_impl_v2 in SML
+export_code collect_allow_impl_v2 checking SML
 
 
 theorem collect_allow_impl_v1_sound_complete: "simple_ruleset rs \<Longrightarrow> 
