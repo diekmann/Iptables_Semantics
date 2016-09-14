@@ -219,6 +219,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
     [ MatchNot (Match (Prot (Proto TCP)))
     , Match (Src_Ports (L4Ports 6 [(0, 21), (23, 79), (91, 0xFFFF)]))]" by eval
 
+  (*TODO: this one is generic, move?*)
   definition rewrite_negated_primitives
     :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow> (*disc_sel C*)
         (('b \<Rightarrow> 'a) \<Rightarrow> 'b \<Rightarrow> 'a match_expr) \<Rightarrow> (*negate_one function*)
@@ -1053,4 +1054,107 @@ lemma "map opt_MatchAny_match_expr (normalize_src_ports
 lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [MatchAny]" by(simp)
 
 
+
+(*scratch*)
+(*TODO: move?*)
+  definition replace_primitive_matchexpr
+    :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> (*disc_sel*)
+        ('b negation_type \<Rightarrow> 'a match_expr) \<Rightarrow> (*replace function*)
+        'a match_expr \<Rightarrow> 'a match_expr" where
+    "replace_primitive_matchexpr disc_sel replace_f m \<equiv>
+        let (as, rst) = primitive_extractor disc_sel m
+        in if as = [] then m else 
+          MatchAnd
+            (andfold_MatchExp (map replace_f as))
+            rst"
+
+
+  text\<open>It does nothing of there is not even a primitive in it\<close>
+  lemma replace_primitive_matchexpr_unchanged_if_not_has_disc:
+  assumes n: "normalized_nnf_match m"
+  and wf_disc_sel: "wf_disc_sel (disc,sel) C" (*any C*)
+  and noDisc: "\<not> has_disc disc m"
+  shows "replace_primitive_matchexpr (disc,sel) replace_f m = m"
+    apply(simp add: replace_primitive_matchexpr_def)
+    apply(case_tac "primitive_extractor (disc,sel) m", rename_tac spts rst)
+    apply(simp)
+    apply(frule primitive_extractor_correct(7)[OF n wf_disc_sel])
+     using noDisc by blast+
+
+  (*lemma replace_primitive_matchexpr_preserves_not_has_disc:
+  assumes n: "normalized_nnf_match m"
+  and wf_disc_sel: "wf_disc_sel (disc, sel) C'"
+  and nodisc: "\<not> has_disc disc2 m"
+  and noNeg: "\<not> has_disc disc m"
+  and disc2_noC: "\<forall>a. \<not> disc2 (C a)"
+  shows "\<not> has_disc disc2 (replace_primitive_matchexpr (disc, sel) negate_f m)"
+    apply(subst replace_primitive_matchexpr_unchanged_if_not_has_disc)
+    using n wf_disc_sel noNeg nodisc by(simp)+*)
+
+  lemma replace_primitive_matchexpr:
+  assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel disc_sel C"
+  and replace_f: "\<forall>pt. matches \<gamma> (replace_f pt) a p \<longleftrightarrow>
+                        matches \<gamma> (negation_type_to_match_expr_f C pt) a p"
+  shows "matches \<gamma> (replace_primitive_matchexpr disc_sel replace_f m) a p \<longleftrightarrow> matches \<gamma> m a p"
+  proof -
+    obtain spts rst where pext: "primitive_extractor disc_sel m = (spts, rst)"
+      by(cases "primitive_extractor disc_sel m") simp
+    obtain disc sel where disc_sel: "disc_sel = (disc, sel)" by(cases disc_sel) simp
+    with wf_disc_sel have wf_disc_sel': "wf_disc_sel (disc, sel) C" by simp
+    from disc_sel pext have pext': "primitive_extractor (disc, sel) m = (spts, rst)" by simp
+      
+    have "matches \<gamma> (andfold_MatchExp (map replace_f spts)) a p \<and> matches \<gamma> rst a p \<longleftrightarrow>
+       matches \<gamma> m a p"
+      apply(subst primitive_extractor_correct(1)[OF n wf_disc_sel' pext', symmetric])
+      apply(simp add: andfold_MatchExp_matches)
+      apply(simp add: replace_f)
+      using alist_and_negation_type_to_match_expr_f_matches by fast
+    thus ?thesis by(simp add: replace_primitive_matchexpr_def pext bunch_of_lemmata_about_matches)
+  qed
+ 
+
+  lemma replace_primitive_matchexpr_preserves_not_has_disc:
+  assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
+  and nodisc: "\<not> has_disc disc2 m"
+  and replace_f: "has_disc disc m \<Longrightarrow> \<forall>pts. \<not> has_disc disc2 (replace_f pts)"
+  shows "\<not> has_disc disc2 (replace_primitive_matchexpr (disc,sel) replace_f m)"
+    apply(simp add: replace_primitive_matchexpr_def)
+    apply(case_tac "primitive_extractor (disc,sel) m", rename_tac spts rst)
+    apply(simp)
+    apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel])
+    apply(case_tac "\<not> has_disc disc m")
+     subgoal
+     apply(frule(1) primitive_extractor_correct(7)[OF n wf_disc_sel])
+     using nodisc by blast
+    apply(simp)
+    apply(intro conjI impI)
+      using nodisc apply(simp; fail)
+     apply(rule andfold_MatchExp_not_discI)
+     apply(simp add: replace_f; fail)
+    using nodisc by blast
+
+
+
+
+  fun rewrite_MultiportPorts_one :: "ipt_l4_ports negation_type\<Rightarrow> 'i::len common_primitive match_expr" where
+    "rewrite_MultiportPorts_one (Pos pts) = 
+        MatchOr (Match (Src_Ports pts)) (Match (Dst_Ports pts))" |
+    "rewrite_MultiportPorts_one (Neg pts) =
+        MatchAnd (MatchNot (Match (Src_Ports pts))) (MatchNot (Match (Dst_Ports pts)))"
+
+  definition rewrite_MultiportPorts
+    :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr" where
+    "rewrite_MultiportPorts m \<equiv> replace_primitive_matchexpr (is_MultiportPorts, multiportports_sel)
+      rewrite_MultiportPorts_one m"
+
+  lemma rewrite_MultiportPorts:
+  assumes generic: "primitive_matcher_generic \<beta>" and n: "normalized_nnf_match m"
+  shows "matches (\<beta>, \<alpha>) (rewrite_MultiportPorts m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+    apply(simp add: rewrite_MultiportPorts_def)
+    apply(rule replace_primitive_matchexpr[OF n wf_disc_sel_common_primitive(11)])
+    apply(rule allI, rename_tac pt)
+    apply(case_tac pt)
+     apply(simp add: primitive_matcher_generic.MultiportPorts_single_rewrite_MatchOr[OF generic]; fail)
+    apply(simp add: primitive_matcher_generic.MultiportPorts_single_not_rewrite_MatchAnd[OF generic]; fail)
+    done
 end
