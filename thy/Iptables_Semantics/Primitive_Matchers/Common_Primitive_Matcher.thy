@@ -18,6 +18,8 @@ fun common_matcher :: "('i::len common_primitive, ('i, 'a) tagged_packet_scheme)
   "common_matcher (Src_Ports (L4Ports proto ps)) p = bool_to_ternary (proto = p_proto p \<and> p_sport p \<in> ports_to_set ps)" |
   "common_matcher (Dst_Ports (L4Ports proto ps)) p = bool_to_ternary (proto = p_proto p \<and> p_dport p \<in> ports_to_set ps)" |
 
+  "common_matcher (MultiportPorts (L4Ports proto ps)) p = bool_to_ternary (proto = p_proto p \<and> (p_sport p \<in> ports_to_set ps \<or> p_dport p \<in> ports_to_set ps))" |
+
   "common_matcher (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags (p_tcp_flags p))" |
 
   "common_matcher (CT_State S) p = bool_to_ternary (match_ctstate S (p_tag_ctstate p))" |
@@ -31,8 +33,8 @@ lemma packet_independent_\<beta>_unknown_common_matcher: "packet_independent_\<b
   apply(clarify)
   apply(rename_tac a p1 p2)
   apply(case_tac a)
-           apply(simp_all add: bool_to_ternary_Unknown)
-   apply(rename_tac l4ports, case_tac l4ports; simp add: bool_to_ternary_Unknown; fail)+
+             apply(simp_all add: bool_to_ternary_Unknown)
+     apply(rename_tac l4ports, case_tac l4ports; simp add: bool_to_ternary_Unknown; fail)+
   done
 
 lemma primitive_matcher_generic_common_matcher: "primitive_matcher_generic common_matcher"
@@ -92,6 +94,7 @@ lemma common_matcher_SrcDst_defined:
   "common_matcher (Dst m) p \<noteq> TernaryUnknown"
   "common_matcher (Src_Ports ps) p \<noteq> TernaryUnknown"
   "common_matcher (Dst_Ports ps) p \<noteq> TernaryUnknown"
+  "common_matcher (MultiportPorts ps) p \<noteq> TernaryUnknown"
   apply(case_tac [!] m, case_tac [!] ps)
   apply(simp_all add: bool_to_ternary_Unknown)
   done
