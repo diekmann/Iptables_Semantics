@@ -1057,6 +1057,7 @@ lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [Ma
 
 (*scratch*)
 (*TODO: move?*)
+  (*TODO: add nnf_normalization directly afterwards?*)
   definition replace_primitive_matchexpr
     :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> (*disc_sel*)
         ('b negation_type \<Rightarrow> 'a match_expr) \<Rightarrow> (*replace function*)
