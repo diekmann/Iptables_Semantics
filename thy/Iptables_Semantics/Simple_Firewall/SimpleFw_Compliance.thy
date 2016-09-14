@@ -136,6 +136,7 @@ theorem common_primitive_match_to_simple_match:
       and "normalized_protocols m"
       and "\<not> has_disc is_L4_Flags m"
       and "\<not> has_disc is_CT_State m"
+      and "\<not> has_disc is_MultiportPorts m"
       and "\<not> has_disc is_Extra m"
   shows "(Some sm = common_primitive_match_to_simple_match m \<longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
          (common_primitive_match_to_simple_match m = None \<longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p)"
@@ -169,6 +170,7 @@ proof -
       "normalized_ifaces m1" "normalized_ifaces m2"
       "\<not> has_disc is_L4_Flags m1" "\<not> has_disc is_L4_Flags m2"
       "\<not> has_disc is_CT_State m1" "\<not> has_disc is_CT_State m2"
+      "\<not> has_disc is_MultiportPorts m1" "\<not> has_disc is_MultiportPorts m2"
       "\<not> has_disc is_Extra m1" "\<not> has_disc is_Extra m2"
       "normalized_protocols m1" "normalized_protocols m2"
       by(simp_all add: normalized_protocols_def normalized_ifaces_def)
@@ -236,6 +238,7 @@ definition check_simple_fw_preconditions :: "'i::len common_primitive rule list 
       normalized_protocols m \<and>
       \<not> has_disc is_L4_Flags m \<and>
       \<not> has_disc is_CT_State m \<and>
+      \<not> has_disc is_MultiportPorts m \<and>
       \<not> has_disc is_Extra m \<and>
       (a = action.Accept \<or> a = action.Drop))"
 
@@ -438,6 +441,7 @@ theorem transform_simple_fw_upper:
              normalized_protocols m \<and>
              \<not> has_disc is_L4_Flags m \<and>
              \<not> has_disc is_CT_State m \<and>
+             \<not> has_disc is_MultiportPorts m \<and>
              \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
       by(simp)
   }
@@ -573,7 +577,8 @@ theorem transform_simple_fw_lower:
              normalized_src_ips m \<and>
              normalized_dst_ips m \<and>
              normalized_ifaces m \<and>
-             normalized_protocols m \<and> \<not> has_disc is_L4_Flags m \<and> \<not> has_disc is_CT_State m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
+             normalized_protocols m \<and> \<not> has_disc is_L4_Flags m \<and> \<not> has_disc is_CT_State m \<and> 
+             \<not> has_disc is_MultiportPorts m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
       by(simp)
   }
     hence simple_fw_preconditions: "check_simple_fw_preconditions ?rs'"
@@ -758,7 +763,7 @@ theorem to_simple_firewall_without_interfaces:
       with r have protocols: "normalized_protocols m" unfolding normalized_protocols_def by fastforce
 
 
-      from no_CT no_L4_Flags s7 normalized a normalized_ifaces protocols no_Iiface no_Oiface 
+      from no_CT no_L4_Flags normalized a normalized_ifaces protocols no_Iiface no_Oiface 
          have "normalized_src_ports m \<and>
                normalized_dst_ports m \<and>
                normalized_src_ips m \<and>
@@ -767,9 +772,11 @@ theorem to_simple_firewall_without_interfaces:
                normalized_protocols m \<and>
                \<not> has_disc is_L4_Flags m \<and>
                \<not> has_disc is_CT_State m \<and>
+               \<not> has_disc is_MultiportPorts m \<and>
                \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
         and "\<not> has_disc is_Iiface m" and "\<not> has_disc is_Oiface m"
-        by(simp)+
+        apply -
+        by(simp)+ (*fails due to is_MultiportPorts*)
     }
     hence simple_fw_preconditions: "check_simple_fw_preconditions ?rs7"
       and no_interfaces: "Rule m a \<in> set ?rs7 \<Longrightarrow> \<not> has_disc is_Iiface m \<and> \<not> has_disc is_Oiface m" for m a

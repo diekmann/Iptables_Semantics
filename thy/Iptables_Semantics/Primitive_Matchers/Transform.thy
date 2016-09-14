@@ -1098,11 +1098,11 @@ theorem transform_normalize_primitives:
     using x[OF wf_disc_sel_common_primitive(3), of disc3 ipt_iprange_compress, folded normalize_src_ips_def]
           x[OF wf_disc_sel_common_primitive(3), of is_Dst_Ports ipt_iprange_compress, folded normalize_src_ips_def]
           x_generic[OF _ _ _ wf_disc_sel_common_primitive(3), of is_Src_Ports False _ _ ipt_iprange_compress, folded normalize_src_ips_def]
-          apply (meson common_primitive.disc(41) common_primitive.disc(51) common_primitive.disc(61))
+          apply (meson common_primitive.disc(45) common_primitive.disc(56) common_primitive.disc(67); fail)
    using x[OF wf_disc_sel_common_primitive(4), of disc3 ipt_iprange_compress, folded normalize_dst_ips_def]
           x[OF wf_disc_sel_common_primitive(4), of is_Src_Ports ipt_iprange_compress, folded normalize_dst_ips_def]
           x_generic[OF _ _ _ wf_disc_sel_common_primitive(4), of is_Dst_Ports False _ _ ipt_iprange_compress, folded normalize_dst_ips_def]
-          apply (meson common_primitive.disc(42) common_primitive.disc(52) common_primitive.disc(62))
+          apply (meson common_primitive.disc(46) common_primitive.disc(57) common_primitive.disc(68); fail)    
    done
 
    show "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
