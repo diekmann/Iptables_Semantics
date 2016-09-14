@@ -138,7 +138,6 @@ lemma "parser_test_firewall \<equiv>
   by eval
 
 
-(*There is some ~~-m tcp~~  remaining because we cannot parse "-m tcp ! --tcp-flags"*)
 value[code] "map (\<lambda>(c,rs). (c, map (common_primitive_rule_toString) rs)) parser_test_firewall"
 
 
