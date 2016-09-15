@@ -108,7 +108,7 @@ protocol = choice (map make ps)
                ]
 
 iface :: Parsec String s Isabelle.Iface
-iface = Isabelle.Iface <$> many1 (oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['+', '*', '.'])
+iface = Isabelle.Iface <$> many1 (oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['+', '*', '.', '-'])
 
 tcpFlag :: Parsec String s Isabelle.Tcp_flag
 tcpFlag = choice $ map make ps
