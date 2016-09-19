@@ -1109,6 +1109,7 @@ theorem transform_normalize_primitives:
        apply(intro allI impI conjI ballI)
           apply(simp add: rewrite_MultiportPorts_def_normalized_nnf_match; fail)
          apply(rule rewrite_MultiportPorts_preserves_normalized_not_has_disc_negated, simp_all)
+         (*THIS FAILS. we need to track that we don't have Multiports in it!*)
        sorry
       subgoal (*yeah, just need to consider the other cases*)
       apply(clarify)
