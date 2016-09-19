@@ -749,8 +749,19 @@ theorem transform_normalize_primitives:
     have normalized_dst_rs5: "\<forall>r \<in> set ?rs5. normalized_dst_ips (get_match r)" by fastforce
 
 
-
-
+    from normalize_rules_preserves_unrelated_normalized_n_primitive[of
+         _ is_MultiportPorts multiportports_sel "\<lambda>_. False"]
+    have preserve_normalized_multiport_ports: " 
+      \<forall>r\<in> set rs. normalized_nnf_match (get_match r) \<Longrightarrow>
+      \<forall>r\<in> set rs. \<not> has_disc is_MultiportPorts (get_match r) \<Longrightarrow>
+      wf_disc_sel (disc, sel) C \<Longrightarrow>
+      \<forall>a. \<not> is_MultiportPorts (C a) \<Longrightarrow>
+      \<forall>r\<in> set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs).
+        \<not> has_disc is_MultiportPorts (get_match r)"
+      for f :: "'c negation_type list \<Rightarrow> 'c list" and rs disc sel
+      and C :: "'c \<Rightarrow> 'i::len common_primitive"
+      using normalized_n_primitive_false_eq_notdisc
+      by blast
 
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Src_Ports src_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)",
@@ -780,10 +791,10 @@ theorem transform_normalize_primitives:
       apply(clarify)
       using normalize_dst_ports_preserves_normalized_src_ports by blast
     from preserve_normalized_src_ports[OF normalized_rs2 normalized_src_ports_rs2 wf_disc_sel_common_primitive(3),
-         where f2=ipt_iprange_compress, folded normalize_src_ips_def]
+         where f3=ipt_iprange_compress, folded normalize_src_ips_def]
     have normalized_src_ports_rs3: "\<forall>r \<in> set ?rs3.  normalized_src_ports (get_match r)" by simp
     from preserve_normalized_src_ports[OF normalized_rs3 normalized_src_ports_rs3 wf_disc_sel_common_primitive(4),
-         where f2=ipt_iprange_compress, folded normalize_dst_ips_def]
+         where f3=ipt_iprange_compress, folded normalize_dst_ips_def]
          normalized_rs4
     have normalized_src_ports_rs4: "\<forall>r \<in> set ?rs4. normalized_nnf_match (get_match r) \<and> normalized_src_ports (get_match r)" by simp
     with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
@@ -801,10 +812,10 @@ theorem transform_normalize_primitives:
       \<forall>r\<in> set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_dst_ports (get_match r)"
       by blast
     from preserve_normalized_dst_ports[OF normalized_rs2 normalized_dst_ports wf_disc_sel_common_primitive(3),
-         where f2=ipt_iprange_compress, folded normalize_src_ips_def]
+         where f3=ipt_iprange_compress, folded normalize_src_ips_def]
     have normalized_dst_ports_rs3: "\<forall>r \<in> set ?rs3.  normalized_dst_ports (get_match r)" by force
     from preserve_normalized_dst_ports[OF normalized_rs3 normalized_dst_ports_rs3 wf_disc_sel_common_primitive(4),
-         where f2=ipt_iprange_compress, folded normalize_dst_ips_def]
+         where f3=ipt_iprange_compress, folded normalize_dst_ips_def]
          normalized_rs4
     have normalized_dst_ports_rs4: "\<forall>r \<in> set ?rs4. normalized_nnf_match (get_match r) \<and> normalized_dst_ports (get_match r)" by force
     with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
@@ -1072,7 +1083,7 @@ theorem transform_normalize_primitives:
        by(simp add: rewrite_MultiportPorts_normalized_nnf_match)
       subgoal
       apply(clarify)
-      apply(rule_tac m5=m in x_src_ports)
+      apply(rule_tac m6=m in x_src_ports)
           by(simp)+
      subgoal
      apply(clarify)
@@ -1093,7 +1104,7 @@ theorem transform_normalize_primitives:
          \<not> has_disc_negated is_Dst_Ports False (get_match r)"
    if isprot: "disc3 = is_Prot"
    for rs :: "'i common_primitive rule list"
-   apply(rule y_generic[where P7="\<lambda>m. \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m", simplified isprot])
+   apply(rule y_generic[where P8="\<lambda>m. \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m", simplified isprot])
        apply simp+
     apply(clarify)
     apply(intro conjI)
@@ -1126,13 +1137,13 @@ theorem transform_normalize_primitives:
       subgoal (*yeah, just need to consider the other cases*)
       apply(clarify)
       thm x_src_ports[rotated 2]
-      apply(frule_tac m5=m in x_src_ports[rotated 2])
+      apply(frule_tac m6=m in x_src_ports[rotated 2])
           apply(simp_all)
        apply simp
       using normalize_src_ports_preserves_normalized_not_has_disc_negated by blast
      subgoal
      apply(clarify)
-     apply(frule_tac m5=m in x_dst_ports[rotated 2])
+     apply(frule_tac m6=m in x_dst_ports[rotated 2])
          apply(simp_all)
       apply simp
      using normalize_dst_ports_preserves_normalized_not_has_disc_negated by blast

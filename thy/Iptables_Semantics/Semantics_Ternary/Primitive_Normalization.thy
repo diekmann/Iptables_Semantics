@@ -198,7 +198,7 @@ lemma normalized_n_primitive_if_no_primitive: "normalized_nnf_match m \<Longrigh
   by(induction "(disc, sel)" f m rule: normalized_n_primitive.induct) (simp)+
 
 lemma normalized_n_primitive_false_eq_notdisc: "normalized_nnf_match m \<Longrightarrow>
-  \<not> has_disc disc m \<longleftrightarrow> normalized_n_primitive (disc, sel) (\<lambda>_. False) m"
+  normalized_n_primitive (disc, sel) (\<lambda>_. False) m \<longleftrightarrow> \<not> has_disc disc m"
 proof -
   have "normalized_nnf_match m \<Longrightarrow> false = (\<lambda>_. False) \<Longrightarrow>
   \<not> has_disc disc m \<longleftrightarrow> normalized_n_primitive (disc, sel) false m" for false
