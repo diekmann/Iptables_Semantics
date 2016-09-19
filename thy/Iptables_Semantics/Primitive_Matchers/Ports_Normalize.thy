@@ -1286,7 +1286,7 @@ lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [Ma
     apply(intro normalize_replace_primitive_matchexpr[OF n])
     by(simp add: rewrite_MultiportPorts_one[OF generic])
 
-  lemma rewrite_MultiportPorts_def_normalized_nnf_match:
+  lemma rewrite_MultiportPorts_normalized_nnf_match:
       "m' \<in> set (rewrite_MultiportPorts m) \<Longrightarrow> normalized_nnf_match m'"
     apply(simp add: rewrite_MultiportPorts_def)
     using normalized_nnf_match_normalize_match by blast

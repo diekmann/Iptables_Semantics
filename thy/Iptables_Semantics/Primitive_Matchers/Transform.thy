@@ -624,7 +624,8 @@ theorem transform_normalize_primitives:
     and "\<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r)"
     and "\<forall> r \<in> set (transform_normalize_primitives rs).
           normalized_src_ports (get_match r) \<and> normalized_dst_ports (get_match r) \<and>
-          normalized_src_ips (get_match r) \<and> normalized_dst_ips (get_match r)"
+          normalized_src_ips (get_match r) \<and> normalized_dst_ips (get_match r) \<and>
+          \<not> has_disc is_MultiportPorts (get_match r)"
     and "unchanged disc2 \<Longrightarrow> (\<forall>a. \<not> disc2 (IIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (OIface a)) \<Longrightarrow> (\<forall>a. \<not> disc2 (Prot a)) \<Longrightarrow>
          \<forall> r \<in> set rs. normalized_n_primitive (disc2, sel2) f (get_match r) \<Longrightarrow>
             \<forall> r \<in> set (transform_normalize_primitives rs). normalized_n_primitive (disc2, sel2) f (get_match r)"
@@ -633,7 +634,9 @@ theorem transform_normalize_primitives:
     and "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
         (\<forall>a. \<not> disc3 (Prot a)) \<or>
         (disc3 = is_Prot \<and> (\<forall> r \<in> set rs.
-          \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r))) \<Longrightarrow>
+          \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+          \<not> has_disc_negated is_Dst_Ports False (get_match r))
+          (*TODO: and \<not> has_disc isMultiportPorts (get_match r)*)) \<Longrightarrow>
          \<forall> r \<in> set rs. \<not> has_disc_negated disc3 False (get_match r) \<Longrightarrow>
             \<forall> r \<in> set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False (get_match r)"
   proof -
@@ -720,8 +723,12 @@ theorem transform_normalize_primitives:
       using normalized apply(simp; fail)
      ..
 
-    (*TODO: rs0 does eliminate all multiportPorts!*)
-  
+    (*naming: does not "normalize" but eliminate all multiportPorts!*)
+    from rewrite_MultiportPorts_removes_MultiportsPorts
+      normalize_rules_property[OF normalized, where f=rewrite_MultiportPorts and Q="\<lambda>m. \<not> has_disc is_MultiportPorts m"]
+    have rewrite_MultiportPorts_normalizes_Multiports:
+      "\<forall>r \<in> set ?rs0. \<not> has_disc is_MultiportPorts (get_match r)"
+      by blast
     from normalize_src_ports_normalized_n_primitive
     have normalized_src_ports: "\<forall>r \<in> set ?rs1. normalized_src_ports (get_match r)"
     apply(intro normalize_rules_property[OF normalized_rs0, where f=normalize_src_ports and Q=normalized_src_ports])
@@ -740,6 +747,10 @@ theorem transform_normalize_primitives:
           of _ is_Dst dst_sel normalized_cidr_ip
           , folded normalized_dst_ips_def2]
     have normalized_dst_rs5: "\<forall>r \<in> set ?rs5. normalized_dst_ips (get_match r)" by fastforce
+
+
+
+
 
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Src_Ports src_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)",
@@ -815,7 +826,8 @@ theorem transform_normalize_primitives:
     from normalized_src_ports_rs5 normalized_dst_ports_rs5 normalized_src_rs5 normalized_dst_rs5
     show "\<forall> r \<in> set (transform_normalize_primitives rs).
           normalized_src_ports (get_match r) \<and> normalized_dst_ports (get_match r) \<and>
-          normalized_src_ips (get_match r) \<and> normalized_dst_ips (get_match r)"
+          normalized_src_ips (get_match r) \<and> normalized_dst_ips (get_match r) \<and>
+          \<not> has_disc is_MultiportPorts (get_match r)"
       unfolding transform_normalize_primitives_def by simp
    
 
@@ -944,7 +956,7 @@ theorem transform_normalize_primitives:
        subgoal
        apply(intro allI impI conjI ballI)
         apply(rule rewrite_MultiportPorts_preserves_normalized_not_has_disc, simp_all)
-       by(simp add: rewrite_MultiportPorts_def_normalized_nnf_match)
+       by(simp add: rewrite_MultiportPorts_normalized_nnf_match)
       subgoal
       apply clarify
       apply(rule x_src_ports)
@@ -1057,7 +1069,7 @@ theorem transform_normalize_primitives:
        subgoal
        apply(intro allI impI conjI ballI)
         apply(rule rewrite_MultiportPorts_preserves_normalized_not_has_disc_negated, simp_all)
-       by(simp add: rewrite_MultiportPorts_def_normalized_nnf_match)
+       by(simp add: rewrite_MultiportPorts_normalized_nnf_match)
       subgoal
       apply(clarify)
       apply(rule_tac m5=m in x_src_ports)
@@ -1107,7 +1119,7 @@ theorem transform_normalize_primitives:
         apply(simp; fail)
        subgoal
        apply(intro allI impI conjI ballI)
-          apply(simp add: rewrite_MultiportPorts_def_normalized_nnf_match; fail)
+          apply(simp add: rewrite_MultiportPorts_normalized_nnf_match; fail)
          apply(rule rewrite_MultiportPorts_preserves_normalized_not_has_disc_negated, simp_all)
          (*THIS FAILS. we need to track that we don't have Multiports in it!*)
        sorry

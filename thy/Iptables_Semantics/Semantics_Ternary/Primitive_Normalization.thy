@@ -197,6 +197,16 @@ lemma normalized_n_primitive_if_no_primitive: "normalized_nnf_match m \<Longrigh
        normalized_n_primitive (disc, sel) f m"
   by(induction "(disc, sel)" f m rule: normalized_n_primitive.induct) (simp)+
 
+lemma normalized_n_primitive_false_eq_notdisc: "normalized_nnf_match m \<Longrightarrow>
+  \<not> has_disc disc m \<longleftrightarrow> normalized_n_primitive (disc, sel) (\<lambda>_. False) m"
+proof -
+  have "normalized_nnf_match m \<Longrightarrow> false = (\<lambda>_. False) \<Longrightarrow>
+  \<not> has_disc disc m \<longleftrightarrow> normalized_n_primitive (disc, sel) false m" for false
+  by(induction "(disc, sel)" false m rule: normalized_n_primitive.induct)
+  (simp)+
+  thus "normalized_nnf_match m \<Longrightarrow> ?thesis" by simp
+qed
+
 lemma normalized_n_primitive_MatchAnd_combine_map: "normalized_n_primitive disc_sel f rst \<Longrightarrow>
        \<forall>m' \<in> (\<lambda>spt. Match (C spt)) ` set pts. normalized_n_primitive disc_sel f m' \<Longrightarrow>
         m' \<in> (\<lambda>spt. MatchAnd (Match (C spt)) rst) ` set pts \<Longrightarrow> normalized_n_primitive disc_sel f m'"
