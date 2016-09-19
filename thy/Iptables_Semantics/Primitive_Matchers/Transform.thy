@@ -562,8 +562,8 @@ definition transform_normalize_primitives :: "'i::len common_primitive rule list
       normalize_rules normalize_dst_ips \<circ>
       normalize_rules normalize_src_ips \<circ>
       normalize_rules normalize_dst_ports (*may introduce new matches on protocols*) \<circ>
-      normalize_rules normalize_src_ports (*may introduce new matches in protocols*)
-    "
+      normalize_rules normalize_src_ports (*may introduce new matches in protocols*) \<circ>
+      normalize_rules rewrite_MultiportPorts (*introduces Src_Ports and Dst_Ports matches*)"
 
 
  thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive
@@ -644,28 +644,33 @@ theorem transform_normalize_primitives:
       unfolding transform_normalize_primitives_def
       by(simp add: simple_ruleset_normalize_rules simplers optimize_matches_option_simple_ruleset)
 
-    let ?rs0="normalize_rules normalize_src_ports rs"
-    let ?rs1="normalize_rules normalize_dst_ports ?rs0"
-    let ?rs2="normalize_rules normalize_src_ips ?rs1"
-    let ?rs3="normalize_rules normalize_dst_ips ?rs2"
-    let ?rs4="optimize_matches_option compress_normalize_besteffort ?rs3"
+    let ?rs0="normalize_rules rewrite_MultiportPorts rs"
+    let ?rs1="normalize_rules normalize_src_ports ?rs0"
+    let ?rs2="normalize_rules normalize_dst_ports ?rs1"
+    let ?rs3="normalize_rules normalize_src_ips ?rs2"
+    let ?rs4="normalize_rules normalize_dst_ips ?rs3"
+    let ?rs5="optimize_matches_option compress_normalize_besteffort ?rs4"
 
     have normalized_rs0: "\<forall>r \<in> set ?rs0. normalized_nnf_match (get_match r)"
       apply(intro normalize_rules_preserves[OF normalized])
-      using normalize_src_ports_nnf by blast
-    from normalize_dst_ports_nnf have normalized_rs1: "\<forall>r \<in> set ?rs1. normalized_nnf_match (get_match r)"
+      apply(simp add: rewrite_MultiportPorts_def)
+        sorry
+    from normalize_src_ports_nnf have normalized_rs1: "\<forall>r \<in> set ?rs1. normalized_nnf_match (get_match r)"
       apply(intro normalize_rules_preserves[OF normalized_rs0])
+      using normalize_dst_ports_nnf by blast
+    from normalize_dst_ports_nnf have normalized_rs2: "\<forall>r \<in> set ?rs2. normalized_nnf_match (get_match r)"
+      apply(intro normalize_rules_preserves[OF normalized_rs1])
       by blast
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(3)]
          normalize_src_ips_def
-    have normalized_rs2: "\<forall>r \<in> set ?rs2. normalized_nnf_match (get_match r)" by metis
+    have normalized_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r)" by metis
     from normalize_rules_primitive_extract_preserves_nnf_normalized[OF this wf_disc_sel_common_primitive(4)]
          normalize_dst_ips_def
-    have normalized_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r)" by metis
-    have normalized_rs4: "\<forall>r \<in> set ?rs4. normalized_nnf_match (get_match r)"
+    have normalized_rs4: "\<forall>r \<in> set ?rs4. normalized_nnf_match (get_match r)" by metis
+    have normalized_rs5: "\<forall>r \<in> set ?rs5. normalized_nnf_match (get_match r)"
       apply(intro optimize_matches_option_preserves)
       apply(erule compress_normalize_besteffort_nnf[rotated])
-      by(simp add: normalized_rs3)
+      by(simp add: normalized_rs4)
     thus "\<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r)"
       unfolding transform_normalize_primitives_def by simp
 
@@ -692,44 +697,49 @@ theorem transform_normalize_primitives:
      unfolding transform_normalize_primitives_def
      apply(simp)
      apply(subst local_simp, simp_all)
-     apply(rule opt_compress_rule[OF normalized_rs3])
+     apply(rule opt_compress_rule[OF normalized_rs4])
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_dst_ips[where p = p] apply(simp; fail)
-       using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
-      using normalized_rs2 apply(simp; fail)
+       using simplers simple_ruleset_normalize_rules apply blast
+      using normalized_rs3 apply(simp; fail)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_src_ips[where p = p] apply(simp; fail)
-       using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
-      using normalized_rs1 apply(simp; fail)
+       using simplers simple_ruleset_normalize_rules apply blast
+      using normalized_rs2 apply(simp; fail)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_dst_ports[OF primitive_matcher_generic_common_matcher,where p = p] apply(simp; fail)
-       using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
-      using normalized_rs0 apply(simp; fail)
+       using simplers simple_ruleset_normalize_rules apply blast
+      using normalized_rs1 apply(simp; fail)
      apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
         using normalize_src_ports[OF primitive_matcher_generic_common_matcher, where p = p] apply(simp; fail)
-       using simplers simple_ruleset_normalize_rules optimize_matches_option_simple_ruleset apply blast
+       using simplers simple_ruleset_normalize_rules apply blast
+      using normalized_rs0 apply(simp; fail)
+     apply(subst normalize_rules_match_list_semantics_3[of normalized_nnf_match])
+        using rewrite_MultiportPorts[OF primitive_matcher_generic_common_matcher, where p = p] apply(simp; fail)
+       using simplers apply blast
       using normalized apply(simp; fail)
      ..
 
-
+    (*TODO: rs0 does eliminate all multiportPorts!*)
+  
     from normalize_src_ports_normalized_n_primitive
-    have normalized_src_ports: "\<forall>r \<in> set ?rs0. normalized_src_ports (get_match r)"
-    using normalize_rules_property[OF normalized, where f=normalize_src_ports and Q=normalized_src_ports] by fast
-      (*why u no rule? because things are not in simp-normal form!*)
+    have normalized_src_ports: "\<forall>r \<in> set ?rs1. normalized_src_ports (get_match r)"
+    apply(intro normalize_rules_property[OF normalized_rs0, where f=normalize_src_ports and Q=normalized_src_ports])
+      by blast
     from normalize_dst_ports_normalized_n_primitive
-         normalize_rules_property[OF normalized_rs0, where f=normalize_dst_ports and Q=normalized_dst_ports]
-    have normalized_dst_ports: "\<forall>r \<in> set ?rs1.  normalized_dst_ports (get_match r)" by fast
+         normalize_rules_property[OF normalized_rs1, where f=normalize_dst_ports and Q=normalized_dst_ports]
+    have normalized_dst_ports: "\<forall>r \<in> set ?rs2.  normalized_dst_ports (get_match r)" by fast
     from normalize_src_ips_normalized_n_primitive
-         normalize_rules_property[OF normalized_rs1, where f=normalize_src_ips and Q=normalized_src_ips]
-    have normalized_src_ips: "\<forall>r \<in> set ?rs2.  normalized_src_ips (get_match r)" by fast
+         normalize_rules_property[OF normalized_rs2, where f=normalize_src_ips and Q=normalized_src_ips]
+    have normalized_src_ips: "\<forall>r \<in> set ?rs3.  normalized_src_ips (get_match r)" by fast
     from normalize_dst_ips_normalized_n_primitive
-         normalize_rules_property[OF normalized_rs2, where f=normalize_dst_ips and Q=normalized_dst_ips]
-         normalized_rs3
-    have normalized_dst_ips_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r) \<and> normalized_dst_ips (get_match r)" by fast
+         normalize_rules_property[OF normalized_rs3, where f=normalize_dst_ips and Q=normalized_dst_ips]
+         normalized_rs4
+    have normalized_dst_ips_rs4: "\<forall>r \<in> set ?rs4. normalized_nnf_match (get_match r) \<and> normalized_dst_ips (get_match r)" by fast
     with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
           of _ is_Dst dst_sel normalized_cidr_ip
           , folded normalized_dst_ips_def2]
-    have normalized_dst_rs4: "\<forall>r \<in> set ?rs4. normalized_dst_ips (get_match r)" by fastforce
+    have normalized_dst_rs5: "\<forall>r \<in> set ?rs5. normalized_dst_ips (get_match r)" by fastforce
 
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Src_Ports src_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)",
@@ -742,9 +752,9 @@ theorem transform_normalize_primitives:
       \<forall>r\<in> set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_src_ports (get_match r)"
       for f :: "'c negation_type list \<Rightarrow> 'c list" and rs disc sel and C :: "'c \<Rightarrow> 'i::len common_primitive"
       by blast
-    have normalized_src_ports_rs0: "\<forall>r \<in> set ?rs0.  normalized_src_ports (get_match r)"
+    have normalized_src_ports_rs1: "\<forall>r \<in> set ?rs1.  normalized_src_ports (get_match r)"
       apply(rule normalize_rules_property[where P="normalized_nnf_match"])
-       using normalized apply blast
+       using normalized_rs0 apply blast
       using normalize_src_ports_normalized_n_primitive by blast
     have normalize_dst_ports_preserves_normalized_src_ports:
       "m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
@@ -753,22 +763,22 @@ theorem transform_normalize_primitives:
       apply(rule normalize_ports_generic_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(2)])
            apply(simp_all)
       by (simp add: normalize_dst_ports_def normalize_ports_generic_def normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
-    have normalized_src_ports_rs1: "\<forall>r \<in> set ?rs1.  normalized_src_ports (get_match r)"
+    have normalized_src_ports_rs2: "\<forall>r \<in> set ?rs2.  normalized_src_ports (get_match r)"
       apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_src_ports m"])
-       using normalized_rs0 normalized_src_ports_rs0 apply blast
+       using normalized_rs1 normalized_src_ports_rs1 apply blast
       apply(clarify)
       using normalize_dst_ports_preserves_normalized_src_ports by blast
-    from preserve_normalized_src_ports[OF normalized_rs1 normalized_src_ports_rs1 wf_disc_sel_common_primitive(3),
+    from preserve_normalized_src_ports[OF normalized_rs2 normalized_src_ports_rs2 wf_disc_sel_common_primitive(3),
          where f2=ipt_iprange_compress, folded normalize_src_ips_def]
-    have normalized_src_ports_rs2: "\<forall>r \<in> set ?rs2.  normalized_src_ports (get_match r)" by simp
-    from preserve_normalized_src_ports[OF normalized_rs2 normalized_src_ports_rs2 wf_disc_sel_common_primitive(4),
+    have normalized_src_ports_rs3: "\<forall>r \<in> set ?rs3.  normalized_src_ports (get_match r)" by simp
+    from preserve_normalized_src_ports[OF normalized_rs3 normalized_src_ports_rs3 wf_disc_sel_common_primitive(4),
          where f2=ipt_iprange_compress, folded normalize_dst_ips_def]
-         normalized_rs3
-    have normalized_src_ports_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r) \<and> normalized_src_ports (get_match r)" by simp
+         normalized_rs4
+    have normalized_src_ports_rs4: "\<forall>r \<in> set ?rs4. normalized_nnf_match (get_match r) \<and> normalized_src_ports (get_match r)" by simp
     with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
           of _ is_Src_Ports src_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)"
           , folded normalized_src_ports_def2]
-    have normalized_src_ports_rs4: "\<forall>r \<in> set ?rs4. normalized_src_ports (get_match r)" by fastforce
+    have normalized_src_ports_rs5: "\<forall>r \<in> set ?rs5. normalized_src_ports (get_match r)" by fastforce
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Dst_Ports dst_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)",
          folded normalized_dst_ports_def2]
@@ -779,30 +789,30 @@ theorem transform_normalize_primitives:
       \<forall>a. \<not> is_Dst_Ports (C a) \<Longrightarrow>
       \<forall>r\<in> set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_dst_ports (get_match r)"
       by blast
-    from preserve_normalized_dst_ports[OF normalized_rs1 normalized_dst_ports wf_disc_sel_common_primitive(3),
+    from preserve_normalized_dst_ports[OF normalized_rs2 normalized_dst_ports wf_disc_sel_common_primitive(3),
          where f2=ipt_iprange_compress, folded normalize_src_ips_def]
-    have normalized_dst_ports_rs2: "\<forall>r \<in> set ?rs2.  normalized_dst_ports (get_match r)" by force
-    from preserve_normalized_dst_ports[OF normalized_rs2 normalized_dst_ports_rs2 wf_disc_sel_common_primitive(4),
+    have normalized_dst_ports_rs3: "\<forall>r \<in> set ?rs3.  normalized_dst_ports (get_match r)" by force
+    from preserve_normalized_dst_ports[OF normalized_rs3 normalized_dst_ports_rs3 wf_disc_sel_common_primitive(4),
          where f2=ipt_iprange_compress, folded normalize_dst_ips_def]
-         normalized_rs3
-    have normalized_dst_ports_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r) \<and> normalized_dst_ports (get_match r)" by force
+         normalized_rs4
+    have normalized_dst_ports_rs4: "\<forall>r \<in> set ?rs4. normalized_nnf_match (get_match r) \<and> normalized_dst_ports (get_match r)" by force
     with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
           of _ is_Dst_Ports dst_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)"
           , folded normalized_dst_ports_def2]
-    have normalized_dst_ports_rs4: "\<forall>r \<in> set ?rs4. normalized_dst_ports (get_match r)" by fastforce
+    have normalized_dst_ports_rs5: "\<forall>r \<in> set ?rs5. normalized_dst_ports (get_match r)" by fastforce
 
-    from normalize_rules_preserves_unrelated_normalized_n_primitive[of ?rs2 is_Src src_sel normalized_cidr_ip,
+    from normalize_rules_preserves_unrelated_normalized_n_primitive[of ?rs3 is_Src src_sel normalized_cidr_ip,
          OF _ wf_disc_sel_common_primitive(4),
          where f=ipt_iprange_compress, folded normalize_dst_ips_def normalized_src_ips_def2]
-         normalized_rs2 normalized_src_ips
-    have normalized_src_rs3: "\<forall>r \<in> set ?rs3. normalized_nnf_match (get_match r) \<and> normalized_src_ips (get_match r)" by force
+         normalized_rs3 normalized_src_ips
+    have normalized_src_rs4: "\<forall>r \<in> set ?rs4. normalized_nnf_match (get_match r) \<and> normalized_src_ips (get_match r)" by force
     with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
           of _ is_Src src_sel normalized_cidr_ip
           , folded normalized_src_ips_def2]
-    have normalized_src_rs4: "\<forall>r \<in> set ?rs4. normalized_src_ips (get_match r)"
+    have normalized_src_rs5: "\<forall>r \<in> set ?rs5. normalized_src_ips (get_match r)"
        by fastforce
 
-    from normalized_src_ports_rs4 normalized_dst_ports_rs4 normalized_src_rs4 normalized_dst_rs4
+    from normalized_src_ports_rs5 normalized_dst_ports_rs5 normalized_src_rs5 normalized_dst_rs5
     show "\<forall> r \<in> set (transform_normalize_primitives rs).
           normalized_src_ports (get_match r) \<and> normalized_dst_ports (get_match r) \<and>
           normalized_src_ips (get_match r) \<and> normalized_dst_ips (get_match r)"
@@ -828,23 +838,28 @@ theorem transform_normalize_primitives:
 
 
      have normalized_n_primitive_rs0:
-     "\<forall>r\<in>set ?rs0. normalized_n_primitive (disc2, sel2) f (get_match r)" (*by blast*)
+     "\<forall>r\<in>set ?rs0. normalized_n_primitive (disc2, sel2) f (get_match r)"
       apply(intro normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m"])
        using a' apply blast
-      using normalize_src_ports_preserves_normalized_n_primitive[OF _ a_Src_Ports] a_Prot by blast
-     have "\<forall>r\<in>set ?rs1. normalized_n_primitive (disc2, sel2) f (get_match r)"
+      using rewrite_MultiportPorts_preserves_normalized_n_primitive[OF _ a_Src_Ports a_Dst_Ports] by blast
+     have normalized_n_primitive_rs1:
+     "\<forall>r\<in>set ?rs1. normalized_n_primitive (disc2, sel2) f (get_match r)" (*by blast*)
       apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m"])
        using normalized_n_primitive_rs0 normalized_rs0 apply blast
+      using normalize_src_ports_preserves_normalized_n_primitive[OF _ a_Src_Ports] a_Prot by blast
+     have "\<forall>r\<in>set ?rs2. normalized_n_primitive (disc2, sel2) f (get_match r)"
+      apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_n_primitive (disc2, sel2) f m"])
+       using normalized_n_primitive_rs1 normalized_rs1 apply blast
       using normalize_dst_ports_preserves_normalized_n_primitive[OF _ a_Dst_Ports] a_Prot by blast
-     with normalized_rs1 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(3) a_Src,
-       of ?rs1 sel2 f ipt_iprange_compress,
-       folded normalize_src_ips_def]
-     have "\<forall>r\<in>set ?rs2. normalized_n_primitive (disc2, sel2) f (get_match r)" by blast
-     with normalized_rs2 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(4) a_Dst,
+     with normalized_rs2 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(3) a_Src,
        of ?rs2 sel2 f ipt_iprange_compress,
+       folded normalize_src_ips_def]
+     have "\<forall>r\<in>set ?rs3. normalized_n_primitive (disc2, sel2) f (get_match r)" by blast
+     with normalized_rs3 normalize_rules_preserves_unrelated_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(4) a_Dst,
+       of ?rs3 sel2 f ipt_iprange_compress,
        folded normalize_dst_ips_def]
-     have "\<forall>r\<in>set ?rs3. normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) f (get_match r)" by blast
-     hence "\<forall>r\<in>set ?rs4. normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) f (get_match r)" 
+     have "\<forall>r\<in>set ?rs4. normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) f (get_match r)" by blast
+     hence "\<forall>r\<in>set ?rs5. normalized_nnf_match (get_match r) \<and> normalized_n_primitive (disc2, sel2) f (get_match r)" 
        apply(intro optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive)
           using a_IIface a_OIface a_Prot by simp_all
      thus ?thesis
