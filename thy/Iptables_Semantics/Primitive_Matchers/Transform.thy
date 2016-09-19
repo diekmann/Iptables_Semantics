@@ -605,6 +605,8 @@ definition transform_normalize_primitives :: "'i::len common_primitive rule list
          apply(simp_all add: assms)
     done
 
+(*We write (\<forall>a. \<not> disc (Src_Ports a)) to say that, basically, disc is not the function is_Src_Ports.
+  But hey, equality on functions, ....*)
 theorem transform_normalize_primitives:
   -- "all discriminators which will not be normalized remain unchanged"
   defines "unchanged disc \<equiv> (\<forall>a. \<not> disc (Src_Ports a)) \<and> (\<forall>a. \<not> disc (Dst_Ports a)) \<and>
@@ -630,13 +632,18 @@ theorem transform_normalize_primitives:
          \<forall> r \<in> set rs. normalized_n_primitive (disc2, sel2) f (get_match r) \<Longrightarrow>
             \<forall> r \<in> set (transform_normalize_primitives rs). normalized_n_primitive (disc2, sel2) f (get_match r)"
     --\<open>For disc3, we do not allow ports and ips, because these are changed.
-       In addition, either it must not be protocol or there must be no negated port matches in the ruleset.\<close>
+       Here is the complicated part:
+       (It is only complicated if, basically disc3 is @{const is_Prot})
+       In addition, either it must not be protocol or (complicated case) 
+       there must be no negated port matches 
+       in the ruleset. Note that negated @{const Src_Ports} or @{const Dst_Ports} can also be
+       introduced by rewriting @{const MultiportPorts}\<close>
     and "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
         (\<forall>a. \<not> disc3 (Prot a)) \<or>
         (disc3 = is_Prot \<and> (\<forall> r \<in> set rs.
           \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
-          \<not> has_disc_negated is_Dst_Ports False (get_match r))
-          (*TODO: and \<not> has_disc isMultiportPorts (get_match r)*)) \<Longrightarrow>
+          \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+          \<not> has_disc is_MultiportPorts (get_match r))) \<Longrightarrow>
          \<forall> r \<in> set rs. \<not> has_disc_negated disc3 False (get_match r) \<Longrightarrow>
             \<forall> r \<in> set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False (get_match r)"
   proof -
@@ -1135,9 +1142,11 @@ theorem transform_normalize_primitives:
    by simp
 
    (*copy from above, specific version for is_Prot*)
+   (*Push through things, but now more complicated because several things could introduce Prots*)
    have case_disc3_is_prot: "disc3 = is_Prot \<Longrightarrow>
   \<forall> r \<in> set rs. \<not> has_disc_negated disc3 False (get_match r) \<and> normalized_nnf_match (get_match r) \<and>
-         \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r) \<Longrightarrow>
+         \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r) &
+         \<not> has_disc is_MultiportPorts (get_match r) (*MultiportPorts could be rewritten to negated Src/Dst Ports*) \<Longrightarrow>
     \<forall> r \<in> set (transform_normalize_primitives rs). normalized_nnf_match (get_match r) \<and> \<not> has_disc_negated disc3 False (get_match r) \<and>
               \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
    unfolding transform_normalize_primitives_def
@@ -1147,15 +1156,38 @@ theorem transform_normalize_primitives:
    thm normalize_rules_property[
       where P="\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m"]
    apply(rule normalize_rules_property[
-      where P="\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and>
-                   \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m"])+ (*dst ips first*)
+      where P="\<lambda>m. normalized_nnf_match m \<and>
+                   \<not> has_disc_negated disc3 False m \<and>
+                   \<not> has_disc_negated is_Src_Ports False m \<and>
+                   \<not> has_disc_negated is_Dst_Ports False m"]) (*dst ips*)
+    apply(rule normalize_rules_property[
+      where P="\<lambda>m. normalized_nnf_match m \<and>
+                   \<not> has_disc_negated disc3 False m \<and>
+                   \<not> has_disc_negated is_Src_Ports False m \<and>
+                   \<not> has_disc_negated is_Dst_Ports False m"])(*src ips*)
+     apply(rule normalize_rules_property[
+      where P="\<lambda>m. normalized_nnf_match m \<and>
+                   \<not> has_disc_negated disc3 False m \<and>
+                   \<not> has_disc_negated is_Src_Ports False m \<and>
+                   \<not> has_disc_negated is_Dst_Ports False m"])(*dst ports*)
+      apply(rule normalize_rules_property[
+      where P="\<lambda>m. normalized_nnf_match m \<and>
+                   \<not> has_disc_negated disc3 False m \<and>
+                   \<not> has_disc_negated is_Src_Ports False m \<and>
+                   \<not> has_disc_negated is_Dst_Ports False m"])(*src ports*)
+       apply(rule normalize_rules_property[
+      where P="\<lambda>m. normalized_nnf_match m \<and>
+                   \<not> has_disc_negated disc3 False m \<and>
+                   \<not> has_disc_negated is_Src_Ports False m \<and>
+                   \<not> has_disc_negated is_Dst_Ports False m \<and>
+                   \<not> has_disc is_MultiportPorts m"]) (*multiports, needs \<not> has_disc is_MultiportPorts m*)
         apply(simp; fail)
        subgoal
        apply(intro allI impI conjI ballI)
           apply(simp add: rewrite_MultiportPorts_normalized_nnf_match; fail)
          apply(rule rewrite_MultiportPorts_preserves_normalized_not_has_disc_negated, simp_all)
-         (*THIS FAILS. we need to track that we don't have Multiports in it!*)
-       sorry
+         --\<open>Here we need @{term "\<not> has_disc is_MultiportPorts m"}\<close>
+         using rewrite_MultiportPorts_unchanged_if_not_has_disc by fastforce+
       subgoal (*yeah, just need to consider the other cases*)
       apply(clarify)
       thm x_src_ports[rotated 2]
@@ -1182,7 +1214,9 @@ theorem transform_normalize_primitives:
    show "unchanged disc3 \<Longrightarrow> changeddisc disc3 \<Longrightarrow>
     (\<forall>a. \<not> disc3 (Prot a)) \<or>
         (disc3 = is_Prot \<and> (\<forall> r \<in> set rs.
-          \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r))) \<Longrightarrow>
+          \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+          \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+          \<not> has_disc is_MultiportPorts (get_match r))) \<Longrightarrow>
          \<forall> r \<in> set rs. \<not> has_disc_negated disc3 False (get_match r) \<Longrightarrow>
             \<forall> r \<in> set (transform_normalize_primitives rs). \<not> has_disc_negated disc3 False (get_match r)"
    unfolding unchanged_def changeddisc_def

@@ -291,7 +291,6 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
   qed
  
 
-  (*TODO: isar proof*)
   lemma rewrite_negated_primitives_not_has_disc:
   assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
   and nodisc: "\<not> has_disc disc2 m"
@@ -1290,6 +1289,17 @@ lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [Ma
       "m' \<in> set (rewrite_MultiportPorts m) \<Longrightarrow> normalized_nnf_match m'"
     apply(simp add: rewrite_MultiportPorts_def)
     using normalized_nnf_match_normalize_match by blast
+
+
+  text\<open>It does nothing of there is not even the primitive in it\<close>
+  lemma rewrite_MultiportPorts_unchanged_if_not_has_disc:
+  assumes n: "normalized_nnf_match m"
+  and noDisc: "\<not> has_disc is_MultiportPorts m"
+  shows "rewrite_MultiportPorts m = [m]"
+    apply(simp add: rewrite_MultiportPorts_def)
+    apply(subst replace_primitive_matchexpr_unchanged_if_not_has_disc[OF n
+            wf_disc_sel_common_primitive(11) noDisc])
+    using n by(fact normalize_match_already_normalized)
     
 
   lemma rewrite_MultiportPorts_preserves_normalized_n_primitive:
