@@ -259,7 +259,8 @@ local (*iptables-save parsers*)
                || parse_cmd_option_negated "--tcp-flags " @{const L4_Flags (128)} parser_tcp_flags);
     val parse_multiports = parse_with_module_prefix "-m multiport "
               (   parse_cmd_option_negated "--sports " @{const Src_Ports (128)} parser_port_many1_tup
-               || parse_cmd_option_negated "--dports " @{const Dst_Ports (128)} parser_port_many1_tup);
+               || parse_cmd_option_negated "--dports " @{const Dst_Ports (128)} parser_port_many1_tup
+               || parse_cmd_option_negated "--ports " @{const MultiportPorts (32)} parser_port_many1_tup);
     val parse_udp_options = parse_with_module_prefix "-m udp "
               (   parse_cmd_option_negated "--sport " @{const Src_Ports (128)} parser_port_single_tup_term
                || parse_cmd_option_negated "--dport " @{const Dst_Ports (128)} parser_port_single_tup_term);

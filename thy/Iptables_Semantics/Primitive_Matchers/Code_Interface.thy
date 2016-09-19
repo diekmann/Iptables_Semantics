@@ -158,6 +158,7 @@ begin
     "fill_l4_protocol_raw protocol \<equiv> NegPos_map
       (\<lambda> m. case m of Src_Ports (L4Ports x pts) \<Rightarrow> if x \<noteq> 0 then undefined else Src_Ports (L4Ports protocol pts)
                    |  Dst_Ports (L4Ports x pts) \<Rightarrow> if x \<noteq> 0 then undefined else Dst_Ports (L4Ports protocol pts)
+                   |  MultiportPorts (L4Ports x pts) \<Rightarrow> if x \<noteq> 0 then undefined else MultiportPorts (L4Ports protocol pts)
                    |  Prot _ \<Rightarrow> undefined (*there should be no more match on the protocol if it was parsed from an iptables-save line*)
                    | m \<Rightarrow> m
       )"
@@ -172,6 +173,10 @@ begin
     "fill_l4_protocol (Pos (Prot (Proto protocol)) # ms) = Pos (Prot (Proto protocol)) # fill_l4_protocol_raw protocol ms" |
     "fill_l4_protocol (Pos (Src_Ports _) # _) = undefined" | (*need to find proto first*)
     "fill_l4_protocol (Pos (Dst_Ports _) # _) = undefined" |
+    "fill_l4_protocol (Pos (MultiportPorts _) # _) = undefined" |
+    "fill_l4_protocol (Neg (Src_Ports _) # _) = undefined" |
+    "fill_l4_protocol (Neg (Dst_Ports _) # _) = undefined" |
+    "fill_l4_protocol (Neg (MultiportPorts _) # _) = undefined" |
     "fill_l4_protocol (m # ms) = m # fill_l4_protocol ms"
 
   lemma "fill_l4_protocol [ Neg (Dst (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8))
