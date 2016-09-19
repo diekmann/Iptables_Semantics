@@ -940,7 +940,11 @@ theorem transform_normalize_primitives:
      apply(simp; fail)
     apply(simp; fail)
    apply(rule normalize_rules_preserves)+
-       apply(simp; fail)
+        apply(simp; fail)
+       subgoal
+       apply(intro allI impI conjI ballI)
+        apply(rule rewrite_MultiportPorts_preserves_normalized_not_has_disc, simp_all)
+       by(simp add: rewrite_MultiportPorts_def_normalized_nnf_match)
       subgoal
       apply clarify
       apply(rule x_src_ports)
@@ -1049,7 +1053,11 @@ theorem transform_normalize_primitives:
      apply(simp; fail)
     apply(blast)
    apply(rule normalize_rules_preserves)+
-       apply(simp; fail)
+        apply(simp; fail)
+       subgoal
+       apply(intro allI impI conjI ballI)
+        apply(rule rewrite_MultiportPorts_preserves_normalized_not_has_disc_negated, simp_all)
+       by(simp add: rewrite_MultiportPorts_def_normalized_nnf_match)
       subgoal
       apply(clarify)
       apply(rule_tac m5=m in x_src_ports)

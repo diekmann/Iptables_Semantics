@@ -27,7 +27,7 @@ lemma andfold_MatchExp_not_discI:
   by(induction ms rule: andfold_MatchExp.induct) (simp)+
 
 lemma andfold_MatchExp_not_disc_negatedI:
-  "\<forall>m \<in> set ms. \<not> has_disc_negated disc False m \<Longrightarrow> \<not> has_disc_negated disc False (andfold_MatchExp ms)"
+  "\<forall>m \<in> set ms. \<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (andfold_MatchExp ms)"
   by(induction ms rule: andfold_MatchExp.induct) (simp)+
 
 lemma andfold_MatchExp_not_disc_negated_mapMatch:
