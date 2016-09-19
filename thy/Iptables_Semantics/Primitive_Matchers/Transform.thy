@@ -1312,7 +1312,9 @@ lemma transform_upper_closure:
        \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
        (\<forall>a. \<not> disc (Prot a)) \<or>
         disc = is_Prot \<and> (*if it is prot, there must not be negated matches on ports*)
-        (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)) \<Longrightarrow>
+        (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+                       \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+                       \<not> has_disc is_MultiportPorts (get_match r)) \<Longrightarrow>
          \<forall> r \<in> set rs. \<not> has_disc_negated disc False (get_match r) \<Longrightarrow>
          \<forall> r \<in> set (upper_closure rs). \<not> has_disc_negated disc False (get_match r)"
   proof -
@@ -1411,24 +1413,32 @@ lemma transform_upper_closure:
     done
 
     have no_ports_1:
-    "\<not> has_disc_negated is_Src_Ports False (get_match m) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match m)"
+    "\<not> has_disc_negated is_Src_Ports False (get_match m) \<and>
+     \<not> has_disc_negated is_Dst_Ports False (get_match m) \<and>
+     \<not> has_disc is_MultiportPorts (get_match m)"
     if no_ports: "\<forall>r\<in>set rs.
-      \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+      \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+      \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+      \<not> has_disc is_MultiportPorts (get_match r)"
     and m: "m \<in> set (transform_optimize_dnf_strict (optimize_matches_a upper_closure_matchexpr rs))"
     for m
     proof -
-      from no_ports transform_remove_unknowns_upper(6)[OF simplers] have
+      from no_ports transform_remove_unknowns_upper(3,6)[OF simplers] have
       "\<forall>r\<in> set (optimize_matches_a upper_closure_matchexpr rs). 
-        \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+        \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+        \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+        \<not> has_disc is_MultiportPorts (get_match r)"
       by blast
-    from m this transform_optimize_dnf_strict_structure(5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_allow, of upper_closure_matchexpr]
+    with m transform_optimize_dnf_strict_structure(2,5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_allow, of upper_closure_matchexpr]
       show ?thesis by blast
     qed
 
     show"\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
          \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
          (\<forall>a. \<not> disc (Prot a)) \<or> disc = is_Prot \<and>
-         (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)) \<Longrightarrow>
+         (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+                        \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+                        \<not> has_disc is_MultiportPorts (get_match r)) \<Longrightarrow>
          \<forall> r \<in> set rs. \<not> has_disc_negated disc False (get_match r) \<Longrightarrow>
          \<forall> r \<in> set (upper_closure rs). \<not> has_disc_negated disc False (get_match r)"
     using simplers
@@ -1493,7 +1503,9 @@ lemma transform_lower_closure:
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
        \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
        (\<forall>a. \<not> disc (Prot a)) \<or> disc = is_Prot \<and>
-       (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)) \<Longrightarrow>
+       (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+                      \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+                      \<not> has_disc is_MultiportPorts (get_match r)) \<Longrightarrow>
        \<forall> r \<in> set rs. \<not> has_disc_negated disc False (get_match r) \<Longrightarrow>
        \<forall> r \<in> set (lower_closure rs). \<not> has_disc_negated disc False (get_match r)"
   proof -
@@ -1592,24 +1604,32 @@ lemma transform_lower_closure:
     done
 
     have no_ports_1:
-    "\<not> has_disc_negated is_Src_Ports False (get_match m) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match m)"
+    "\<not> has_disc_negated is_Src_Ports False (get_match m) \<and>
+     \<not> has_disc_negated is_Dst_Ports False (get_match m) \<and>
+     \<not> has_disc is_MultiportPorts (get_match m)"
     if no_ports: "\<forall>r\<in>set rs.
-      \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+      \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+      \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+      \<not> has_disc is_MultiportPorts (get_match r)"
     and m: "m \<in> set (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs))"
     for m
     proof -
-      from no_ports transform_remove_unknowns_lower(6)[OF simplers] have
+      from no_ports transform_remove_unknowns_lower(3,6)[OF simplers] have
       "\<forall>r\<in> set (optimize_matches_a lower_closure_matchexpr rs). 
-        \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+        \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+        \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+        \<not> has_disc is_MultiportPorts (get_match r)"
       by blast
-    from m this transform_optimize_dnf_strict_structure(5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_deny, of lower_closure_matchexpr]
+    from m this transform_optimize_dnf_strict_structure(2,5)[OF optimize_matches_a_simple_ruleset[OF simplers] wf_in_doubt_deny, of lower_closure_matchexpr]
       show ?thesis by blast
     qed
 
     show"\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
          \<forall>a. \<not> disc (IIface a) \<or> disc = is_Iiface \<Longrightarrow> \<forall>a. \<not> disc (OIface a) \<or> disc = is_Oiface \<Longrightarrow>
          (\<forall>a. \<not> disc (Prot a)) \<or> disc = is_Prot \<and>
-         (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)) \<Longrightarrow>
+         (\<forall> r \<in> set rs. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+                        \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+                        \<not> has_disc is_MultiportPorts (get_match r)) \<Longrightarrow>
         \<forall> r \<in> set rs. \<not> has_disc_negated disc False (get_match r) \<Longrightarrow>
         \<forall> r \<in> set (lower_closure rs). \<not> has_disc_negated disc False (get_match r)"
     using simplers
