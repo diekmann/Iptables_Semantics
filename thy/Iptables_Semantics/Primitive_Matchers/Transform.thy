@@ -748,6 +748,14 @@ theorem transform_normalize_primitives:
           , folded normalized_dst_ips_def2]
     have normalized_dst_rs5: "\<forall>r \<in> set ?rs5. normalized_dst_ips (get_match r)" by fastforce
 
+    have normalize_dst_ports_preserves_normalized_src_ports:
+      "m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
+        normalized_src_ports m \<Longrightarrow> normalized_src_ports m'" for m m' :: " 'i common_primitive match_expr"
+      unfolding normalized_src_ports_def2
+      apply(rule normalize_ports_generic_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(2)])
+           apply(simp_all)
+      by (simp add: normalize_dst_ports_def normalize_ports_generic_def normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
+
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of
          _ is_MultiportPorts multiportports_sel "\<lambda>_. False"]
@@ -762,7 +770,31 @@ theorem transform_normalize_primitives:
       and C :: "'c \<Rightarrow> 'i::len common_primitive"
       using normalized_n_primitive_false_eq_notdisc
       by blast
-
+    (*TODO: push through*)
+    have normalized_multiportports_rs1: "\<forall>r \<in> set ?rs1. \<not> has_disc is_MultiportPorts (get_match r)"
+      apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc is_MultiportPorts m"])
+       using normalized_rs0 rewrite_MultiportPorts_normalizes_Multiports apply blast
+      apply(intro allI impI ballI)
+      apply(rule normalize_src_ports_preserves_normalized_not_has_disc)
+         by(simp_all)
+    have normalized_multiportports_rs2: "\<forall>r \<in> set ?rs2. \<not> has_disc is_MultiportPorts (get_match r)"
+      apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc is_MultiportPorts m"])
+       using normalized_rs1 normalized_multiportports_rs1 apply blast
+      apply(intro allI impI ballI)
+      apply(rule normalize_dst_ports_preserves_normalized_not_has_disc)
+         by(simp_all)
+    from preserve_normalized_multiport_ports[OF normalized_rs2 normalized_multiportports_rs2 wf_disc_sel_common_primitive(3),
+         where f2=ipt_iprange_compress, folded normalize_src_ips_def]
+    have normalized_multiportports_rs3: "\<forall>r \<in> set ?rs3. \<not> has_disc is_MultiportPorts (get_match r)" by simp
+    from preserve_normalized_multiport_ports[OF normalized_rs3 normalized_multiportports_rs3 wf_disc_sel_common_primitive(4),
+         where f2=ipt_iprange_compress, folded normalize_dst_ips_def]
+         normalized_rs4
+    have normalized_multiportports_rs4: "\<forall>r \<in> set ?rs4. normalized_nnf_match (get_match r) \<and> \<not> has_disc is_MultiportPorts (get_match r)" by simp
+    with optimize_matches_option_compress_normalize_besteffort_preserves_unrelated_normalized_n_primitive[
+          of _ is_MultiportPorts multiportports_sel "\<lambda>_. False"
+          , simplified]
+    have normalized_multiportports_rs5: "\<forall>r \<in> set ?rs5. \<not> has_disc is_MultiportPorts (get_match r)"
+      using normalized_n_primitive_false_eq_notdisc by fastforce
 
     from normalize_rules_preserves_unrelated_normalized_n_primitive[of _ is_Src_Ports src_ports_sel "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)",
          folded normalized_src_ports_def2]
@@ -774,20 +806,9 @@ theorem transform_normalize_primitives:
       \<forall>r\<in> set (normalize_rules (normalize_primitive_extract (disc, sel) C f) rs). normalized_src_ports (get_match r)"
       for f :: "'c negation_type list \<Rightarrow> 'c list" and rs disc sel and C :: "'c \<Rightarrow> 'i::len common_primitive"
       by blast
-    have normalized_src_ports_rs1: "\<forall>r \<in> set ?rs1.  normalized_src_ports (get_match r)"
-      apply(rule normalize_rules_property[where P="normalized_nnf_match"])
-       using normalized_rs0 apply blast
-      using normalize_src_ports_normalized_n_primitive by blast
-    have normalize_dst_ports_preserves_normalized_src_ports:
-      "m' \<in> set (normalize_dst_ports m) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow>
-        normalized_src_ports m \<Longrightarrow> normalized_src_ports m'" for m m' :: " 'i common_primitive match_expr"
-      unfolding normalized_src_ports_def2
-      apply(rule normalize_ports_generic_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(2)])
-           apply(simp_all)
-      by (simp add: normalize_dst_ports_def normalize_ports_generic_def normalize_positive_dst_ports_def rewrite_negated_dst_ports_def)
     have normalized_src_ports_rs2: "\<forall>r \<in> set ?rs2.  normalized_src_ports (get_match r)"
       apply(rule normalize_rules_property[where P="\<lambda>m. normalized_nnf_match m \<and> normalized_src_ports m"])
-       using normalized_rs1 normalized_src_ports_rs1 apply blast
+       using normalized_rs1 normalized_src_ports apply blast
       apply(clarify)
       using normalize_dst_ports_preserves_normalized_src_ports by blast
     from preserve_normalized_src_ports[OF normalized_rs2 normalized_src_ports_rs2 wf_disc_sel_common_primitive(3),
@@ -834,7 +855,8 @@ theorem transform_normalize_primitives:
     have normalized_src_rs5: "\<forall>r \<in> set ?rs5. normalized_src_ips (get_match r)"
        by fastforce
 
-    from normalized_src_ports_rs5 normalized_dst_ports_rs5 normalized_src_rs5 normalized_dst_rs5
+    from normalized_multiportports_rs5 normalized_src_ports_rs5
+         normalized_dst_ports_rs5 normalized_src_rs5 normalized_dst_rs5
     show "\<forall> r \<in> set (transform_normalize_primitives rs).
           normalized_src_ports (get_match r) \<and> normalized_dst_ports (get_match r) \<and>
           normalized_src_ips (get_match r) \<and> normalized_dst_ips (get_match r) \<and>
