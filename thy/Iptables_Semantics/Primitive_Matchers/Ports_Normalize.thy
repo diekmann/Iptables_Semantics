@@ -1162,6 +1162,29 @@ lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [Ma
     by(simp add: x)
   qed
 
+  lemma normalize_replace_primitive_matchexpr_preserves_normalized_not_has_disc:
+    assumes n: "normalized_nnf_match m" 
+      and wf_disc_sel: "wf_disc_sel (disc, sel) C"
+      and nodisc: "\<not> has_disc disc2 m"
+      and replace_f: "\<And>a. \<not> has_disc disc2 (replace_f a)"
+     shows "m'\<in> set (normalize_match (replace_primitive_matchexpr (disc,sel) replace_f m))
+      \<Longrightarrow> \<not> has_disc disc2 m'"
+    apply(simp add: replace_primitive_matchexpr_def)
+    apply(case_tac "primitive_extractor (disc, sel) m", rename_tac as rst)
+    apply(simp split: split_if_asm)
+     using nodisc normalize_match_preserves_nodisc apply blast
+    apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel])
+    apply(elim bexE, rename_tac x)
+    apply(erule Set.imageE, rename_tac xright) (*m' = MatchAnd x xright*)
+    apply(simp)
+    apply(intro conjI)
+     apply(rule normalize_match_preserves_nodisc, simp_all)
+     apply(rule andfold_MatchExp_not_discI, simp)
+     using replace_f apply blast
+    apply(rule normalize_match_preserves_nodisc)
+     apply(insert nodisc)
+     by(simp_all)
+ 
 
   corollary normalize_replace_primitive_matchexpr:
     assumes n: "normalized_nnf_match m"
@@ -1200,6 +1223,12 @@ lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [Ma
     apply(cases a)
      by(simp_all add: MatchOr_def)
 
+  lemma rewrite_MultiportPorts_one_nodisc: 
+    "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow>
+          \<not> has_disc disc (rewrite_MultiportPorts_one a)"
+    apply(cases a)
+     by(simp_all add: MatchOr_def)
+
   definition rewrite_MultiportPorts
     :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
     "rewrite_MultiportPorts m \<equiv> normalize_match 
@@ -1231,4 +1260,15 @@ lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [Ma
       apply(case_tac a)
        apply(simp_all add: MatchOr_def)
        using disc2_noSrcPorts disc2_noDstPorts by fastforce+ 
+
+  lemma rewrite_MultiportPorts_preserves_normalized_not_has_disc:
+    assumes n: "normalized_nnf_match m" 
+      and nodisc: "\<not> has_disc disc2 m"
+      and disc2_noSrcPorts: "\<forall>a. \<not> disc2 (Src_Ports a)"
+      and disc2_noDstPorts: "\<forall>a. \<not> disc2 (Dst_Ports a)"
+     shows "m'\<in> set (rewrite_MultiportPorts m)
+      \<Longrightarrow> \<not> has_disc disc2 m'"
+  apply(simp add: rewrite_MultiportPorts_def)
+  apply(rule normalize_replace_primitive_matchexpr_preserves_normalized_not_has_disc[OF n wf_disc_sel_common_primitive(11) nodisc])
+   by(simp_all add: rewrite_MultiportPorts_one_nodisc disc2_noSrcPorts disc2_noDstPorts)
 end
