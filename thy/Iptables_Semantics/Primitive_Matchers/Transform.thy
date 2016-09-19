@@ -1104,7 +1104,12 @@ theorem transform_normalize_primitives:
    apply(rule normalize_rules_property[
       where P="\<lambda>m. normalized_nnf_match m \<and> \<not> has_disc_negated disc3 False m \<and>
                    \<not> has_disc_negated is_Src_Ports False m \<and> \<not> has_disc_negated is_Dst_Ports False m"])+ (*dst ips first*)
-       apply(simp; fail)
+        apply(simp; fail)
+       subgoal
+       apply(intro allI impI conjI ballI)
+          apply(simp add: rewrite_MultiportPorts_def_normalized_nnf_match; fail)
+         apply(rule rewrite_MultiportPorts_preserves_normalized_not_has_disc_negated, simp_all)
+       sorry
       subgoal (*yeah, just need to consider the other cases*)
       apply(clarify)
       thm x_src_ports[rotated 2]

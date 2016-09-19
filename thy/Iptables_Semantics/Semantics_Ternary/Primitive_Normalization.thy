@@ -252,8 +252,9 @@ theorem primitive_extractor_correct: assumes
   and "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
   and "\<forall>disc2 sel2. normalized_n_primitive (disc2, sel2) P m \<longrightarrow> normalized_n_primitive (disc2, sel2) P ms"
   and "\<forall>disc2. \<not> has_disc_negated disc2 neg m \<longrightarrow> \<not> has_disc_negated disc2 neg ms"
-  and "\<not> has_disc disc m \<Longrightarrow> as = [] \<and> ms = m"
+  and "\<not> has_disc disc m \<longleftrightarrow> as = [] \<and> ms = m"
   and "\<not> has_disc_negated disc False m \<longleftrightarrow> getNeg as = []"
+  and "has_disc disc m \<Longrightarrow> as \<noteq> []"
 proof -
   --"better simplification rule"
   from assms have assm3': "(as, ms) = primitive_extractor (disc, sel) m" by simp
@@ -311,9 +312,13 @@ proof -
       apply(simp_all)
     done
 
-   from assms(1) assm3' show "\<not> has_disc disc m \<Longrightarrow> as = [] \<and> ms = m"
+   from assms(1) assm3' show "\<not> has_disc disc m \<longleftrightarrow> as = [] \<and> ms = m"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-    case 4 thus ?case by(simp split: prod.split_asm)
+    case 2 thus ?case by(simp split: split_if_asm)
+    next
+    case 3 thus ?case by(simp split: split_if_asm)
+    next
+    case 4 thus ?case by(auto split: prod.split_asm)
     qed(simp_all)
 
    from assms(1) assm3' show "\<not> has_disc_negated disc False m \<longleftrightarrow> getNeg as = []"
@@ -323,6 +328,12 @@ proof -
     case 3 thus ?case by(simp split: split_if_asm)
     next
     case 4 thus ?case by(simp add: getNeg_append split: prod.split_asm)
+    qed(simp_all)
+
+   from assms(1) assm3' show "has_disc disc m \<Longrightarrow> as \<noteq> []"
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+    case 4 thus ?case apply(simp split: prod.split_asm)
+      by metis
     qed(simp_all)
 qed
 
