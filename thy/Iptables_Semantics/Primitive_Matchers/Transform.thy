@@ -1504,6 +1504,7 @@ lemma transform_lower_closure:
                                      normalized_dst_ports (get_match r) \<and>
                                      normalized_src_ips (get_match r) \<and>
                                      normalized_dst_ips (get_match r) \<and>
+                                     \<not> has_disc is_MultiportPorts (get_match r) \<and>
                                      \<not> has_disc is_Extra (get_match r)"
   -- "no new primitives are introduced"
   and "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow>
@@ -1520,6 +1521,11 @@ lemma transform_lower_closure:
        \<forall> r \<in> set rs. \<not> has_disc_negated disc False (get_match r) \<Longrightarrow>
        \<forall> r \<in> set (lower_closure rs). \<not> has_disc_negated disc False (get_match r)"
   proof -
+    let ?rs1="optimize_matches_a lower_closure_matchexpr rs"
+    let ?rs2="transform_optimize_dnf_strict ?rs1"
+    let ?rs3="transform_normalize_primitives ?rs2"
+    let ?rs4="transform_optimize_dnf_strict ?rs3"
+
     { fix m a
         have "Rule m a \<in> set (lower_closure rs) \<Longrightarrow>
             (a = action.Accept \<or> a = action.Drop) \<and>
@@ -1528,6 +1534,7 @@ lemma transform_lower_closure:
              normalized_dst_ports m \<and>
              normalized_src_ips m \<and>
              normalized_dst_ips m \<and>
+             \<not> has_disc is_MultiportPorts m \<and>
               \<not> has_disc is_Extra m"
         using simplers
         unfolding lower_closure_def
@@ -1536,7 +1543,7 @@ lemma transform_lower_closure:
         apply(drule transform_remove_unknowns_lower(2))
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_deny]
         apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_deny, where disc=is_Extra])
-        apply(thin_tac "\<forall>r\<in>set (optimize_matches_a lower_closure_matchexpr rs). \<not> has_disc is_Extra (get_match r)")
+        apply(thin_tac "\<forall>r\<in> set (optimize_matches_a lower_closure_matchexpr rs). \<not> has_disc is_Extra (get_match r)")
         apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_deny])
         apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_deny])
         thm transform_normalize_primitives[OF _ wf_in_doubt_deny]
@@ -1545,11 +1552,13 @@ lemma transform_lower_closure:
            apply(simp;fail)
           apply(simp;fail)
          apply blast
-        apply(thin_tac "\<forall>r\<in>set (transform_optimize_dnf_strict (optimize_matches_a lower_closure_matchexpr rs)). \<not> has_disc is_Extra (get_match r)")
+        apply(thin_tac "\<forall>r\<in> set ?rs2. \<not> has_disc is_Extra (get_match r)")
         apply(frule(1) transform_normalize_primitives(5)[OF _ wf_in_doubt_deny])
         apply(drule transform_normalize_primitives(2)[OF _ wf_in_doubt_deny], simp)
         thm transform_optimize_dnf_strict[OF _ wf_in_doubt_deny]
         apply(frule(1) transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_deny, where disc=is_Extra])
+        apply(frule transform_optimize_dnf_strict_structure(2)[OF _ wf_in_doubt_deny, where disc=is_MultiportPorts])
+         apply blast
         apply(frule transform_optimize_dnf_strict_structure(3)[OF _ wf_in_doubt_deny])
         apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Src_Ports, src_ports_sel)" "(\<lambda>ps. case ps of L4Ports _ pts \<Rightarrow> length pts \<le> 1)"])
          apply(simp add: normalized_src_ports_def2; fail)
@@ -1559,6 +1568,8 @@ lemma transform_lower_closure:
          apply(simp add: normalized_src_ips_def2; fail)
         apply(frule transform_optimize_dnf_strict_structure(4)[OF _ wf_in_doubt_deny, of _ "(is_Dst, dst_sel)" normalized_cidr_ip])
          apply(simp add: normalized_dst_ips_def2; fail)
+        apply(thin_tac "\<forall>r\<in>set ?rs2. _ r")+
+        apply(thin_tac "\<forall>r\<in>set ?rs3. _ r")+
         apply(drule transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_deny])
         apply(subgoal_tac "(a = action.Accept \<or> a = action.Drop)")
          prefer 2
@@ -1566,8 +1577,7 @@ lemma transform_lower_closure:
          apply fastforce
         apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2 normalized_src_ips_def2 normalized_dst_ips_def2)
         apply(intro conjI)
-              apply fastforce+
-        done
+               by fastforce+ (*1s*)
     } note 1=this
 
     from 1 show "simple_ruleset (lower_closure rs)"
@@ -1584,6 +1594,7 @@ lemma transform_lower_closure:
          normalized_dst_ports (get_match r) \<and>
          normalized_src_ips (get_match r) \<and>
          normalized_dst_ips (get_match r) \<and>
+         \<not> has_disc is_MultiportPorts (get_match r) \<and>
          \<not> has_disc is_Extra (get_match r)"
       apply(clarify)
       apply(rename_tac r)
