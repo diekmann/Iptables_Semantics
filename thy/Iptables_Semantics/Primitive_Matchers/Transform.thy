@@ -654,7 +654,7 @@ theorem transform_normalize_primitives:
     have normalized_rs0: "\<forall>r \<in> set ?rs0. normalized_nnf_match (get_match r)"
       apply(intro normalize_rules_preserves[OF normalized])
       apply(simp add: rewrite_MultiportPorts_def)
-        sorry
+      using normalized_nnf_match_normalize_match by blast
     from normalize_src_ports_nnf have normalized_rs1: "\<forall>r \<in> set ?rs1. normalized_nnf_match (get_match r)"
       apply(intro normalize_rules_preserves[OF normalized_rs0])
       using normalize_dst_ports_nnf by blast
