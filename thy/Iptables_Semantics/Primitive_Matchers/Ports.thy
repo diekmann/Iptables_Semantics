@@ -35,7 +35,7 @@ lemma raw_ports_invert: "ports_to_set (raw_ports_invert ps) = - ports_to_set ps"
   by(auto simp add: raw_ports_invert_def l2wi_wi2l ports_to_set_wordinterval)
 
 
-text\<open>A port always belongs to a protocol! We must not loose this information.
+text\<open>A port always belongs to a protocol! We must not lose this information.
  You should never use @{typ raw_ports} directly\<close>
 datatype ipt_l4_ports = L4Ports primitive_protocol raw_ports
 

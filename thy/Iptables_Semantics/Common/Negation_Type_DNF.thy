@@ -1,8 +1,8 @@
+section\<open>Negation Type DNF\<close>
 theory Negation_Type_DNF
 imports Negation_Type
 begin
 
-section\<open>Negation Type DNF\<close>
 
 (*Just a draft. needed for packet_set*)
 
@@ -146,7 +146,5 @@ subsubsection\<open>Optimizing\<close>
     apply(rule dnf_to_bool_seteq)
     apply(simp)
     by (metis image_cong image_image set_remdups)
-    
-
 
 end
