@@ -136,6 +136,7 @@ theorem common_primitive_match_to_simple_match:
       and "normalized_protocols m"
       and "\<not> has_disc is_L4_Flags m"
       and "\<not> has_disc is_CT_State m"
+      and "\<not> has_disc is_MultiportPorts m"
       and "\<not> has_disc is_Extra m"
   shows "(Some sm = common_primitive_match_to_simple_match m \<longrightarrow> matches (common_matcher, \<alpha>) m a p \<longleftrightarrow> simple_matches sm p) \<and>
          (common_primitive_match_to_simple_match m = None \<longrightarrow> \<not> matches (common_matcher, \<alpha>) m a p)"
@@ -169,6 +170,7 @@ proof -
       "normalized_ifaces m1" "normalized_ifaces m2"
       "\<not> has_disc is_L4_Flags m1" "\<not> has_disc is_L4_Flags m2"
       "\<not> has_disc is_CT_State m1" "\<not> has_disc is_CT_State m2"
+      "\<not> has_disc is_MultiportPorts m1" "\<not> has_disc is_MultiportPorts m2"
       "\<not> has_disc is_Extra m1" "\<not> has_disc is_Extra m2"
       "normalized_protocols m1" "normalized_protocols m2"
       by(simp_all add: normalized_protocols_def normalized_ifaces_def)
@@ -236,6 +238,7 @@ definition check_simple_fw_preconditions :: "'i::len common_primitive rule list 
       normalized_protocols m \<and>
       \<not> has_disc is_L4_Flags m \<and>
       \<not> has_disc is_CT_State m \<and>
+      \<not> has_disc is_MultiportPorts m \<and>
       \<not> has_disc is_Extra m \<and>
       (a = action.Accept \<or> a = action.Drop))"
 
@@ -400,10 +403,12 @@ theorem transform_simple_fw_upper:
     from transform_upper_closure(3)[OF s3] have "\<forall>r\<in>set ?rs'.
      normalized_nnf_match (get_match r) \<and> normalized_src_ports (get_match r) \<and>
      normalized_dst_ports (get_match r) \<and> normalized_src_ips (get_match r) \<and>
-     normalized_dst_ips (get_match r) \<and> \<not> has_disc is_Extra (get_match r)" .
+     normalized_dst_ips (get_match r) \<and> 
+     \<not> has_disc is_MultiportPorts (get_match r) \<and> \<not> has_disc is_Extra (get_match r)" .
     with r have normalized:
       "normalized_src_ports m \<and> normalized_dst_ports m \<and>
-      normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
+      normalized_src_ips m \<and> normalized_dst_ips m \<and> 
+      \<not> has_disc is_MultiportPorts m & \<not> has_disc is_Extra m" by fastforce
 
     (*things are complicated because upper closure could introduce negated protocols.
       should not happen if we don't have negated ports in it *)
@@ -415,15 +420,20 @@ theorem transform_simple_fw_upper:
     from transform_upper_closure(3)[OF s1]
       normalized_n_primitive_imp_not_disc_negated[OF wf_disc_sel_common_primitive(1)]
       normalized_n_primitive_imp_not_disc_negated[OF wf_disc_sel_common_primitive(2)]
-    have "\<forall>r\<in> set ?rs2. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+    have "\<forall>r\<in> set ?rs2. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+                        \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+                        \<not> has_disc is_MultiportPorts (get_match r)"
       apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2)
       by blast 
-    from this have "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+    from this have "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+                                 \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+                                 \<not> has_disc is_MultiportPorts (get_match r)"
       apply -
       apply(rule optimize_matches_preserves)
       apply(intro conjI)
-      apply(intro abstract_for_simple_firewall_preserves_nodisc_negated, simp_all)+
-     done
+        apply(intro abstract_for_simple_firewall_preserves_nodisc_negated, simp_all)+
+      by (simp add: abstract_for_simple_firewall_def abstract_primitive_preserves_nodisc)
+
     from this protocols_rs3 transform_upper_closure(5)[OF s3, where disc=is_Prot, simplified]
           have "\<forall>r\<in>set ?rs'. \<not> has_disc_negated is_Prot False (get_match r)"
       by simp
@@ -438,6 +448,7 @@ theorem transform_simple_fw_upper:
              normalized_protocols m \<and>
              \<not> has_disc is_L4_Flags m \<and>
              \<not> has_disc is_CT_State m \<and>
+             \<not> has_disc is_MultiportPorts m \<and>
              \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
       by(simp)
   }
@@ -541,8 +552,10 @@ theorem transform_simple_fw_lower:
     from transform_lower_closure(3)[OF s3] have "\<forall>r\<in>set ?rs'.
      normalized_nnf_match (get_match r) \<and> normalized_src_ports (get_match r) \<and>
      normalized_dst_ports (get_match r) \<and> normalized_src_ips (get_match r) \<and>
-     normalized_dst_ips (get_match r) \<and> \<not> has_disc is_Extra (get_match r)" .
-    with r have normalized: "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
+     normalized_dst_ips (get_match r) \<and> 
+     \<not> has_disc is_MultiportPorts (get_match r) \<and> \<not> has_disc is_Extra (get_match r)" .
+    with r have normalized: "normalized_src_ports m \<and> normalized_dst_ports m \<and> normalized_src_ips m \<and>
+      normalized_dst_ips m \<and> \<not> has_disc is_MultiportPorts m \<and> \<not> has_disc is_Extra m" by fastforce
 
 
     from transform_lower_closure(5)[OF s3] iface_in iface_out have "\<forall>r\<in>set ?rs'.
@@ -553,15 +566,19 @@ theorem transform_simple_fw_lower:
     from transform_lower_closure(3)[OF s1]
       normalized_n_primitive_imp_not_disc_negated[OF wf_disc_sel_common_primitive(1)]
       normalized_n_primitive_imp_not_disc_negated[OF wf_disc_sel_common_primitive(2)]
-    have "\<forall>r\<in>set ?rs2. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+    have "\<forall>r\<in>set ?rs2. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+                       \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+                       \<not> has_disc is_MultiportPorts (get_match r)"
       apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2)
       by blast 
-    from this have "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and> \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+    from this have "\<forall>r\<in>set ?rs3. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
+                                 \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+                                 \<not> has_disc is_MultiportPorts (get_match r)"
       apply -
       apply(rule optimize_matches_preserves)
       apply(intro conjI)
-      apply(intro abstract_for_simple_firewall_preserves_nodisc_negated, simp_all)+
-     done
+        apply(intro abstract_for_simple_firewall_preserves_nodisc_negated, simp_all)+
+      by (simp add: abstract_for_simple_firewall_def abstract_primitive_preserves_nodisc)
     from this protocols_rs3 transform_lower_closure(5)[OF s3, where disc=is_Prot, simplified]
           have "\<forall>r\<in>set ?rs'. \<not> has_disc_negated is_Prot False (get_match r)"
       by simp
@@ -573,7 +590,8 @@ theorem transform_simple_fw_lower:
              normalized_src_ips m \<and>
              normalized_dst_ips m \<and>
              normalized_ifaces m \<and>
-             normalized_protocols m \<and> \<not> has_disc is_L4_Flags m \<and> \<not> has_disc is_CT_State m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
+             normalized_protocols m \<and> \<not> has_disc is_L4_Flags m \<and> \<not> has_disc is_CT_State m \<and> 
+             \<not> has_disc is_MultiportPorts m \<and> \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
       by(simp)
   }
     hence simple_fw_preconditions: "check_simple_fw_preconditions ?rs'"
@@ -722,31 +740,35 @@ theorem to_simple_firewall_without_interfaces:
 
       from transform_upper_closure(3)[OF s6] r have normalized:
         "normalized_src_ports m \<and> normalized_dst_ports m \<and>
-         normalized_src_ips m \<and> normalized_dst_ips m \<and> \<not> has_disc is_Extra m" by fastforce
+         normalized_src_ips m \<and> normalized_dst_ips m \<and>
+         \<not> has_disc is_MultiportPorts m \<and> \<not> has_disc is_Extra m" by fastforce
 
 
       from transform_upper_closure(3)[OF s3, simplified]
         normalized_n_primitive_imp_not_disc_negated[OF wf_disc_sel_common_primitive(1)]
         normalized_n_primitive_imp_not_disc_negated[OF wf_disc_sel_common_primitive(2)]
       have "\<forall>r \<in> set ?rs4. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
-                           \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+                           \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+                           \<not> has_disc is_MultiportPorts (get_match r)"
         apply(simp add: normalized_src_ports_def2 normalized_dst_ports_def2)
         by blast
       hence "\<forall>r \<in> set ?rs5. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
-                                     \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+                            \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+                            \<not> has_disc is_MultiportPorts (get_match r)"
         apply -
         apply(rule optimize_matches_preserves)
         apply(intro conjI)
-        apply(intro abstract_for_simple_firewall_preserves_nodisc_negated, simp_all)+
-       done
+          apply(intro abstract_for_simple_firewall_preserves_nodisc_negated, simp_all)+
+        by (simp add: abstract_for_simple_firewall_def abstract_primitive_preserves_nodisc)
       from this have no_ports_rs6: 
             "\<forall>r \<in> set ?rs6. \<not> has_disc_negated is_Src_Ports False (get_match r) \<and>
-                                     \<not> has_disc_negated is_Dst_Ports False (get_match r)"
+                            \<not> has_disc_negated is_Dst_Ports False (get_match r) \<and>
+                            \<not> has_disc is_MultiportPorts (get_match r)"
         apply -
         apply(rule optimize_matches_preserves)
         apply(intro conjI)
-        apply(intro abstract_primitive_preserves_nodisc_nedgated, simp_all)+
-       done
+          apply(intro abstract_primitive_preserves_nodisc_nedgated, simp_all)+
+        by (simp add: abstract_for_simple_firewall_def abstract_primitive_preserves_nodisc)
 
       from nnf4 abstract_for_simple_firewall_negated_ifaces_prots(2) have 
         "\<forall>r\<in>set ?rs5. \<not> has_disc_negated is_Prot False (get_match r)"
@@ -758,7 +780,7 @@ theorem to_simple_firewall_without_interfaces:
       with r have protocols: "normalized_protocols m" unfolding normalized_protocols_def by fastforce
 
 
-      from no_CT no_L4_Flags s7 normalized a normalized_ifaces protocols no_Iiface no_Oiface 
+      from no_CT no_L4_Flags normalized a normalized_ifaces protocols no_Iiface no_Oiface 
          have "normalized_src_ports m \<and>
                normalized_dst_ports m \<and>
                normalized_src_ips m \<and>
@@ -767,9 +789,11 @@ theorem to_simple_firewall_without_interfaces:
                normalized_protocols m \<and>
                \<not> has_disc is_L4_Flags m \<and>
                \<not> has_disc is_CT_State m \<and>
+               \<not> has_disc is_MultiportPorts m \<and>
                \<not> has_disc is_Extra m \<and> (a = action.Accept \<or> a = action.Drop)"
         and "\<not> has_disc is_Iiface m" and "\<not> has_disc is_Oiface m"
-        by(simp)+
+        apply -
+        by(simp)+ (*fails due to is_MultiportPorts*)
     }
     hence simple_fw_preconditions: "check_simple_fw_preconditions ?rs7"
       and no_interfaces: "Rule m a \<in> set ?rs7 \<Longrightarrow> \<not> has_disc is_Iiface m \<and> \<not> has_disc is_Oiface m" for m a

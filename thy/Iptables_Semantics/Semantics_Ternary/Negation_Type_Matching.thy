@@ -62,6 +62,12 @@ fun negation_type_to_match_expr_f :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a neg
   "negation_type_to_match_expr_f f (Pos a) = Match (f a)" |
   "negation_type_to_match_expr_f f (Neg a) = MatchNot (Match (f a))"
 
+lemma alist_and_negation_type_to_match_expr_f_matches:
+    "matches \<gamma> (alist_and (NegPos_map C spts)) a p \<longleftrightarrow>
+        (\<forall>m\<in>set spts. matches \<gamma> (negation_type_to_match_expr_f C m) a p)"
+  proof(induction spts rule: alist_and.induct)
+  qed(auto simp add: bunch_of_lemmata_about_matches)
+
 definition negation_type_to_match_expr :: "'a negation_type \<Rightarrow> 'a match_expr" where
   "negation_type_to_match_expr m \<equiv> negation_type_to_match_expr_f id m"
 
