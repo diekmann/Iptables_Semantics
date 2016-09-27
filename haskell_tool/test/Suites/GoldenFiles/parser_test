@@ -22,6 +22,7 @@
 -A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedNegatedMatch -m protocolid:0 --spts [67:68]' `ParsedNegatedMatch -m protocolid:0 --dpts [67:68]' `ParsedAction -j ACCEPT'
 -A FORWARD `ParsedAction -j LOG' `ParsedMatch ~~--log-prefix~~' `ParsedMatch ~~"!#*~%&/()=?"~~' `ParsedMatch ~~--log-level~~' `ParsedMatch ~~6~~'
 -A FORWARD `ParsedMatch -s 127.0.0.0/8' `ParsedAction -j DROP'
+-A FORWARD `ParsedMatch -p udp' `ParsedMatch -p protocolid:0 -m multiport --ports [8080:8081, 8082]' `ParsedMatch ~~--something-else~~' `ParsedAction -j ACCEPT'
 -A FORWARD `ParsedMatch -i wlan0' `ParsedMatch -p tcp' `ParsedNegatedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedMatch -m state --state NEW' `ParsedAction -j DROP'
 -A FORWARD `ParsedMatch -p tcp' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedMatch -m protocolid:0 --dpts [80, 443]' `ParsedAction -j ACCEPT'
 -A FORWARD `ParsedMatch -p tcp' `ParsedMatch -m state --state NEW' `ParsedMatch -m protocolid:0 --dpts [1:65535]' `ParsedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' `ParsedAction -j ACCEPT'
@@ -51,12 +52,13 @@
 -A Terminal `ParsedAction -j REJECT'
 COMMIT
 == Checking which tables are supported for analysis. Usually, only `filter'. ==
-Parsed 7 chains in table filter, a total of 42 rules
+Parsed 7 chains in table filter, a total of 43 rules
 == Transformed to Isabelle type (only filter table) ==
-[("DOS~Pro-t_ect",[(-p tcp -m tcp --dpts [22], -j ACCEPT),(-p tcp -m state --state NEW -m tcp --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT),(-p udp, -j RETURN),(-p icmp ~~-m icmp --icmp-type 3/4~~, -j ACCEPT),(-p icmp ~~-m comment --comment "!"~~, -j ACCEPT),(-p icmp ~~-m comment --comment "has space"~~, -j ACCEPT),(-p icmp, -j ACCEPT),(-p ipv6-icmp ~~-m icmp6 --icmpv6-type 133 -m comment --comment "this module only works for ip6tables but -p icmpv6 is fine"~~, -j ACCEPT),(-p ipv6-icmp ~~-m icmp6 --icmpv6-type 133 -m comment --comment "\""~~ -s 127.0.0.0/8, -j ACCEPT),(! -p icmp, ),(! -p tcp ! -s 131.159.0.0/16, ),(-i vocb -p udp -m udp --spts [67:68] -m udp --dpts [67:68], -j ACCEPT),(-i vocb -p udp ! -m udp --spts [67:68] ! -m udp --dpts [67:68], -j ACCEPT)]),("FORWARD",[(~~--log-prefix "!#*~%&/()=?" --log-level 6~~, -j LOG),(-s 127.0.0.0/8, -j DROP),(-i wlan0 -p tcp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m state --state NEW, -j DROP),(-p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m tcp --dpts [80, 443], -j ACCEPT),(-p tcp -m state --state NEW -m tcp --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT),(-m state --state NEW,INVALID, -j DROP),(-i wlan0 -p icmp -m state --state NEW,ESTABLISHED,RELATED,UNTRACKED, -j ACCEPT),(-m state --state NEW,UNTRACKED, -j ACCEPT),(-m state --state ESTABLISHED,RELATED, -j ACCEPT),(! -i eth+, -j DROP),(-s 100.0.0.0/24 -p tcp, -j DOS~Pro-t_ect (call)),(! -s 131.159.0.0/16, -j DROP),(-p tcp -m tcp --spts [80, 443], -j DROP),(-p tcp -m tcp --dpts [80, 443], -j DROP),(-d 127.0.0.1/32 -o eth1.152 -p udp -m udp --dpts [4569, 5000:65535], -j ACCEPT),(-i eth0 -p tcp -m tcp --dpts [22], -j DROP),(-i eth0 -p tcp -m tcp --dpts [21, 873:874, 5005, 5006, 80, 548, 111, 892, 2049], -j DROP),(-s 192.168.0.1, -j LOGDROP (call)),(-m iprange --src-range 127.0.0.1-127.0.10.0, -j RETURN),(! -m iprange --dst-range 127.0.0.1-127.0.10.0, -j RETURN),(, -g Terminal),(, -j IPSEC_42 (call))]),("INPUT",[]),("IPSEC_42",[(-p esp -m state --state NEW, -j ACCEPT),(-p gre -m state --state NEW, -j ACCEPT)]),("LOGDROP",[(, ),(, -j DROP)]),("OUTPUT",[]),("Terminal",[(-d 127.0.0.1/32 -p udp -m udp --spts [53], -j DROP),(-d 127.42.0.1/32, -j REJECT),(, -j REJECT)])]
+[("DOS~Pro-t_ect",[(-p tcp -m tcp --dpts [22], -j ACCEPT),(-p tcp -m state --state NEW -m tcp --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT),(-p udp, -j RETURN),(-p icmp ~~-m icmp --icmp-type 3/4~~, -j ACCEPT),(-p icmp ~~-m comment --comment "!"~~, -j ACCEPT),(-p icmp ~~-m comment --comment "has space"~~, -j ACCEPT),(-p icmp, -j ACCEPT),(-p ipv6-icmp ~~-m icmp6 --icmpv6-type 133 -m comment --comment "this module only works for ip6tables but -p icmpv6 is fine"~~, -j ACCEPT),(-p ipv6-icmp ~~-m icmp6 --icmpv6-type 133 -m comment --comment "\""~~ -s 127.0.0.0/8, -j ACCEPT),(! -p icmp, ),(! -p tcp ! -s 131.159.0.0/16, ),(-i vocb -p udp -m udp --spts [67:68] -m udp --dpts [67:68], -j ACCEPT),(-i vocb -p udp ! -m udp --spts [67:68] ! -m udp --dpts [67:68], -j ACCEPT)]),("FORWARD",[(~~--log-prefix "!#*~%&/()=?" --log-level 6~~, -j LOG),(-s 127.0.0.0/8, -j DROP),(-p udp -p udp -m multiport --ports [8080:8081, 8082] ~~--something-else~~, -j ACCEPT),(-i wlan0 -p tcp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m state --state NEW, -j DROP),(-p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m tcp --dpts [80, 443], -j ACCEPT),(-p tcp -m state --state NEW -m tcp --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT),(-m state --state NEW,INVALID, -j DROP),(-i wlan0 -p icmp -m state --state NEW,ESTABLISHED,RELATED,UNTRACKED, -j ACCEPT),(-m state --state NEW,UNTRACKED, -j ACCEPT),(-m state --state ESTABLISHED,RELATED, -j ACCEPT),(! -i eth+, -j DROP),(-s 100.0.0.0/24 -p tcp, -j DOS~Pro-t_ect (call)),(! -s 131.159.0.0/16, -j DROP),(-p tcp -m tcp --spts [80, 443], -j DROP),(-p tcp -m tcp --dpts [80, 443], -j DROP),(-d 127.0.0.1/32 -o eth1.152 -p udp -m udp --dpts [4569, 5000:65535], -j ACCEPT),(-i eth0 -p tcp -m tcp --dpts [22], -j DROP),(-i eth0 -p tcp -m tcp --dpts [21, 873:874, 5005, 5006, 80, 548, 111, 892, 2049], -j DROP),(-s 192.168.0.1, -j LOGDROP (call)),(-m iprange --src-range 127.0.0.1-127.0.10.0, -j RETURN),(! -m iprange --dst-range 127.0.0.1-127.0.10.0, -j RETURN),(, -g Terminal),(, -j IPSEC_42 (call))]),("INPUT",[]),("IPSEC_42",[(-p esp -m state --state NEW, -j ACCEPT),(-p gre -m state --state NEW, -j ACCEPT)]),("LOGDROP",[(, ),(, -j DROP)]),("OUTPUT",[]),("Terminal",[(-d 127.0.0.1/32 -p udp -m udp --spts [53], -j DROP),(-d 127.42.0.1/32, -j REJECT),(, -j REJECT)])]
 Default Policies: fromList [("FORWARD",-j DROP),("INPUT",-j ACCEPT),("OUTPUT",-j ACCEPT)]
 == unfolded FORWARD chain ==
 (-s 127.0.0.0/8, -j DROP)
+(-p udp -p udp -m multiport --ports [8080:8081, 8082] ~~--something-else~~, -j ACCEPT)
 (-i wlan0 -p tcp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m state --state NEW, -j DROP)
 (-p tcp --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m tcp --dpts [80, 443], -j ACCEPT)
 (-p tcp -m state --state NEW -m tcp --dpts [1:65535] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
@@ -90,6 +92,8 @@ Default Policies: fromList [("FORWARD",-j DROP),("INPUT",-j ACCEPT),("OUTPUT",-j
 (, -j DROP)
 == unfolded FORWARD chain (upper closure) ==
 (-s 127.0.0.0/8, -j DROP)
+(-p udp -m udp --spts [8080:8082], -j ACCEPT)
+(-p udp -m udp --dpts [8080:8082], -j ACCEPT)
 (-i wlan0 -p tcp ! --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN] -m state --state NEW, -j DROP)
 (-p tcp -m tcp --dpts [80] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
 (-p tcp -m tcp --dpts [443] --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN], -j ACCEPT)
@@ -1376,12 +1380,16 @@ Default Policies: fromList [("FORWARD",-j DROP),("INPUT",-j ACCEPT),("OUTPUT",-j
 (, -j DROP)
 == to simple firewall ==
 DROP     all  --  127.0.0.0/8            0.0.0.0/0    
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0   sports: 8080:8082 
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 8080:8082
 ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 80
 ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 443
 ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 1:65535
 DROP     all  --  0.0.0.0/0            0.0.0.0/0    
 == to even-simpler firewall ==
 DROP     all  --  127.0.0.0/8            0.0.0.0/0    
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0   sports: 8080:8082 
+ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0    dports: 8080:8082
 ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 80
 ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 443
 ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0    dports: 1:65535

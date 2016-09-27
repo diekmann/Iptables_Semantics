@@ -1,3 +1,4 @@
+section\<open>Miscellaneous List Lemmas\<close>
 theory List_Misc
 imports Main
 begin

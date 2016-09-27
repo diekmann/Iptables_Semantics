@@ -1,8 +1,8 @@
+section\<open>Ternary Logic\<close>
 theory Ternary
 imports Main
 begin
 
-section\<open>Ternary Logic\<close>
 text\<open>Kleene logic\<close>
 
 datatype ternaryvalue = TernaryTrue | TernaryFalse | TernaryUnknown

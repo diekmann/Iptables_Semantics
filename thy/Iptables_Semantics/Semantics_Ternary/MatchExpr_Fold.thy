@@ -27,7 +27,7 @@ lemma andfold_MatchExp_not_discI:
   by(induction ms rule: andfold_MatchExp.induct) (simp)+
 
 lemma andfold_MatchExp_not_disc_negatedI:
-  "\<forall>m \<in> set ms. \<not> has_disc_negated disc False m \<Longrightarrow> \<not> has_disc_negated disc False (andfold_MatchExp ms)"
+  "\<forall>m \<in> set ms. \<not> has_disc_negated disc neg m \<Longrightarrow> \<not> has_disc_negated disc neg (andfold_MatchExp ms)"
   by(induction ms rule: andfold_MatchExp.induct) (simp)+
 
 lemma andfold_MatchExp_not_disc_negated_mapMatch:
@@ -64,4 +64,21 @@ lemma andfold_MatchExp_normalized_normalized_n_primitive_single:
    apply simp_all
   by (simp add: andfold_MatchExp_not_discI)
 
+lemma normalize_andfold_MatchExp_normalized_n_primitive:
+  "\<forall> m \<in> set ms. \<forall> s' \<in> set (normalize_match m). normalized_n_primitive (disc, sel) f s' \<Longrightarrow>
+        s \<in> set (normalize_match (andfold_MatchExp ms)) \<Longrightarrow>
+          normalized_n_primitive (disc, sel) f s"
+  proof(induction ms arbitrary: s rule: andfold_MatchExp.induct)
+  case 1 thus ?case by simp
+  next
+  case 2 thus ?case by simp
+  next
+  case (3 v1 v2 va)
+    have IH: "s' \<in> set (normalize_match (andfold_MatchExp (v2 # va))) \<Longrightarrow>
+            normalized_n_primitive (disc, sel) f s'" for s'
+    using 3(1)[of s'] (*without this, simp loops*)
+    apply(simp)
+    using 3(2) by force
+    from 3(2,3) IH show ?case by(clarsimp)
+  qed
 end

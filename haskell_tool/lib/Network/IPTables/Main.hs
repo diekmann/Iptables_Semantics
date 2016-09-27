@@ -18,7 +18,7 @@ import Network.IPTables.Ruleset
 import Network.IPTables.Parser
 import Network.IPTables.IpassmtParser
 import Network.IPTables.Ipassmt (showIpAssmtDiff)
-import Network.RTbl.Parser (Routing_rule, RTbl, rTblToIsabelle)
+import Network.RTbl.Parser (RTbl, Routing_rule, rTblToIsabelle)
 import qualified System.IO
 import Options.Generic
 import Common.Util

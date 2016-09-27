@@ -836,6 +836,16 @@ equal_ipt_tcp_flags (TCP_Flags x1 x2) (TCP_Flags y1 y2) =
 data Ipt_iprange a = IpAddr (Word a) | IpAddrNetmask (Word a) Nat
   | IpAddrRange (Word a) (Word a);
 
+data Ipt_l4_ports =
+  L4Ports (Word (Bit0 (Bit0 (Bit0 Num1))))
+    [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
+       Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
+
+data Common_primitive a = Src (Ipt_iprange a) | Dst (Ipt_iprange a)
+  | IIface Iface | OIface Iface | Prot Protocol | Src_Ports Ipt_l4_ports
+  | Dst_Ports Ipt_l4_ports | MultiportPorts Ipt_l4_ports
+  | L4_Flags Ipt_tcp_flags | CT_State (Set Ctstate) | Extra [Prelude.Char];
+
 equal_ipt_iprange ::
   forall a. (Len a) => Ipt_iprange a -> Ipt_iprange a -> Bool;
 equal_ipt_iprange (IpAddrNetmask x21 x22) (IpAddrRange x31 x32) = False;
@@ -850,70 +860,76 @@ equal_ipt_iprange (IpAddrNetmask x21 x22) (IpAddrNetmask y21 y22) =
   equal_word x21 y21 && equal_nat x22 y22;
 equal_ipt_iprange (IpAddr x1) (IpAddr y1) = equal_word x1 y1;
 
-data Ipt_l4_ports =
-  L4Ports (Word (Bit0 (Bit0 (Bit0 Num1))))
-    [(Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))),
-       Word (Bit0 (Bit0 (Bit0 (Bit0 Num1)))))];
-
-data Common_primitive a = Src (Ipt_iprange a) | Dst (Ipt_iprange a)
-  | IIface Iface | OIface Iface | Prot Protocol | Src_Ports Ipt_l4_ports
-  | Dst_Ports Ipt_l4_ports | L4_Flags Ipt_tcp_flags | CT_State (Set Ctstate)
-  | Extra [Prelude.Char];
-
 equal_ipt_l4_ports :: Ipt_l4_ports -> Ipt_l4_ports -> Bool;
 equal_ipt_l4_ports (L4Ports x1 x2) (L4Ports y1 y2) =
   equal_word x1 y1 && x2 == y2;
 
 equal_common_primitive ::
   forall a. (Len a) => Common_primitive a -> Common_primitive a -> Bool;
-equal_common_primitive (CT_State x9) (Extra x10) = False;
-equal_common_primitive (Extra x10) (CT_State x9) = False;
-equal_common_primitive (L4_Flags x8) (Extra x10) = False;
-equal_common_primitive (Extra x10) (L4_Flags x8) = False;
-equal_common_primitive (L4_Flags x8) (CT_State x9) = False;
-equal_common_primitive (CT_State x9) (L4_Flags x8) = False;
-equal_common_primitive (Dst_Ports x7) (Extra x10) = False;
-equal_common_primitive (Extra x10) (Dst_Ports x7) = False;
-equal_common_primitive (Dst_Ports x7) (CT_State x9) = False;
-equal_common_primitive (CT_State x9) (Dst_Ports x7) = False;
-equal_common_primitive (Dst_Ports x7) (L4_Flags x8) = False;
-equal_common_primitive (L4_Flags x8) (Dst_Ports x7) = False;
-equal_common_primitive (Src_Ports x6) (Extra x10) = False;
-equal_common_primitive (Extra x10) (Src_Ports x6) = False;
-equal_common_primitive (Src_Ports x6) (CT_State x9) = False;
-equal_common_primitive (CT_State x9) (Src_Ports x6) = False;
-equal_common_primitive (Src_Ports x6) (L4_Flags x8) = False;
-equal_common_primitive (L4_Flags x8) (Src_Ports x6) = False;
+equal_common_primitive (CT_State x10) (Extra x11) = False;
+equal_common_primitive (Extra x11) (CT_State x10) = False;
+equal_common_primitive (L4_Flags x9) (Extra x11) = False;
+equal_common_primitive (Extra x11) (L4_Flags x9) = False;
+equal_common_primitive (L4_Flags x9) (CT_State x10) = False;
+equal_common_primitive (CT_State x10) (L4_Flags x9) = False;
+equal_common_primitive (MultiportPorts x8) (Extra x11) = False;
+equal_common_primitive (Extra x11) (MultiportPorts x8) = False;
+equal_common_primitive (MultiportPorts x8) (CT_State x10) = False;
+equal_common_primitive (CT_State x10) (MultiportPorts x8) = False;
+equal_common_primitive (MultiportPorts x8) (L4_Flags x9) = False;
+equal_common_primitive (L4_Flags x9) (MultiportPorts x8) = False;
+equal_common_primitive (Dst_Ports x7) (Extra x11) = False;
+equal_common_primitive (Extra x11) (Dst_Ports x7) = False;
+equal_common_primitive (Dst_Ports x7) (CT_State x10) = False;
+equal_common_primitive (CT_State x10) (Dst_Ports x7) = False;
+equal_common_primitive (Dst_Ports x7) (L4_Flags x9) = False;
+equal_common_primitive (L4_Flags x9) (Dst_Ports x7) = False;
+equal_common_primitive (Dst_Ports x7) (MultiportPorts x8) = False;
+equal_common_primitive (MultiportPorts x8) (Dst_Ports x7) = False;
+equal_common_primitive (Src_Ports x6) (Extra x11) = False;
+equal_common_primitive (Extra x11) (Src_Ports x6) = False;
+equal_common_primitive (Src_Ports x6) (CT_State x10) = False;
+equal_common_primitive (CT_State x10) (Src_Ports x6) = False;
+equal_common_primitive (Src_Ports x6) (L4_Flags x9) = False;
+equal_common_primitive (L4_Flags x9) (Src_Ports x6) = False;
+equal_common_primitive (Src_Ports x6) (MultiportPorts x8) = False;
+equal_common_primitive (MultiportPorts x8) (Src_Ports x6) = False;
 equal_common_primitive (Src_Ports x6) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (Src_Ports x6) = False;
-equal_common_primitive (Prot x5) (Extra x10) = False;
-equal_common_primitive (Extra x10) (Prot x5) = False;
-equal_common_primitive (Prot x5) (CT_State x9) = False;
-equal_common_primitive (CT_State x9) (Prot x5) = False;
-equal_common_primitive (Prot x5) (L4_Flags x8) = False;
-equal_common_primitive (L4_Flags x8) (Prot x5) = False;
+equal_common_primitive (Prot x5) (Extra x11) = False;
+equal_common_primitive (Extra x11) (Prot x5) = False;
+equal_common_primitive (Prot x5) (CT_State x10) = False;
+equal_common_primitive (CT_State x10) (Prot x5) = False;
+equal_common_primitive (Prot x5) (L4_Flags x9) = False;
+equal_common_primitive (L4_Flags x9) (Prot x5) = False;
+equal_common_primitive (Prot x5) (MultiportPorts x8) = False;
+equal_common_primitive (MultiportPorts x8) (Prot x5) = False;
 equal_common_primitive (Prot x5) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (Prot x5) = False;
 equal_common_primitive (Prot x5) (Src_Ports x6) = False;
 equal_common_primitive (Src_Ports x6) (Prot x5) = False;
-equal_common_primitive (OIface x4) (Extra x10) = False;
-equal_common_primitive (Extra x10) (OIface x4) = False;
-equal_common_primitive (OIface x4) (CT_State x9) = False;
-equal_common_primitive (CT_State x9) (OIface x4) = False;
-equal_common_primitive (OIface x4) (L4_Flags x8) = False;
-equal_common_primitive (L4_Flags x8) (OIface x4) = False;
+equal_common_primitive (OIface x4) (Extra x11) = False;
+equal_common_primitive (Extra x11) (OIface x4) = False;
+equal_common_primitive (OIface x4) (CT_State x10) = False;
+equal_common_primitive (CT_State x10) (OIface x4) = False;
+equal_common_primitive (OIface x4) (L4_Flags x9) = False;
+equal_common_primitive (L4_Flags x9) (OIface x4) = False;
+equal_common_primitive (OIface x4) (MultiportPorts x8) = False;
+equal_common_primitive (MultiportPorts x8) (OIface x4) = False;
 equal_common_primitive (OIface x4) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (OIface x4) = False;
 equal_common_primitive (OIface x4) (Src_Ports x6) = False;
 equal_common_primitive (Src_Ports x6) (OIface x4) = False;
 equal_common_primitive (OIface x4) (Prot x5) = False;
 equal_common_primitive (Prot x5) (OIface x4) = False;
-equal_common_primitive (IIface x3) (Extra x10) = False;
-equal_common_primitive (Extra x10) (IIface x3) = False;
-equal_common_primitive (IIface x3) (CT_State x9) = False;
-equal_common_primitive (CT_State x9) (IIface x3) = False;
-equal_common_primitive (IIface x3) (L4_Flags x8) = False;
-equal_common_primitive (L4_Flags x8) (IIface x3) = False;
+equal_common_primitive (IIface x3) (Extra x11) = False;
+equal_common_primitive (Extra x11) (IIface x3) = False;
+equal_common_primitive (IIface x3) (CT_State x10) = False;
+equal_common_primitive (CT_State x10) (IIface x3) = False;
+equal_common_primitive (IIface x3) (L4_Flags x9) = False;
+equal_common_primitive (L4_Flags x9) (IIface x3) = False;
+equal_common_primitive (IIface x3) (MultiportPorts x8) = False;
+equal_common_primitive (MultiportPorts x8) (IIface x3) = False;
 equal_common_primitive (IIface x3) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (IIface x3) = False;
 equal_common_primitive (IIface x3) (Src_Ports x6) = False;
@@ -922,12 +938,14 @@ equal_common_primitive (IIface x3) (Prot x5) = False;
 equal_common_primitive (Prot x5) (IIface x3) = False;
 equal_common_primitive (IIface x3) (OIface x4) = False;
 equal_common_primitive (OIface x4) (IIface x3) = False;
-equal_common_primitive (Dst x2) (Extra x10) = False;
-equal_common_primitive (Extra x10) (Dst x2) = False;
-equal_common_primitive (Dst x2) (CT_State x9) = False;
-equal_common_primitive (CT_State x9) (Dst x2) = False;
-equal_common_primitive (Dst x2) (L4_Flags x8) = False;
-equal_common_primitive (L4_Flags x8) (Dst x2) = False;
+equal_common_primitive (Dst x2) (Extra x11) = False;
+equal_common_primitive (Extra x11) (Dst x2) = False;
+equal_common_primitive (Dst x2) (CT_State x10) = False;
+equal_common_primitive (CT_State x10) (Dst x2) = False;
+equal_common_primitive (Dst x2) (L4_Flags x9) = False;
+equal_common_primitive (L4_Flags x9) (Dst x2) = False;
+equal_common_primitive (Dst x2) (MultiportPorts x8) = False;
+equal_common_primitive (MultiportPorts x8) (Dst x2) = False;
 equal_common_primitive (Dst x2) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (Dst x2) = False;
 equal_common_primitive (Dst x2) (Src_Ports x6) = False;
@@ -938,12 +956,14 @@ equal_common_primitive (Dst x2) (OIface x4) = False;
 equal_common_primitive (OIface x4) (Dst x2) = False;
 equal_common_primitive (Dst x2) (IIface x3) = False;
 equal_common_primitive (IIface x3) (Dst x2) = False;
-equal_common_primitive (Src x1) (Extra x10) = False;
-equal_common_primitive (Extra x10) (Src x1) = False;
-equal_common_primitive (Src x1) (CT_State x9) = False;
-equal_common_primitive (CT_State x9) (Src x1) = False;
-equal_common_primitive (Src x1) (L4_Flags x8) = False;
-equal_common_primitive (L4_Flags x8) (Src x1) = False;
+equal_common_primitive (Src x1) (Extra x11) = False;
+equal_common_primitive (Extra x11) (Src x1) = False;
+equal_common_primitive (Src x1) (CT_State x10) = False;
+equal_common_primitive (CT_State x10) (Src x1) = False;
+equal_common_primitive (Src x1) (L4_Flags x9) = False;
+equal_common_primitive (L4_Flags x9) (Src x1) = False;
+equal_common_primitive (Src x1) (MultiportPorts x8) = False;
+equal_common_primitive (MultiportPorts x8) (Src x1) = False;
 equal_common_primitive (Src x1) (Dst_Ports x7) = False;
 equal_common_primitive (Dst_Ports x7) (Src x1) = False;
 equal_common_primitive (Src x1) (Src_Ports x6) = False;
@@ -956,9 +976,11 @@ equal_common_primitive (Src x1) (IIface x3) = False;
 equal_common_primitive (IIface x3) (Src x1) = False;
 equal_common_primitive (Src x1) (Dst x2) = False;
 equal_common_primitive (Dst x2) (Src x1) = False;
-equal_common_primitive (Extra x10) (Extra y10) = x10 == y10;
-equal_common_primitive (CT_State x9) (CT_State y9) = equal_set x9 y9;
-equal_common_primitive (L4_Flags x8) (L4_Flags y8) = equal_ipt_tcp_flags x8 y8;
+equal_common_primitive (Extra x11) (Extra y11) = x11 == y11;
+equal_common_primitive (CT_State x10) (CT_State y10) = equal_set x10 y10;
+equal_common_primitive (L4_Flags x9) (L4_Flags y9) = equal_ipt_tcp_flags x9 y9;
+equal_common_primitive (MultiportPorts x8) (MultiportPorts y8) =
+  equal_ipt_l4_ports x8 y8;
 equal_common_primitive (Dst_Ports x7) (Dst_Ports y7) = equal_ipt_l4_ports x7 y7;
 equal_common_primitive (Src_Ports x6) (Src_Ports y6) = equal_ipt_l4_ports x6 y6;
 equal_common_primitive (Prot x5) (Prot y5) = equal_protocol x5 y5;
@@ -1864,9 +1886,10 @@ is_Oiface (OIface x4) = True;
 is_Oiface (Prot x5) = False;
 is_Oiface (Src_Ports x6) = False;
 is_Oiface (Dst_Ports x7) = False;
-is_Oiface (L4_Flags x8) = False;
-is_Oiface (CT_State x9) = False;
-is_Oiface (Extra x10) = False;
+is_Oiface (MultiportPorts x8) = False;
+is_Oiface (L4_Flags x9) = False;
+is_Oiface (CT_State x10) = False;
+is_Oiface (Extra x11) = False;
 
 is_Iiface :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Iiface (Src x1) = False;
@@ -1876,9 +1899,10 @@ is_Iiface (OIface x4) = False;
 is_Iiface (Prot x5) = False;
 is_Iiface (Src_Ports x6) = False;
 is_Iiface (Dst_Ports x7) = False;
-is_Iiface (L4_Flags x8) = False;
-is_Iiface (CT_State x9) = False;
-is_Iiface (Extra x10) = False;
+is_Iiface (MultiportPorts x8) = False;
+is_Iiface (L4_Flags x9) = False;
+is_Iiface (CT_State x10) = False;
+is_Iiface (Extra x11) = False;
 
 primitive_extractor ::
   forall a b.
@@ -2091,6 +2115,8 @@ upper_closure_matchexpr Drop (Match (OIface v)) = Match (OIface v);
 upper_closure_matchexpr Drop (Match (Prot v)) = Match (Prot v);
 upper_closure_matchexpr Drop (Match (Src_Ports v)) = Match (Src_Ports v);
 upper_closure_matchexpr Drop (Match (Dst_Ports v)) = Match (Dst_Ports v);
+upper_closure_matchexpr Drop (Match (MultiportPorts v)) =
+  Match (MultiportPorts v);
 upper_closure_matchexpr Drop (Match (L4_Flags v)) = Match (L4_Flags v);
 upper_closure_matchexpr Drop (Match (CT_State v)) = Match (CT_State v);
 upper_closure_matchexpr Log (Match m) = Match m;
@@ -2101,6 +2127,8 @@ upper_closure_matchexpr Reject (Match (OIface v)) = Match (OIface v);
 upper_closure_matchexpr Reject (Match (Prot v)) = Match (Prot v);
 upper_closure_matchexpr Reject (Match (Src_Ports v)) = Match (Src_Ports v);
 upper_closure_matchexpr Reject (Match (Dst_Ports v)) = Match (Dst_Ports v);
+upper_closure_matchexpr Reject (Match (MultiportPorts v)) =
+  Match (MultiportPorts v);
 upper_closure_matchexpr Reject (Match (L4_Flags v)) = Match (L4_Flags v);
 upper_closure_matchexpr Reject (Match (CT_State v)) = Match (CT_State v);
 upper_closure_matchexpr (Call v) (Match m) = Match m;
@@ -2115,6 +2143,8 @@ upper_closure_matchexpr uy (Match (OIface v)) = Match (OIface v);
 upper_closure_matchexpr uy (Match (Prot v)) = Match (Prot v);
 upper_closure_matchexpr uy (Match (Src_Ports v)) = Match (Src_Ports v);
 upper_closure_matchexpr uy (Match (Dst_Ports v)) = Match (Dst_Ports v);
+upper_closure_matchexpr uy (Match (MultiportPorts v)) =
+  Match (MultiportPorts v);
 upper_closure_matchexpr uy (Match (L4_Flags v)) = Match (L4_Flags v);
 upper_closure_matchexpr uy (Match (CT_State v)) = Match (CT_State v);
 upper_closure_matchexpr Accept (MatchNot (Match (Extra uz))) = MatchAny;
@@ -2146,6 +2176,8 @@ upper_closure_matchexpr Drop (MatchNot (Match (Src_Ports va))) =
   MatchNot (Match (Src_Ports va));
 upper_closure_matchexpr Drop (MatchNot (Match (Dst_Ports va))) =
   MatchNot (Match (Dst_Ports va));
+upper_closure_matchexpr Drop (MatchNot (Match (MultiportPorts va))) =
+  MatchNot (Match (MultiportPorts va));
 upper_closure_matchexpr Drop (MatchNot (Match (L4_Flags va))) =
   MatchNot (Match (L4_Flags va));
 upper_closure_matchexpr Drop (MatchNot (Match (CT_State va))) =
@@ -2167,6 +2199,8 @@ upper_closure_matchexpr Reject (MatchNot (Match (Src_Ports va))) =
   MatchNot (Match (Src_Ports va));
 upper_closure_matchexpr Reject (MatchNot (Match (Dst_Ports va))) =
   MatchNot (Match (Dst_Ports va));
+upper_closure_matchexpr Reject (MatchNot (Match (MultiportPorts va))) =
+  MatchNot (Match (MultiportPorts va));
 upper_closure_matchexpr Reject (MatchNot (Match (L4_Flags va))) =
   MatchNot (Match (L4_Flags va));
 upper_closure_matchexpr Reject (MatchNot (Match (CT_State va))) =
@@ -2196,6 +2230,8 @@ upper_closure_matchexpr vc (MatchNot (Match (Src_Ports va))) =
   MatchNot (Match (Src_Ports va));
 upper_closure_matchexpr vc (MatchNot (Match (Dst_Ports va))) =
   MatchNot (Match (Dst_Ports va));
+upper_closure_matchexpr vc (MatchNot (Match (MultiportPorts va))) =
+  MatchNot (Match (MultiportPorts va));
 upper_closure_matchexpr vc (MatchNot (Match (L4_Flags va))) =
   MatchNot (Match (L4_Flags va));
 upper_closure_matchexpr vc (MatchNot (Match (CT_State va))) =
@@ -2289,9 +2325,10 @@ is_Prot (OIface x4) = False;
 is_Prot (Prot x5) = True;
 is_Prot (Src_Ports x6) = False;
 is_Prot (Dst_Ports x7) = False;
-is_Prot (L4_Flags x8) = False;
-is_Prot (CT_State x9) = False;
-is_Prot (Extra x10) = False;
+is_Prot (MultiportPorts x8) = False;
+is_Prot (L4_Flags x9) = False;
+is_Prot (CT_State x10) = False;
+is_Prot (Extra x11) = False;
 
 simple_proto_conjunct :: Protocol -> Protocol -> Maybe Protocol;
 simple_proto_conjunct ProtoAny proto = Just proto;
@@ -2347,9 +2384,10 @@ is_Src_Ports (OIface x4) = False;
 is_Src_Ports (Prot x5) = False;
 is_Src_Ports (Src_Ports x6) = True;
 is_Src_Ports (Dst_Ports x7) = False;
-is_Src_Ports (L4_Flags x8) = False;
-is_Src_Ports (CT_State x9) = False;
-is_Src_Ports (Extra x10) = False;
+is_Src_Ports (MultiportPorts x8) = False;
+is_Src_Ports (L4_Flags x9) = False;
+is_Src_Ports (CT_State x10) = False;
+is_Src_Ports (Extra x11) = False;
 
 is_Dst_Ports :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Dst_Ports (Src x1) = False;
@@ -2359,9 +2397,10 @@ is_Dst_Ports (OIface x4) = False;
 is_Dst_Ports (Prot x5) = False;
 is_Dst_Ports (Src_Ports x6) = False;
 is_Dst_Ports (Dst_Ports x7) = True;
-is_Dst_Ports (L4_Flags x8) = False;
-is_Dst_Ports (CT_State x9) = False;
-is_Dst_Ports (Extra x10) = False;
+is_Dst_Ports (MultiportPorts x8) = False;
+is_Dst_Ports (L4_Flags x9) = False;
+is_Dst_Ports (CT_State x10) = False;
+is_Dst_Ports (Extra x11) = False;
 
 andfold_MatchExp :: forall a. [Match_expr a] -> Match_expr a;
 andfold_MatchExp [] = MatchAny;
@@ -2426,9 +2465,10 @@ is_Src (OIface x4) = False;
 is_Src (Prot x5) = False;
 is_Src (Src_Ports x6) = False;
 is_Src (Dst_Ports x7) = False;
-is_Src (L4_Flags x8) = False;
-is_Src (CT_State x9) = False;
-is_Src (Extra x10) = False;
+is_Src (MultiportPorts x8) = False;
+is_Src (L4_Flags x9) = False;
+is_Src (CT_State x10) = False;
+is_Src (Extra x11) = False;
 
 l2wi_negation_type_intersect ::
   forall a. (Len a) => [Negation_type (Word a, Word a)] -> Wordinterval a;
@@ -2472,9 +2512,10 @@ is_Dst (OIface x4) = False;
 is_Dst (Prot x5) = False;
 is_Dst (Src_Ports x6) = False;
 is_Dst (Dst_Ports x7) = False;
-is_Dst (L4_Flags x8) = False;
-is_Dst (CT_State x9) = False;
-is_Dst (Extra x10) = False;
+is_Dst (MultiportPorts x8) = False;
+is_Dst (L4_Flags x9) = False;
+is_Dst (CT_State x10) = False;
+is_Dst (Extra x11) = False;
 
 normalize_dst_ips ::
   forall a.
@@ -2491,6 +2532,61 @@ optimize_matches_option f (Rule m a : rs) =
     Nothing -> optimize_matches_option f rs;
     Just ma -> Rule ma a : optimize_matches_option f rs;
   });
+
+multiportports_sel :: forall a. (Len a) => Common_primitive a -> Ipt_l4_ports;
+multiportports_sel (MultiportPorts x8) = x8;
+
+is_MultiportPorts :: forall a. (Len a) => Common_primitive a -> Bool;
+is_MultiportPorts (Src x1) = False;
+is_MultiportPorts (Dst x2) = False;
+is_MultiportPorts (IIface x3) = False;
+is_MultiportPorts (OIface x4) = False;
+is_MultiportPorts (Prot x5) = False;
+is_MultiportPorts (Src_Ports x6) = False;
+is_MultiportPorts (Dst_Ports x7) = False;
+is_MultiportPorts (MultiportPorts x8) = True;
+is_MultiportPorts (L4_Flags x9) = False;
+is_MultiportPorts (CT_State x10) = False;
+is_MultiportPorts (Extra x11) = False;
+
+replace_primitive_matchexpr ::
+  forall a b.
+    (a -> Bool, a -> b) ->
+      (Negation_type b -> Match_expr a) -> Match_expr a -> Match_expr a;
+replace_primitive_matchexpr disc_sel replace_f m =
+  let {
+    (asa, rst) = primitive_extractor disc_sel m;
+  } in (if null asa then m
+         else MatchAnd (andfold_MatchExp (map replace_f asa)) rst);
+
+rewrite_MultiportPorts_one ::
+  forall a.
+    (Len a) => Negation_type Ipt_l4_ports -> Match_expr (Common_primitive a);
+rewrite_MultiportPorts_one (Pos pts) =
+  matchOr (Match (Src_Ports pts)) (Match (Dst_Ports pts));
+rewrite_MultiportPorts_one (Neg pts) =
+  MatchAnd (MatchNot (Match (Src_Ports pts)))
+    (MatchNot (Match (Dst_Ports pts)));
+
+normalize_match :: forall a. Match_expr a -> [Match_expr a];
+normalize_match MatchAny = [MatchAny];
+normalize_match (Match m) = [Match m];
+normalize_match (MatchAnd m1 m2) =
+  concatMap (\ x -> map (MatchAnd x) (normalize_match m2)) (normalize_match m1);
+normalize_match (MatchNot (MatchAnd m1 m2)) =
+  normalize_match (MatchNot m1) ++ normalize_match (MatchNot m2);
+normalize_match (MatchNot (MatchNot m)) = normalize_match m;
+normalize_match (MatchNot MatchAny) = [];
+normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
+
+rewrite_MultiportPorts ::
+  forall a.
+    (Len a) => Match_expr (Common_primitive a) ->
+                 [Match_expr (Common_primitive a)];
+rewrite_MultiportPorts m =
+  normalize_match
+    (replace_primitive_matchexpr (is_MultiportPorts, multiportports_sel)
+      rewrite_MultiportPorts_one m);
 
 singletonize_L4Ports :: Ipt_l4_ports -> [Ipt_l4_ports];
 singletonize_L4Ports (L4Ports proto pts) = map (\ p -> L4Ports proto [p]) pts;
@@ -2561,17 +2657,6 @@ rewrite_negated_src_ports m =
   rewrite_negated_primitives (is_Src_Ports, src_ports_sel) Src_Ports
     l4_ports_negate_one m;
 
-normalize_match :: forall a. Match_expr a -> [Match_expr a];
-normalize_match MatchAny = [MatchAny];
-normalize_match (Match m) = [Match m];
-normalize_match (MatchAnd m1 m2) =
-  concatMap (\ x -> map (MatchAnd x) (normalize_match m2)) (normalize_match m1);
-normalize_match (MatchNot (MatchAnd m1 m2)) =
-  normalize_match (MatchNot m1) ++ normalize_match (MatchNot m2);
-normalize_match (MatchNot (MatchNot m)) = normalize_match m;
-normalize_match (MatchNot MatchAny) = [];
-normalize_match (MatchNot (Match m)) = [MatchNot (Match m)];
-
 normalize_ports_generic ::
   forall a.
     (Len a) => (Match_expr (Common_primitive a) ->
@@ -2624,11 +2709,12 @@ transform_normalize_primitives ::
   forall a.
     (Len a) => [Rule (Common_primitive a)] -> [Rule (Common_primitive a)];
 transform_normalize_primitives =
-  (((optimize_matches_option compress_normalize_besteffort .
-      normalize_rules normalize_dst_ips) .
-     normalize_rules normalize_src_ips) .
-    normalize_rules normalize_dst_ports) .
-    normalize_rules normalize_src_ports;
+  ((((optimize_matches_option compress_normalize_besteffort .
+       normalize_rules normalize_dst_ips) .
+      normalize_rules normalize_src_ips) .
+     normalize_rules normalize_dst_ports) .
+    normalize_rules normalize_src_ports) .
+    normalize_rules rewrite_MultiportPorts;
 
 ctstate_is_UNIV :: Set Ctstate -> Bool;
 ctstate_is_UNIV c =
@@ -2659,6 +2745,7 @@ optimize_primitive_univ (Match (Dst (IpAddrRange va vb))) =
 optimize_primitive_univ (Match (Prot (Proto va))) = Match (Prot (Proto va));
 optimize_primitive_univ (Match (Src_Ports v)) = Match (Src_Ports v);
 optimize_primitive_univ (Match (Dst_Ports v)) = Match (Dst_Ports v);
+optimize_primitive_univ (Match (MultiportPorts v)) = Match (MultiportPorts v);
 optimize_primitive_univ (Match (Extra v)) = Match (Extra v);
 optimize_primitive_univ (MatchNot m) = MatchNot (optimize_primitive_univ m);
 optimize_primitive_univ (MatchAnd m1 m2) =
@@ -3494,6 +3581,7 @@ is_pos_Extra a = (case a of {
                    Pos (Prot _) -> False;
                    Pos (Src_Ports _) -> False;
                    Pos (Dst_Ports _) -> False;
+                   Pos (MultiportPorts _) -> False;
                    Pos (L4_Flags _) -> False;
                    Pos (CT_State _) -> False;
                    Pos (Extra _) -> True;
@@ -3597,6 +3685,7 @@ oiface_rewrite uv (Match (IIface v)) = Match (IIface v);
 oiface_rewrite uv (Match (Prot v)) = Match (Prot v);
 oiface_rewrite uv (Match (Src_Ports v)) = Match (Src_Ports v);
 oiface_rewrite uv (Match (Dst_Ports v)) = Match (Dst_Ports v);
+oiface_rewrite uv (Match (MultiportPorts v)) = Match (MultiportPorts v);
 oiface_rewrite uv (Match (L4_Flags v)) = Match (L4_Flags v);
 oiface_rewrite uv (Match (CT_State v)) = Match (CT_State v);
 oiface_rewrite uv (Match (Extra v)) = Match (Extra v);
@@ -3631,6 +3720,7 @@ iiface_constrain ipassmt (Match (OIface v)) = Match (OIface v);
 iiface_constrain ipassmt (Match (Prot v)) = Match (Prot v);
 iiface_constrain ipassmt (Match (Src_Ports v)) = Match (Src_Ports v);
 iiface_constrain ipassmt (Match (Dst_Ports v)) = Match (Dst_Ports v);
+iiface_constrain ipassmt (Match (MultiportPorts v)) = Match (MultiportPorts v);
 iiface_constrain ipassmt (Match (L4_Flags v)) = Match (L4_Flags v);
 iiface_constrain ipassmt (Match (CT_State v)) = Match (CT_State v);
 iiface_constrain ipassmt (Match (Extra v)) = Match (Extra v);
@@ -3664,6 +3754,7 @@ iiface_rewrite ipassmt (Match (OIface v)) = Match (OIface v);
 iiface_rewrite ipassmt (Match (Prot v)) = Match (Prot v);
 iiface_rewrite ipassmt (Match (Src_Ports v)) = Match (Src_Ports v);
 iiface_rewrite ipassmt (Match (Dst_Ports v)) = Match (Dst_Ports v);
+iiface_rewrite ipassmt (Match (MultiportPorts v)) = Match (MultiportPorts v);
 iiface_rewrite ipassmt (Match (L4_Flags v)) = Match (L4_Flags v);
 iiface_rewrite ipassmt (Match (CT_State v)) = Match (CT_State v);
 iiface_rewrite ipassmt (Match (Extra v)) = Match (Extra v);
@@ -3981,6 +4072,9 @@ fill_l4_protocol_raw protocol =
         Dst_Ports (L4Ports x pts) ->
           (if not (equal_word x zero_word) then error "undefined"
             else Dst_Ports (L4Ports protocol pts));
+        MultiportPorts (L4Ports x pts) ->
+          (if not (equal_word x zero_word) then error "undefined"
+            else MultiportPorts (L4Ports protocol pts));
         L4_Flags aa -> L4_Flags aa;
         CT_State aa -> CT_State aa;
         Extra aa -> Extra aa;
@@ -3995,6 +4089,10 @@ fill_l4_protocol (Pos (Prot (Proto protocol)) : ms) =
   Pos (Prot (Proto protocol)) : fill_l4_protocol_raw protocol ms;
 fill_l4_protocol (Pos (Src_Ports uu) : uv) = error "undefined";
 fill_l4_protocol (Pos (Dst_Ports uw) : ux) = error "undefined";
+fill_l4_protocol (Pos (MultiportPorts uy) : uz) = error "undefined";
+fill_l4_protocol (Neg (Src_Ports va) : vb) = error "undefined";
+fill_l4_protocol (Neg (Dst_Ports vc) : vd) = error "undefined";
+fill_l4_protocol (Neg (MultiportPorts ve) : vf) = error "undefined";
 fill_l4_protocol (Pos (Src va) : ms) = Pos (Src va) : fill_l4_protocol ms;
 fill_l4_protocol (Pos (Dst va) : ms) = Pos (Dst va) : fill_l4_protocol ms;
 fill_l4_protocol (Pos (IIface va) : ms) = Pos (IIface va) : fill_l4_protocol ms;
@@ -4006,7 +4104,16 @@ fill_l4_protocol (Pos (L4_Flags va) : ms) =
 fill_l4_protocol (Pos (CT_State va) : ms) =
   Pos (CT_State va) : fill_l4_protocol ms;
 fill_l4_protocol (Pos (Extra va) : ms) = Pos (Extra va) : fill_l4_protocol ms;
-fill_l4_protocol (Neg v : ms) = Neg v : fill_l4_protocol ms;
+fill_l4_protocol (Neg (Src va) : ms) = Neg (Src va) : fill_l4_protocol ms;
+fill_l4_protocol (Neg (Dst va) : ms) = Neg (Dst va) : fill_l4_protocol ms;
+fill_l4_protocol (Neg (IIface va) : ms) = Neg (IIface va) : fill_l4_protocol ms;
+fill_l4_protocol (Neg (OIface va) : ms) = Neg (OIface va) : fill_l4_protocol ms;
+fill_l4_protocol (Neg (Prot va) : ms) = Neg (Prot va) : fill_l4_protocol ms;
+fill_l4_protocol (Neg (L4_Flags va) : ms) =
+  Neg (L4_Flags va) : fill_l4_protocol ms;
+fill_l4_protocol (Neg (CT_State va) : ms) =
+  Neg (CT_State va) : fill_l4_protocol ms;
+fill_l4_protocol (Neg (Extra va) : ms) = Neg (Extra va) : fill_l4_protocol ms;
 
 integer_to_16word :: Integer -> Word (Bit0 (Bit0 (Bit0 (Bit0 Num1))));
 integer_to_16word i = nat_to_16word (nat_of_integer i);
@@ -4248,6 +4355,7 @@ normalized_dst_ports (Match (IIface v)) = True;
 normalized_dst_ports (Match (OIface v)) = True;
 normalized_dst_ports (Match (Prot v)) = True;
 normalized_dst_ports (Match (Src_Ports v)) = True;
+normalized_dst_ports (Match (MultiportPorts v)) = True;
 normalized_dst_ports (Match (L4_Flags v)) = True;
 normalized_dst_ports (Match (CT_State v)) = True;
 normalized_dst_ports (Match (Extra v)) = True;
@@ -4258,6 +4366,7 @@ normalized_dst_ports (MatchNot (Match (IIface v))) = True;
 normalized_dst_ports (MatchNot (Match (OIface v))) = True;
 normalized_dst_ports (MatchNot (Match (Prot v))) = True;
 normalized_dst_ports (MatchNot (Match (Src_Ports v))) = True;
+normalized_dst_ports (MatchNot (Match (MultiportPorts v))) = True;
 normalized_dst_ports (MatchNot (Match (L4_Flags v))) = True;
 normalized_dst_ports (MatchNot (Match (CT_State v))) = True;
 normalized_dst_ports (MatchNot (Match (Extra v))) = True;
@@ -4279,6 +4388,7 @@ normalized_src_ports (Match (IIface v)) = True;
 normalized_src_ports (Match (OIface v)) = True;
 normalized_src_ports (Match (Prot v)) = True;
 normalized_src_ports (Match (Dst_Ports v)) = True;
+normalized_src_ports (Match (MultiportPorts v)) = True;
 normalized_src_ports (Match (L4_Flags v)) = True;
 normalized_src_ports (Match (CT_State v)) = True;
 normalized_src_ports (Match (Extra v)) = True;
@@ -4289,6 +4399,7 @@ normalized_src_ports (MatchNot (Match (IIface v))) = True;
 normalized_src_ports (MatchNot (Match (OIface v))) = True;
 normalized_src_ports (MatchNot (Match (Prot v))) = True;
 normalized_src_ports (MatchNot (Match (Dst_Ports v))) = True;
+normalized_src_ports (MatchNot (Match (MultiportPorts v))) = True;
 normalized_src_ports (MatchNot (Match (L4_Flags v))) = True;
 normalized_src_ports (MatchNot (Match (CT_State v))) = True;
 normalized_src_ports (MatchNot (Match (Extra v))) = True;
@@ -4346,11 +4457,15 @@ common_primitive_toString uy (Dst_Ports (L4Ports prot pts)) =
   "-m " ++
     primitive_protocol_toString prot ++
       " --dpts " ++ list_toString (ports_toString []) pts;
-common_primitive_toString uz (CT_State s) =
+common_primitive_toString uz (MultiportPorts (L4Ports prot pts)) =
+  "-p " ++
+    primitive_protocol_toString prot ++
+      " -m multiport --ports " ++ list_toString (ports_toString []) pts;
+common_primitive_toString va (CT_State s) =
   "-m state --state " ++ ctstate_set_toString s;
-common_primitive_toString va (L4_Flags (TCP_Flags c m)) =
+common_primitive_toString vb (L4_Flags (TCP_Flags c m)) =
   "--tcp-flags " ++ ipt_tcp_flags_toString c ++ " " ++ ipt_tcp_flags_toString m;
-common_primitive_toString vb (Extra e) = "~~" ++ e ++ "~~";
+common_primitive_toString vc (Extra e) = "~~" ++ e ++ "~~";
 
 ipaddr_generic_toString :: forall a. (Len a) => Word a -> [Prelude.Char];
 ipaddr_generic_toString ip =
@@ -4582,9 +4697,10 @@ is_L4_Flags (OIface x4) = False;
 is_L4_Flags (Prot x5) = False;
 is_L4_Flags (Src_Ports x6) = False;
 is_L4_Flags (Dst_Ports x7) = False;
-is_L4_Flags (L4_Flags x8) = True;
-is_L4_Flags (CT_State x9) = False;
-is_L4_Flags (Extra x10) = False;
+is_L4_Flags (MultiportPorts x8) = False;
+is_L4_Flags (L4_Flags x9) = True;
+is_L4_Flags (CT_State x10) = False;
+is_L4_Flags (Extra x11) = False;
 
 is_CT_State :: forall a. (Len a) => Common_primitive a -> Bool;
 is_CT_State (Src x1) = False;
@@ -4594,9 +4710,10 @@ is_CT_State (OIface x4) = False;
 is_CT_State (Prot x5) = False;
 is_CT_State (Src_Ports x6) = False;
 is_CT_State (Dst_Ports x7) = False;
-is_CT_State (L4_Flags x8) = False;
-is_CT_State (CT_State x9) = True;
-is_CT_State (Extra x10) = False;
+is_CT_State (MultiportPorts x8) = False;
+is_CT_State (L4_Flags x9) = False;
+is_CT_State (CT_State x10) = True;
+is_CT_State (Extra x11) = False;
 
 is_Extra :: forall a. (Len a) => Common_primitive a -> Bool;
 is_Extra (Src x1) = False;
@@ -4606,9 +4723,10 @@ is_Extra (OIface x4) = False;
 is_Extra (Prot x5) = False;
 is_Extra (Src_Ports x6) = False;
 is_Extra (Dst_Ports x7) = False;
-is_Extra (L4_Flags x8) = False;
-is_Extra (CT_State x9) = False;
-is_Extra (Extra x10) = True;
+is_Extra (MultiportPorts x8) = False;
+is_Extra (L4_Flags x9) = False;
+is_Extra (CT_State x10) = False;
+is_Extra (Extra x11) = True;
 
 normalized_protocols ::
   forall a. (Len a) => Match_expr (Common_primitive a) -> Bool;
@@ -4626,6 +4744,7 @@ normalized_src_ips (Match (OIface v)) = True;
 normalized_src_ips (Match (Prot v)) = True;
 normalized_src_ips (Match (Src_Ports v)) = True;
 normalized_src_ips (Match (Dst_Ports v)) = True;
+normalized_src_ips (Match (MultiportPorts v)) = True;
 normalized_src_ips (Match (L4_Flags v)) = True;
 normalized_src_ips (Match (CT_State v)) = True;
 normalized_src_ips (Match (Extra v)) = True;
@@ -4636,6 +4755,7 @@ normalized_src_ips (MatchNot (Match (OIface v))) = True;
 normalized_src_ips (MatchNot (Match (Prot v))) = True;
 normalized_src_ips (MatchNot (Match (Src_Ports v))) = True;
 normalized_src_ips (MatchNot (Match (Dst_Ports v))) = True;
+normalized_src_ips (MatchNot (Match (MultiportPorts v))) = True;
 normalized_src_ips (MatchNot (Match (L4_Flags v))) = True;
 normalized_src_ips (MatchNot (Match (CT_State v))) = True;
 normalized_src_ips (MatchNot (Match (Extra v))) = True;
@@ -4657,6 +4777,7 @@ normalized_dst_ips (Match (OIface v)) = True;
 normalized_dst_ips (Match (Prot v)) = True;
 normalized_dst_ips (Match (Src_Ports v)) = True;
 normalized_dst_ips (Match (Dst_Ports v)) = True;
+normalized_dst_ips (Match (MultiportPorts v)) = True;
 normalized_dst_ips (Match (L4_Flags v)) = True;
 normalized_dst_ips (Match (CT_State v)) = True;
 normalized_dst_ips (Match (Extra v)) = True;
@@ -4667,6 +4788,7 @@ normalized_dst_ips (MatchNot (Match (OIface v))) = True;
 normalized_dst_ips (MatchNot (Match (Prot v))) = True;
 normalized_dst_ips (MatchNot (Match (Src_Ports v))) = True;
 normalized_dst_ips (MatchNot (Match (Dst_Ports v))) = True;
+normalized_dst_ips (MatchNot (Match (MultiportPorts v))) = True;
 normalized_dst_ips (MatchNot (Match (L4_Flags v))) = True;
 normalized_dst_ips (MatchNot (Match (CT_State v))) = True;
 normalized_dst_ips (MatchNot (Match (Extra v))) = True;
@@ -4688,8 +4810,9 @@ check_simple_fw_preconditions rs =
                   normalized_protocols m &&
                     not (has_disc is_L4_Flags m) &&
                       not (has_disc is_CT_State m) &&
-                        not (has_disc is_Extra m) &&
-                          (equal_action a Accept || equal_action a Drop))
+                        not (has_disc is_MultiportPorts m) &&
+                          not (has_disc is_Extra m) &&
+                            (equal_action a Accept || equal_action a Drop))
     rs;
 
 action_to_simple_action :: Action -> Simple_action;
@@ -4894,6 +5017,8 @@ ipt_tcp_flags_assume_flag flg (Match (OIface v)) = Match (OIface v);
 ipt_tcp_flags_assume_flag flg (Match (Prot v)) = Match (Prot v);
 ipt_tcp_flags_assume_flag flg (Match (Src_Ports v)) = Match (Src_Ports v);
 ipt_tcp_flags_assume_flag flg (Match (Dst_Ports v)) = Match (Dst_Ports v);
+ipt_tcp_flags_assume_flag flg (Match (MultiportPorts v)) =
+  Match (MultiportPorts v);
 ipt_tcp_flags_assume_flag flg (Match (CT_State v)) = Match (CT_State v);
 ipt_tcp_flags_assume_flag flg (Match (Extra v)) = Match (Extra v);
 ipt_tcp_flags_assume_flag flg (MatchNot m) =
@@ -4923,6 +5048,7 @@ ctstate_assume_state s (Match (OIface v)) = Match (OIface v);
 ctstate_assume_state s (Match (Prot v)) = Match (Prot v);
 ctstate_assume_state s (Match (Src_Ports v)) = Match (Src_Ports v);
 ctstate_assume_state s (Match (Dst_Ports v)) = Match (Dst_Ports v);
+ctstate_assume_state s (Match (MultiportPorts v)) = Match (MultiportPorts v);
 ctstate_assume_state s (Match (L4_Flags v)) = Match (L4_Flags v);
 ctstate_assume_state s (Match (Extra v)) = Match (Extra v);
 ctstate_assume_state s (MatchNot m) = MatchNot (ctstate_assume_state s m);

@@ -1,8 +1,9 @@
+section\<open>Negation Type\<close>
 theory Negation_Type
 imports Main
 begin
 
-section\<open>Negation Type\<close>
+text\<open>Store some @{typ 'a} and remember symbolically whether you mean just @{term a} or @{term "\<not> a"}.\<close>
 
 text\<open>Only negated or non-negated literals\<close>
 datatype 'a negation_type = Pos 'a | Neg 'a
@@ -104,6 +105,10 @@ lemma negation_type_forall_split: "(\<forall>is\<in>set Ms. case is of Pos i \<R
 
 fun invert :: "'a negation_type \<Rightarrow> 'a negation_type" where
   "invert (Pos x) = Neg x" |
-  "invert (Neg x) = (Pos x)"
+  "invert (Neg x) = Pos x"
+
+lemma invert_invert_id: "invert \<circ> invert = id"
+  apply(clarsimp simp add: fun_eq_iff, rename_tac x, case_tac x)
+   by simp+
 
 end

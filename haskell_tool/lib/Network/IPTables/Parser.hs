@@ -24,7 +24,6 @@ parseIptablesSave_ipv6 = runParser ruleset_ipv6 initRState
 data RState a = RState { rstRules  :: Ruleset a
                        , rstActive :: Maybe TableName
                        }
-    --deriving (Show)
 
 initRState = RState mkRuleset Nothing
 
@@ -80,7 +79,7 @@ chain = line $ do
 probablyNegated parser = ParsedNegatedMatch <$> try (lit "! " >> (lookAheadEOT parser) <* skipWS)
                      <|> ParsedMatch <$> (try (lookAheadEOT parser) <* skipWS)
 
-probablyNegatedSingleton parser = (\x -> [x]) <$> (probablyNegated parser)
+probablyNegatedSingleton parser = (:[]) <$> (probablyNegated parser)
 
 parseWithModulePrefix modul parser = try $ skipWS *> string modul *> (many1 parser)
 
@@ -120,7 +119,8 @@ knownMatch_generic parser_ipaddr_cidr parser_iprange = do
       
       <|> (parseWithModulePrefix "-m multiport "$ 
                 (probablyNegated $ lit "--sports " >> Isabelle.Src_Ports <$> Isabelle.mk_L4Ports_pre <$> parseCommaSeparatedList parsePortOne)
-            <|> (probablyNegated $ lit "--dports " >> Isabelle.Dst_Ports <$> Isabelle.mk_L4Ports_pre <$> parseCommaSeparatedList parsePortOne))
+            <|> (probablyNegated $ lit "--dports " >> Isabelle.Dst_Ports <$> Isabelle.mk_L4Ports_pre <$> parseCommaSeparatedList parsePortOne)
+            <|> (probablyNegated $ lit "--ports " >> Isabelle.MultiportPorts <$> Isabelle.mk_L4Ports_pre <$> parseCommaSeparatedList parsePortOne))
       
       <|> (probablyNegatedSingleton $ lit "-i " >> Isabelle.IIface <$> iface)
       <|> (probablyNegatedSingleton $ lit "-o " >> Isabelle.OIface <$> iface)
@@ -132,7 +132,7 @@ knownMatch_generic parser_ipaddr_cidr parser_iprange = do
                 (probablyNegated $ lit "--ctstate " >> Isabelle.CT_State <$> ctstate))
       
       
-      <|> ((\x -> [x]) <$> ((lookAheadEOT target) <* skipWS)) --TODO: tune
+      <|> ((:[]) <$> (lookAheadEOT target <* skipWS)) --TODO: tune
       
     return $ p
 
@@ -142,7 +142,7 @@ unknownMatch = token "unknown match" $ do
     let e = if "-j" `isPrefixOf` extra
               then Debug.Trace.trace ("Warning: probably a parse error at "++extra) extra
               else extra
-    return $ (\x -> [x]) $ ParsedMatch $ Isabelle.Extra $ e --TODO: tune
+    return $ [ParsedMatch (Isabelle.Extra e)]
 
 
 rule_ipv4 :: Parsec String (RState Word32) ()

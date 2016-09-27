@@ -9,6 +9,7 @@
 :IPSEC_42 - [0:0]
 -A FORWARD -j LOG --log-prefix "!#*~%&/()=?" --log-level 6
 -A FORWARD -s 127.0.0.0/8 -j DROP
+-A FORWARD -p udp -m multiport --ports 8080:8081,8082 --something-else -j ACCEPT
 -A FORWARD -i wlan0 -p tcp -m tcp ! --tcp-flags FIN,SYN,RST,ACK SYN -m state --state NEW -j DROP
 -A FORWARD -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m multiport --dports 80,443 -j ACCEPT
 -A FORWARD -p tcp -m state --state NEW -m tcp --dport 1:65535 --tcp-flags FIN,SYN,RST,ACK SYN -j ACCEPT

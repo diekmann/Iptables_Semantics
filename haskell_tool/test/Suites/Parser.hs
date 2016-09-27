@@ -62,6 +62,9 @@ expected_result = "*filter\n\
     \-A DOS~Pro-t_ect `ParsedMatch -i vocb' `ParsedMatch -p udp' `ParsedNegatedMatch -m protocolid:0 --spts [67:68]' `ParsedNegatedMatch -m protocolid:0 --dpts [67:68]' `ParsedAction -j ACCEPT'\n\
     \-A FORWARD `ParsedAction -j LOG' `ParsedMatch ~~--log-prefix~~' `ParsedMatch ~~\"!#*~%&/()=?\"~~' `ParsedMatch ~~--log-level~~' `ParsedMatch ~~6~~'\n\
     \-A FORWARD `ParsedMatch -s 127.0.0.0/8' `ParsedAction -j DROP'\n\
+    \-A FORWARD `ParsedMatch -p udp' \
+    \`ParsedMatch -p protocolid:0 -m multiport --ports [8080:8081, 8082]' \
+    \`ParsedMatch ~~--something-else~~' `ParsedAction -j ACCEPT'\n\
     \-A FORWARD `ParsedMatch -i wlan0' \
         \`ParsedMatch -p tcp' \
         \`ParsedNegatedMatch --tcp-flags [TCP_SYN, TCP_ACK, TCP_FIN, TCP_RST] [TCP_SYN]' \

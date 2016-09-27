@@ -1,10 +1,8 @@
-{-# Language FlexibleContexts #-}
-{-# Language UndecidableInstances #-}
+{-# Language FlexibleContexts, UndecidableInstances, StandaloneDeriving #-}
 module Network.IPTables.Ruleset 
 ( Ruleset
 , TableName
 , checkParsedTables
---, rulesetLookup --use loadUnfoldedRuleset instead
 , loadUnfoldedRuleset
 , mkRuleset
 , rsetTablesM
@@ -42,10 +40,7 @@ data ParsedMatchAction a = ParsedMatch (Isabelle.Common_primitive a)
                        | ParsedNegatedMatch (Isabelle.Common_primitive a)
                        | ParsedAction Isabelle.Action
 
-instance Show (Isabelle.Common_primitive a) => Show (ParsedMatchAction a) where
-    show (ParsedMatch m) = "ParsedMatch " ++ show m
-    show (ParsedNegatedMatch m) = "ParsedNegatedMatch " ++ show m
-    show (ParsedAction a) = "ParsedAction " ++ show a
+deriving instance Show (Isabelle.Common_primitive a) => Show (ParsedMatchAction a)
 
 
 data ParseRule a = ParseRule { ruleArgs :: [ParsedMatchAction a] }

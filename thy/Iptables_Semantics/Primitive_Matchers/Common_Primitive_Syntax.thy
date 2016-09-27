@@ -22,6 +22,7 @@ begin
     is_Prot: Prot (prot_sel: protocol) | 
     is_Src_Ports: Src_Ports (src_ports_sel: ipt_l4_ports) |
     is_Dst_Ports: Dst_Ports (dst_ports_sel: ipt_l4_ports) |
+    is_MultiportPorts: MultiportPorts (multiportports_sel: ipt_l4_ports) |
     is_L4_Flags: L4_Flags (l4_flags_sel: ipt_tcp_flags) |
     is_CT_State: CT_State (ct_state_sel: "ctstate set") |
     is_Extra: Extra (extra_sel: string)
@@ -39,6 +40,7 @@ lemma wf_disc_sel_common_primitive:
       "wf_disc_sel (is_L4_Flags, l4_flags_sel) L4_Flags"
       "wf_disc_sel (is_CT_State, ct_state_sel) CT_State"
       "wf_disc_sel (is_Extra, extra_sel) Extra"
+      "wf_disc_sel (is_MultiportPorts, multiportports_sel) MultiportPorts"
   by(simp_all add: wf_disc_sel.simps)
 
 

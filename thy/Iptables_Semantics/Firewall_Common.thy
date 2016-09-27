@@ -1,9 +1,8 @@
+section\<open>Firewall Basic Syntax\<close>
 theory Firewall_Common
 imports Main "../Simple_Firewall/Firewall_Common_Decision_State" 
-  "Common/RepeatStabilize"
+  "Common/Repeat_Stabilize"
 begin
-
-section\<open>Firewall Basic Syntax\<close>
 
 text\<open>
 Our firewall model supports the following actions.
@@ -11,27 +10,33 @@ Our firewall model supports the following actions.
 datatype action = Accept | Drop | Log | Reject | Call string | Return | Goto string | Empty | Unknown
 
 text\<open>
-The type parameter @{typ 'a} denotes the primitive match condition For example, matching
+We support the following algebra over primitives of type @{typ 'a}. 
+The type parameter @{typ 'a} denotes the primitive match condition. For example, matching
 on source IP address or on protocol.
-We list the primitives to an algebra. Note that we do not have an Or expression.
+We lift the primitives to an algebra. Note that we do not have an Or expression.
 \<close>
-datatype 'a match_expr = Match 'a | MatchNot "'a match_expr" | MatchAnd "'a match_expr" "'a match_expr" | MatchAny
+datatype 'a match_expr = Match 'a
+                       | MatchNot "'a match_expr"
+                       | MatchAnd "'a match_expr" "'a match_expr"
+                       | MatchAny
 
 definition MatchOr :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" where
   "MatchOr m1 m2 = MatchNot (MatchAnd (MatchNot m1) (MatchNot m2))"
 
-
+text\<open>A firewall rule consists of a match expression and an action.\<close>
 datatype 'a rule = Rule (get_match: "'a match_expr") (get_action: action)
 
 lemma rules_singleton_rev_E:
-  "[Rule m a] = rs\<^sub>1 @ rs\<^sub>2 \<Longrightarrow> (rs\<^sub>1 = [Rule m a] \<Longrightarrow> rs\<^sub>2 = [] \<Longrightarrow> P m a) \<Longrightarrow> (rs\<^sub>1 = [] \<Longrightarrow> rs\<^sub>2 = [Rule m a] \<Longrightarrow> P m a) \<Longrightarrow> P m a"
+  "[Rule m a] = rs\<^sub>1 @ rs\<^sub>2 \<Longrightarrow>
+   (rs\<^sub>1 = [Rule m a] \<Longrightarrow> rs\<^sub>2 = [] \<Longrightarrow> P m a) \<Longrightarrow>
+   (rs\<^sub>1 = [] \<Longrightarrow> rs\<^sub>2 = [Rule m a] \<Longrightarrow> P m a) \<Longrightarrow> P m a"
 by (cases rs\<^sub>1) auto
 
 
 
-
 section\<open>Basic Algorithms\<close>
-text\<open>These algorithms should be valid for all firewall semantics The corresponding proofs follow once the semantics are defined.\<close>
+text\<open>These algorithms should be valid for all firewall semantics.
+     The corresponding proofs follow once the semantics are defined.\<close>
 
 
 text\<open>The actions Log and Empty do not modify the packet processing in any way. They can be removed.\<close>

@@ -1,9 +1,5 @@
 {-# Language FlexibleContexts, FlexibleInstances #-}
-{-# OPTIONS_GHC -fno-warn-tabs #-} {- I'm in a murderous mood -}
-
-module Network.RTbl.Parser
-{-( parseRTbl
-, rTblToIsabelle)-}
+module Network.RTbl.Parser ( parseRTbl_ipv6, parseRTbl_ipv4, rTblToIsabelle, RTbl, Routing_rule)
 where
 
 import           Text.Parsec
@@ -28,14 +24,14 @@ parseRTbl_ipv6 = parseRTbl ipv6colonsep
 
 parseRTblEntry :: Isabelle.Len a => Parsec String s (Isabelle.Word a) -> Parsec String s (Routing_rule a)
 parseRTblEntry ippars = do
-	pfx <- ipaddrOrCidr ippars <|> defaultParser
-	skipWS
-	opts <- parseOpts ippars
-	many1 (char '\n')
-	return $ opts . empty_rr_hlp $ pfx
-	where
-		defaultParser = Prelude.const (Isabelle.default_prefix) <$> lit "default"
-	
+    pfx <- ipaddrOrCidr ippars <|> defaultParser
+    skipWS
+    opts <- parseOpts ippars
+    many1 (char '\n')
+    return $ opts . empty_rr_hlp $ pfx
+    where
+        defaultParser = Prelude.const (Isabelle.default_prefix) <$> lit "default"
+
 parseOpt :: Isabelle.Len a => Parsec String s (Isabelle.Word a) -> Parsec String s (Routing_rule a -> Routing_rule a)
 parseOpt ippars = choice (map try [parseOIF, parseNH ippars, parseMetric, ignoreScope, ignoreProto, ignoreSrc ippars])
 
@@ -45,50 +41,50 @@ parseOpts ippars = flip (foldl (flip id)) <$> many (parseOpt ippars <* skipWS)
 litornat l =  (void $ nat) <|> void (choice (map lit l))
 
 ignoreScope = do
-	lit "scope"
-	skipWS
-	litornat ["host", "link", "global"]
-	return id
+    lit "scope"
+    skipWS
+    litornat ["host", "link", "global"]
+    return id
 
 ignoreProto = do
-	lit "proto"
-	skipWS
-	litornat ["kernel", "boot", "static", "dhcp"]
-	return id
+    lit "proto"
+    skipWS
+    litornat ["kernel", "boot", "static", "dhcp"]
+    return id
 
 ignoreSrc ippars = do
-	lit "src"
-	skipWS
-	ippars
-	return id
+    lit "src"
+    skipWS
+    ippars
+    return id
 
 parseOIF :: Isabelle.Len a => Parsec String s (Routing_rule a -> Routing_rule a)
 parseOIF = do
-	lit "dev"
-	skipWS
-	routing_action_oiface_update <$> siface
+    lit "dev"
+    skipWS
+    routing_action_oiface_update <$> siface
 
 parseNH ippars = do
-	lit "via"
-	skipWS
-	routing_action_next_hop_update <$> ippars
+    lit "via"
+    skipWS
+    routing_action_next_hop_update <$> ippars
 
 parseMetric :: Isabelle.Len a => Parsec String s (Routing_rule a -> Routing_rule a)
 parseMetric = do
-	lit "metric"
-	skipWS
-	metric_update . const . Isabelle.Nat <$> nat
+    lit "metric"
+    skipWS
+    metric_update . const . Isabelle.Nat <$> nat
 
 rTblToIsabelle (RTbl t) = t
 
 instance Show (RTbl Word32) where
-	show (RTbl t) = unlines . map show $ t
+    show (RTbl t) = unlines . map show $ t
 instance Show (RTbl Word128) where
-	show (RTbl t) = unlines . map show $ t
+    show (RTbl t) = unlines . map show $ t
 
 {- now, for some code duplication... -}
 skipWS = void $ many $ oneOf " \t"
 lit str = (string str)
-ipaddrOrCidr ippars = try (Isabelle.PrefixMatch <$> (ippars <* char '/') <*> (Isabelle.Nat <$> nat)) 
+ipaddrOrCidr ippars = try (Isabelle.PrefixMatch <$> (ippars <* char '/') <*> (Isabelle.Nat <$> nat))
              <|> try (flip Isabelle.PrefixMatch (Isabelle.Nat 32) <$> ippars)
 siface = many1 (oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['+', '*', '.'])
