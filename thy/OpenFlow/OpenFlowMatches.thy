@@ -155,13 +155,13 @@ unfolding all_prerequisites_def by auto
 
 lemma of_safe_unsafe_match_eq: "all_prerequisites m \<Longrightarrow> OF_match_fields m p = Some (OF_match_fields_unsafe m p)"
 unfolding OF_match_fields_def OF_match_fields_unsafe_def comp_def set_seq_def match_prereq_def all_prerequisites_def
-proof -	
-	case goal1
-	have 1: "(\<lambda>f. if prerequisites f m then Some (match_no_prereq f p) else None) ` m = (\<lambda>f. Some (match_no_prereq f p)) ` m"
-		using goal1 by fastforce
-	have 2: "\<forall>x\<in>(\<lambda>f. Some (match_no_prereq f p)) ` m. x \<noteq> None" by blast
+proof goal_cases
+	case 1
+	have 2: "(\<lambda>f. if prerequisites f m then Some (match_no_prereq f p) else None) ` m = (\<lambda>f. Some (match_no_prereq f p)) ` m"
+		using 1 by fastforce
+	have 3: "\<forall>x\<in>(\<lambda>f. Some (match_no_prereq f p)) ` m. x \<noteq> None" by blast
 	show ?case
-		unfolding 1 unfolding eqTrueI[OF 2] unfolding if_True unfolding image_comp comp_def unfolding option.sel by(simp add: all_true_def)
+		unfolding 2 unfolding eqTrueI[OF 3] unfolding if_True unfolding image_comp comp_def unfolding option.sel by(simp add: all_true_def)
 qed
 
 lemma of_match_fields_safe_eq: assumes "all_prerequisites m" shows "OF_match_fields_safe m = OF_match_fields_unsafe m"
