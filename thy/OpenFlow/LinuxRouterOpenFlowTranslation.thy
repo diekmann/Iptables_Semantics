@@ -8,21 +8,6 @@ imports "../IP_Addresses/CIDR_Split"
 	"../Routing/Linux_Router"
 begin
 
-primrec filter_nones where
-"filter_nones [] = []" |
-"filter_nones (s#ss) = (case s of None \<Rightarrow> [] | Some s \<Rightarrow> [s]) @ filter_nones ss"
-
-lemma set_filter_nones: "k \<in> set (filter_nones ko) = (Some k \<in> set ko)"
-	by(induction ko) auto
-lemma set_filter_nones_simp: "set (filter_nones ko) = {k. Some k \<in> set ko}"
-	using set_filter_nones by fast
-lemma filter_nones_filter_map[code_unfold]: "filter_nones x = map the (filter (op \<noteq> None)  x)"
-by(induction x) (simp_all split: option.splits)
-
-lemma set_maps: "set (List.maps f a) = (\<Union>a\<in>set a. set (f a))" 
-unfolding List.maps_def set_concat set_map UN_simps(10) ..
-
-
 (* For reference:
 iiface :: "iface" --"in-interface"
 oiface :: "iface" --"out-interface"
@@ -47,9 +32,6 @@ definition "route2match r =
 	\<lparr>iiface = ifaceAny, oiface = ifaceAny, 
 	src = (0,0), dst=(pfxm_prefix (routing_match r),pfxm_length (routing_match r)), 
 	proto=ProtoAny, sports=(0,max_word), ports=(0,max_word)\<rparr>"
-
-lemma simple_fw_prepend_nonmatching: "\<forall>r \<in> set rs. \<not>simple_matches (match_sel r) p \<Longrightarrow> simple_fw_alt (rs @ rss) p = simple_fw_alt rss p"
-	by(induction rs) simp_all
 
 definition toprefixmatch where
 "toprefixmatch m \<equiv> (let pm = PrefixMatch (fst m) (snd m) in if pm = PrefixMatch 0 0 then None else Some pm)"
@@ -87,10 +69,6 @@ definition simple_match_to_of_match :: "32 simple_match \<Rightarrow> string lis
 )"
 (* I wonder\<dots> should I check whether list_all (match_iface (iiface m)) ifs instead of iiface m = ifaceAny? It would be pretty stupid if that wasn't the same, but you know\<dots> *)
 
-lemma smtoms_cong: "a = e \<Longrightarrow> b = f \<Longrightarrow> c = g \<Longrightarrow> d = h \<Longrightarrow> simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r e f g h" by simp
-(* this lemma is a bit stronger than what I actually need, but unfolds are convenient *)
-
-
 lemma smtoms_eq_hlp: "simple_match_to_of_match_single r a b c d = simple_match_to_of_match_single r f g h i \<longleftrightarrow> (a = f \<and> b = g \<and> c = h \<and> d = i)"
 (* In case this proof breaks: there are two alternate proofs in the repo. They are of similar quality, though. Good luck. *)
 proof(rule iffI,goal_cases)
@@ -118,8 +96,6 @@ proof(rule iffI,goal_cases)
   qed
 qed simp
 
-lemma proto_in_srcdst: "IPv4Proto x \<in> IPv4Src ` s \<longleftrightarrow> False" "IPv4Proto x \<in> IPv4Dst ` s \<longleftrightarrow> False" by fastforce+
-lemma simple_match_port_UNIVD: "Collect (simple_match_port a) = UNIV \<Longrightarrow> fst a = 0 \<and> snd a = max_word" by(metis UNIV_I antisym_conv max_word_max mem_Collect_eq prod.collapse simple_match_port_code word_le_0_iff)
 lemma simple_match_to_of_match_generates_prereqs: "simple_match_valid m \<Longrightarrow> r \<in> set (simple_match_to_of_match m ifs) \<Longrightarrow> all_prerequisites r"
 unfolding simple_match_to_of_match_def Let_def
 proof(clarsimp, goal_cases)
@@ -149,32 +125,19 @@ proof(clarsimp, goal_cases)
 qed
 
 lemma and_assoc: "a \<and> b \<and> c \<longleftrightarrow> (a \<and> b) \<and> c" by simp
-lemma ex_bexI: "x \<in> A \<Longrightarrow> (x \<in> A \<Longrightarrow> P x) \<Longrightarrow> \<exists>x\<in>A. P x"
-proof assume "x \<in> A \<Longrightarrow> P x" and "x \<in> A" thus "P x" .
-next  assume "x \<in> A" thus "x \<in> A" . 
-qed
 
 lemmas custom_simpset = Let_def set_concat set_map map_map comp_def concat_map_maps set_maps UN_iff fun_app_def Set.image_iff
-
-lemma bex_singleton: "\<exists>x\<in>{s}.P x = P s" by simp
 
 abbreviation "simple_fw_prefix_to_wordinterval \<equiv> prefix_to_wordinterval \<circ> uncurry PrefixMatch"
 
 lemma simple_match_port_alt: "simple_match_port m p \<longleftrightarrow> p \<in> wordinterval_to_set (uncurry WordInterval m)" by(simp split: uncurry_splits)
 
-
-(* TODO: move? *)
-lemma simple_match_ip_alt: "valid_prefix (PrefixMatch (fst m) (snd m)) \<Longrightarrow> 
-	simple_match_ip m p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst m) (snd m)) p"
-by(cases m) (simp add: prefix_to_wordset_ipset_from_cidr prefix_match_semantics_ipset_from_netmask2)
 lemma simple_match_src_alt: "simple_match_valid r \<Longrightarrow> 
 	simple_match_ip (src r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (src r)) (snd (src r))) p"
 by(cases "(src r)") (simp add: prefix_match_semantics_ipset_from_netmask2 prefix_to_wordset_ipset_from_cidr simple_match_valid_def valid_prefix_fw_def)
 lemma simple_match_dst_alt: "simple_match_valid r \<Longrightarrow> 
 	simple_match_ip (dst r) p \<longleftrightarrow> prefix_match_semantics (PrefixMatch (fst (dst r)) (snd (dst r))) p"
 by(cases "(dst r)") (simp add: prefix_match_semantics_ipset_from_netmask2 prefix_to_wordset_ipset_from_cidr simple_match_valid_def valid_prefix_fw_def)
-thm prefix_match_semantics_simple_match (* mph, I had one like that already. TODO: dedup *)
-
 
 lemma "x \<in> set (wordinterval_CIDR_split_prefixmatch w) \<Longrightarrow> valid_prefix x"
 using wordinterval_CIDR_split_prefixmatch_all_valid_Ball[THEN bspec, THEN conjunct1] .
@@ -460,24 +423,6 @@ lemma annotate_first_le_hlp:
 	by(clarsimp) (meson fst_annotate_rlen_le less_trans nat_less_le)
 lemmas distinct_of_prio_hlp = distinct_of_nat_list[OF distinct_fst_annotate_rlen annotate_first_le_hlp]
 (* don't need these right now, but maybe later? *)
-lemma distinct_fst_won_list_unused:
-	"distinct (map fst l) \<Longrightarrow> 
-	\<forall>e \<in> set l. fst e \<le> unat (max_word :: ('l::len) word) \<Longrightarrow> 
-	distinct (map (apfst (of_nat :: nat \<Rightarrow> 'l word)) l)"
-proof(goal_cases)
-	let ?mw = "(max_word :: 'l word)"
-	let ?won = "(of_nat :: nat \<Rightarrow> 'l word)"
-	case 1
-	obtain fl where fl: "fl = map fst l" by simp
-	with 1 have "distinct fl" "\<forall>e \<in> set fl. e \<le> unat ?mw" by simp_all
-	note distinct_of_nat_list[OF this, unfolded fl]
-	hence "distinct (map fst (map (apfst ?won) l))" by simp
-	thus ?case by (metis distinct_zipI1 zip_map_fst_snd)
-qed
-lemma annotate_first_le_hlp_unused:
-	"length l < unat (max_word :: ('l :: len) word) \<Longrightarrow> \<forall>e\<in>set (annotate_rlen l). fst e \<le> unat (max_word :: 'l word)"
-	by(clarsimp) (meson fst_annotate_rlen_le less_trans nat_less_le)
-
                                                   
 lemma fst_annotate_rlen: "map fst (annotate_rlen l) = rev [0..<length l]"
 by(induction l) (simp_all)
@@ -502,9 +447,6 @@ proof -
 	hence "sorted_descending (map ?won (map fst (annotate_rlen l)))" by(simp add: fst_annotate_rlen)
 	thus "sorted_descending (map fst (map (apfst ?won) (annotate_rlen l)))" by simp
 qed
-
-lemma map_annotate_rlen[simp]: "annotate_rlen (map f x) = map (apsnd f) (annotate_rlen x)"
-by(induction x) simp_all
 
 text\<open>l3 device to l2 forwarding\<close>
 definition "lr_of_tran_s3 ifs ard = (
@@ -539,91 +481,14 @@ definition "lr_of_tran rt fw ifs \<equiv> let
 	else Inl ''Error in creating OpenFlow table: priority number space exhausted''
 "
 
-lemma oif_ne_iif_alt: 
-"oif_ne_iif ifs = map (apsnd (\<lambda>(a,b). if a = b then simple_action.Drop else simple_action.Accept)) (generalized_fw_join (map (\<lambda>i. (simple_match_any\<lparr>oiface := Iface i\<rparr>, i)) ifs) (map (\<lambda>i. (simple_match_any\<lparr>iiface := Iface i\<rparr>, i)) ifs))"
-unfolding oif_ne_iif_def generalized_fw_join_def option2list_def
-oops
-
-
 definition "is_iface_name i \<equiv> i \<noteq> [] \<and> \<not>Iface.iface_name_is_wildcard i"
 definition "is_iface_list ifs \<equiv> distinct ifs \<and> list_all is_iface_name ifs"
-
-lemma simple_rule_and_iiface_update: "is_iface_name a1 \<Longrightarrow> match_iface (Iface a1) a \<longleftrightarrow> a = a1"
-	apply(rule iffI)
-	subgoal
-	 apply(clarsimp simp: is_iface_name_def match_iface.simps  split: bool.splits option.splits if_splits)
-	 apply(induction a1 a rule: internal_iface_name_match.induct)
-	    apply(simp_all add: iface_name_is_wildcard.simps match_iface_refl split: if_splits)
-   apply(metis iface_name_is_wildcard.simps(3) internal_iface_name_match.elims(2) list.discI)
-  done
-  subgoal by(simp add: match_iface_refl)
-proof - qed
 
 lemma max_16_word_max[simp]: "(a :: 16 word) \<le> 0xffff"
 proof -
 	have ffff: "0xffff = word_of_int (2 ^ 16 - 1)" by fastforce
 	show ?thesis using max_word_max[of a] unfolding max_word_def ffff by fastforce
 qed
-
-lemma simple_matches_ioiface:
-  "is_iface_name xa \<Longrightarrow>
-   is_iface_name xb \<Longrightarrow>
-   simple_matches (simple_match_any\<lparr>oiface := Iface xb, iiface := Iface xa\<rparr>) p \<longleftrightarrow> (p_oiface p = xb \<and> p_iiface p = xa)"
-by(auto simp: simple_matches.simps simple_match_any_def ipset_from_cidr_0 simple_rule_and_iiface_update)
-
-lemma image_iff_forealyo: "(y \<in> f ` S) \<longleftrightarrow> (\<exists>x \<in> S. y = f x)" by blast
-
-lemma oif_ne_iif_alt: "oif_ne_iif ifs =	map (\<lambda>(oi,ii). (simple_match_any\<lparr>oiface := Iface oi, iiface := Iface ii\<rparr>, if oi = ii then simple_action.Drop else simple_action.Accept)) (List.product ifs ifs)"
-oops
-
-lemma oif_ne_iif_p1_correct: "is_iface_list ifs \<Longrightarrow> generalized_sfw (oif_ne_iif_p1 ifs) p \<noteq> None \<longleftrightarrow> (p_oiface p \<noteq> p_iiface p \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
-proof(rule iffI[rotated], rule ccontr, unfold not_not, goal_cases)
-	case 2 note goal2 = 2
-	then obtain m d where "generalized_sfw (oif_ne_iif_p1 ifs) p = Some (m,d)" by fast
-	note m = generalized_sfwSomeD[OF this]
-	then obtain oif iif where ifs[simp]: "oif \<noteq> iif" "oif \<in> set ifs" "iif \<in> set ifs" "m = simple_match_any\<lparr>oiface := Iface oif, iiface := Iface iif\<rparr>" unfolding oif_ne_iif_p1_def by auto
-	hence ifn: "is_iface_name iif" "is_iface_name oif" using goal2 by(simp_all add: is_iface_list_def list_all_iff)
-	show ?case using m unfolding ifs unfolding simple_matches_ioiface[OF ifn] by simp
-next
-	case 1 note goal1 = 1
-	hence ifn: "is_iface_name (p_iiface p)" "is_iface_name (p_oiface p)" by(simp_all add: is_iface_list_def list_all_iff)
-	note goal1(3)[THEN generalized_sfw_NoneD]
-	hence "\<not> simple_matches (simple_match_any\<lparr>oiface := Iface (p_oiface p), iiface := Iface (p_iiface p)\<rparr>) p" 
-		unfolding oif_ne_iif_p1_def using goal1(2) by fastforce
-	thus False unfolding simple_matches_ioiface[OF ifn] by simp
-qed
-lemma oif_ne_iif_p2_correct: "is_iface_list ifs \<Longrightarrow> generalized_sfw (oif_ne_iif_p2 ifs) p \<noteq> None \<longleftrightarrow> (p_oiface p = p_iiface p \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
-	unfolding oif_ne_iif_p2_def
-	apply(induction ifs)
-	 apply(clarsimp simp add: generalized_sfw_simps is_iface_list_def)+
-using simple_matches_ioiface by auto
-
-lemma  oif_ne_iif_p12_snd:
-	"generalized_sfw (oif_ne_iif_p1 ifs) p = Some (r,e) \<Longrightarrow> e \<noteq> simple_action.Drop"
-	"generalized_sfw (oif_ne_iif_p2 ifs) p = Some (r,e) \<Longrightarrow> e = simple_action.Drop"
-	unfolding oif_ne_iif_p2_def oif_ne_iif_p1_def
-	by(drule generalized_sfwSomeD; clarsimp)+
-
-lemma oif_ne_iif_correct_unused: "is_iface_list ifs \<Longrightarrow> (\<exists>r. generalized_sfw (oif_ne_iif ifs) p = Some (r, ad)) \<longleftrightarrow> ((p_oiface p = p_iiface p \<longleftrightarrow> ad = simple_action.Drop) \<and> p_oiface p \<in> set ifs \<and> p_iiface p \<in> set ifs)"
-	unfolding oif_ne_iif_def
-	unfolding generalized_sfw_append
-	apply(rule iffI; split option.splits; clarify)
-	  apply(simp_all only: oif_ne_iif_p12_snd)
-	  using oif_ne_iif_p1_correct apply blast
-	 using oif_ne_iif_p2_correct apply blast
-	apply(simp)
-	apply(rule conjI;clarsimp)
-	 apply(subgoal_tac "p_oiface p \<noteq> p_iiface p")
-	  apply(drule oif_ne_iif_p1_correct[of _ p, THEN iffD2])
-	   apply blast
-	  apply(clarsimp)
-	  apply(drule oif_ne_iif_p12_snd)
-	  apply(metis simple_action.exhaust)
-	 using oif_ne_iif_p2_correct apply blast
-	apply(frule oif_ne_iif_p12_snd)
-	using oif_ne_iif_p2_correct apply blast
-done
-
 
 lemma replicate_FT_hlp: "x \<le> 16 \<and> y \<le> 16 \<Longrightarrow> replicate (16 - x) False @ replicate x True = replicate (16 - y) False @ replicate y True \<Longrightarrow> x = y"
 proof -
@@ -746,47 +611,12 @@ no_overlaps OF_match_fields_unsafe (map (split3 OFEntry) (lr_of_tran_s3 ifs amr)
     apply(unfold split3_def prod.simps flow_entry_match.simps flow_entry_match.sel de_Morgan_conj)
     apply(clarsimp simp only:)
     apply(erule (1) no_overlaps_lroft_s3_hlp_hlp)
-    apply simp
-    apply assumption
-    apply assumption
+       apply simp
+      apply assumption
+     apply assumption
     apply simp
   done
 done
-
-lemma simple_match_to_of_match_iface_any: "\<lbrakk>xa \<in> set (simple_match_to_of_match (match_sel ae) ifs); iiface (match_sel ae) = ifaceAny\<rbrakk>
-\<Longrightarrow> \<not>(\<exists>p. IngressPort p \<in> xa)"
-  by(simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def option2set_def uncurry_def[abs_def]) fast
-
-lemma simple_match_to_of_match_iface_some: "\<lbrakk>xa \<in> set (simple_match_to_of_match (match_sel ae) ifs); iiface (match_sel ae) \<noteq> ifaceAny\<rbrakk> \<Longrightarrow> \<exists>p. IngressPort p \<in> xa"
-  by(simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def option2set_def) fast
-
-
-lemma not_wildcard_Cons: "\<not> iface_name_is_wildcard (i # is) \<Longrightarrow> i = CHR ''+'' \<Longrightarrow> is \<noteq> []" using iface_name_is_wildcard.simps(2) by blast 
-
-lemma smtoms_only_one_iport: "\<lbrakk>xa \<in> set (simple_match_to_of_match (match_sel ba) ifs); IngressPort p1 \<in> xa; IngressPort p2 \<in> xa\<rbrakk> \<Longrightarrow> p1 = p2" 
-apply(clarsimp 
-  simp add: simple_match_to_of_match_def simple_match_to_of_match_single_def option2set_def Let_def)
-subgoal by(auto split: option.splits protocol.splits)
-done
-
-(* Todo: Move to Iface? I'd rather not\<dots> *)
-lemma no_overlaps_lroft_s4_hlp1: "\<lbrakk>Some r1 = simple_rule_and (simple_match_any\<lparr>iiface := Iface a1\<rparr>) a; Some r2 = simple_rule_and (simple_match_any\<lparr>iiface := Iface a2\<rparr>) a;
-	a1 \<noteq> a2; is_iface_name a1; is_iface_name a2\<rbrakk> \<Longrightarrow> iiface (match_sel r1) \<noteq> iiface (match_sel r2)"
-using simple_rule_and_iiface_update oops
-
-lemma hlp1: "\<lbrakk>Some r1 = x1; Some r2 = x2; x2 = x1; r1 \<noteq> r2\<rbrakk> \<Longrightarrow> False" by auto
-
-lemma disjointI: "(\<And>x. x \<in> A \<Longrightarrow> x \<in> B \<Longrightarrow> False) \<Longrightarrow> A \<inter> B = {}" by auto
-
-lemma distinct_restr: "distinct (map (\<lambda>(a,b,c). (a,b)) l) = distinct (map fst (map (\<lambda>(a,b,c). ((a,b),c)) l))"
-by(simp add: comp_def prod.case_distrib)
-lemma distinct_fst_force_snd: "distinct (map fst l) \<Longrightarrow> (a,b) \<in> set l \<Longrightarrow> (a,c) \<in> set l \<Longrightarrow> b = c" using map_of_is_SomeI by fastforce
-lemma distinct_fstsnd_force_trd: "distinct (map (\<lambda>(a,b,c). (a,b)) l) \<Longrightarrow> (a,b,c) \<in> set l \<Longrightarrow> (a,b,d) \<in> set l \<Longrightarrow> c = d"
-	apply(rule distinct_fst_force_snd)
-	  apply(force elim: distinct_restr[THEN iffD1])+
-done
-
-lemma x_comp_fst_comp_apsnd[simp]: "x \<circ> fst \<circ> apsnd f = x \<circ> fst" unfolding comp_def by simp
 
 lemma lr_of_tran_no_overlaps: assumes "distinct ifs" shows "Inr t = (lr_of_tran rt fw ifs) \<Longrightarrow> no_overlaps OF_match_fields_unsafe t"
 	apply(unfold lr_of_tran_def Let_def pack_OF_entries_def)
@@ -814,9 +644,6 @@ lemma sorted_lr_of_tran_s3: "sorted_descending (map fst f) \<Longrightarrow> sor
 	apply(simp add: sorted_descending_alt rev_map sorted_lr_of_tran_s3_hlp sorted_const)
 done
 
-lemma singleton_sorted: "set x \<subseteq> {a} \<Longrightarrow> sorted x"
-by(induction x; simp) (clarsimp simp add: sorted_Cons Ball_def; blast)
-
 lemma sorted_lr_of_tran_hlp: "(ofe_prio \<circ> split3 OFEntry) = fst" by(simp add: fun_eq_iff comp_def split3_def)
 
 lemma lr_of_tran_sorted_descending: "Inr r = lr_of_tran rt fw ifs \<Longrightarrow> sorted_descending (map ofe_prio r)"
@@ -830,19 +657,11 @@ lemma lr_of_tran_sorted_descending: "Inr r = lr_of_tran rt fw ifs \<Longrightarr
 	apply(simp add: o_assoc)
 done
 
-lemma find_map: "find g (map f a) = map_option f (find (g \<circ> f) a)"
-by(induction a) simp_all
-
 lemma lr_of_tran_s1_split: "lr_of_tran_s1 (a # rt) = (route2match a, output_iface (routing_action a)) # lr_of_tran_s1 rt"
 	by(unfold lr_of_tran_s1_def list.map, rule)
-lemma lr_of_tran_s1_append: "lr_of_tran_s1 (a @ rt) = lr_of_tran_s1 a @ lr_of_tran_s1 rt"
-	by(induction a) (simp_all add: lr_of_tran_s1_split lr_of_tran_s1_def)
 
 lemma route2match_correct: "valid_prefix (routing_match a) \<Longrightarrow> prefix_match_semantics (routing_match a) (p_dst p) \<longleftrightarrow> simple_matches (route2match a) (p)"
 by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl ipset_from_cidr_0 prefix_match_semantics_ipset_from_netmask2)
-
-lemma route2match_correct_noupd: "valid_prefix (routing_match a) \<Longrightarrow> simple_matches (route2match a) p \<Longrightarrow> prefix_match_semantics (routing_match a) (p_dst p)"
-by(simp add: route2match_def simple_matches.simps match_ifaceAny match_iface_refl prefix_match_semantics_ipset_from_netmask2)
 
 lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route (rt::('i::len) prefix_routing) \<Longrightarrow> 
   \<exists>rm ra. generalized_sfw (lr_of_tran_s1 rt) p = Some (rm,ra) \<and> ra = output_iface (routing_table_semantics rt (p_dst p))"
@@ -867,23 +686,6 @@ lemma s1_correct: "valid_prefixes rt \<Longrightarrow> has_default_route (rt::('
   done
 done
 
-lemma simple_fw_undecided: "simple_fw fw p = Undecided \<longleftrightarrow> (\<forall>r \<in> set fw. \<not>simple_matches (match_sel r) p)"
-by(induction rule: simple_fw.induct) (simp_all split: if_splits)
-
-(* TODO: move *)
-lemma findNoneI: "\<forall>x. x \<in> set l \<longrightarrow> \<not>f x \<Longrightarrow> find f l = None"
-by (simp add: find_None_iff)
-
-lemma invert_map_append: "map f l = a @ b \<Longrightarrow> \<exists>a' b'. map f (a' @ b') = a @ b \<and> length a' = length a \<and> length b' = length b"
-proof(induction a arbitrary: l)
-	case (Cons a as)
-	from Cons.prems have "map f (tl l) = as @ b" by auto
-	with Cons.IH obtain a' b' where ab': "map f (a' @ b') = as @ b" "length a' = length as \<and> length b' = length b" by blast
-	show ?case proof(intro exI)
-		show "map f (((hd l) # a') @ b') = (a # as) @ b \<and> length ((hd l) # a') = length (a # as) \<and> length b' = length b" using Cons.prems ab' by fastforce
-	qed
-qed force
-
 definition "to_OF_action a \<equiv> (case a of (p,d) \<Rightarrow> (case d of simple_action.Accept \<Rightarrow> [Forward p] | simple_action.Drop \<Rightarrow> []))"
 definition "from_OF_action a = (case a of [] \<Rightarrow> ('''',simple_action.Drop) | [Forward p] \<Rightarrow> (p, simple_action.Accept))"
 
@@ -906,100 +708,6 @@ OF_match_linear OF_match_fields_safe (map (\<lambda>x. split3 OFEntry (x1, x, ca
       apply(subst(asm) of_match_fields_safe_eq2)
       apply(simp;fail)+
   using simple_match_to_of_match_generates_prereqs by blast
-
-
-
-lemma generalized_sfw_Some_append: "generalized_sfw rs1 p = Some X \<Longrightarrow> generalized_sfw (rs1@rs2) p = Some X"
-  apply(simp add: generalized_sfw_def)
-  apply(induction rs1)
-   apply(simp)
-  apply(simp split: split_if_asm)
-done
-lemma generalized_sfw_None_append: "generalized_sfw rs1 p = None \<Longrightarrow> generalized_sfw (rs1@rs2) p = generalized_sfw rs2 p"
-  by(induction rs1; simp split: split_if_asm add: generalized_sfw_def)
-
-
-(*by the way, this also holds for one fixed m, so all the \<exists> can be deleted.*)
-lemma OF_match_linear_action_append_iff_generalized_sfw:
-  assumes ft_tail: "OF_match_linear OF_match_fields_safe ft_tail p = Action of_action \<longleftrightarrow> 
-                    (\<exists>m. generalized_sfw rs p = Some (m, rtfw_action))"
-  and ft_hd_action: "OF_match_linear OF_match_fields_safe ft_hd p = Action of_action \<longleftrightarrow>
-                     (\<exists>m. generalized_sfw [r] p = Some (m, rtfw_action))"
-  and ft_hd_noaction: "(OF_match_linear OF_match_fields_safe ft_hd p = NoAction \<longleftrightarrow> generalized_sfw [r] p = None)"
-  shows "OF_match_linear OF_match_fields_safe (ft_hd @ ft_tail) p = Action of_action \<longleftrightarrow> 
-          (\<exists>m. generalized_sfw (r # rs) p = Some (m, rtfw_action))"
-proof -
-  have x1: "(OF_match_linear OF_match_fields_safe ft_tail p = Action of_action \<Longrightarrow> \<exists>m. generalized_sfw rs p = Some (m, rtfw_action)) \<Longrightarrow>
-      (OF_match_linear OF_match_fields_safe ft_hd p = Action of_action \<Longrightarrow> \<exists>m. generalized_sfw [r] p = Some (m, rtfw_action)) \<Longrightarrow>
-      (OF_match_linear OF_match_fields_safe ft_hd p = NoAction \<Longrightarrow> generalized_sfw [r] p = None) \<Longrightarrow>
-      (OF_match_linear OF_match_fields_safe (ft_hd @ ft_tail) p = Action of_action) \<Longrightarrow> \<exists>m. (generalized_sfw (r # rs) p = Some (m, rtfw_action))"
-   apply(simp add: OF_match_linear_append)
-   apply(case_tac "OF_match_linear OF_match_fields_safe ft_hd p")
-     apply(simp)
-     apply(subgoal_tac "\<exists>m. generalized_sfw [r] p = Some (m, rtfw_action)")
-      prefer 2
-      apply blast
-     using generalized_sfw_Some_append apply fastforce
-    apply(simp)
-    apply(drule_tac generalized_sfw_None_append[of _ p rs])
-    apply fastforce
-   apply(simp; fail)
-  done
-  have x2: "(\<exists>m. generalized_sfw rs p = Some (m, rtfw_action) \<Longrightarrow> OF_match_linear OF_match_fields_safe ft_tail p = Action of_action) \<Longrightarrow>
-      (\<exists>m. generalized_sfw [r] p = Some (m, rtfw_action) \<Longrightarrow> OF_match_linear OF_match_fields_safe ft_hd p = Action of_action) \<Longrightarrow>
-      (generalized_sfw [r] p = None \<Longrightarrow> OF_match_linear OF_match_fields_safe ft_hd p = NoAction) \<Longrightarrow>
-      ((\<exists>m. generalized_sfw (r # rs) p = Some (m, rtfw_action)) \<Longrightarrow> OF_match_linear OF_match_fields_safe (ft_hd @ ft_tail) p = Action of_action)"
-   apply(simp add: generalized_sfw_append[of "[r]" rs p, simplified])
-   apply(simp split: option.split_asm)
-    apply(simp add: OF_match_linear_append; fail)
-   apply(simp add: OF_match_linear_append; fail)
-  done
-
-  from assms show ?thesis
-   apply -
-   apply(rule iffI)
-    apply(rule x1, simp_all)
-   apply(rule x2, simp_all)
-   done
-qed
-
-lemma OF_lm_noa_none2: "\<forall>e\<in>set ft. \<not> \<gamma> (ofe_fields e) p \<Longrightarrow> OF_match_linear \<gamma> ft p = NoAction"
-	by(induction ft) (simp_all split: if_splits)
-
-lemma OF_match_linear_not_noE:"ome \<in> set oms \<and> \<gamma> (ofe_fields ome) p \<Longrightarrow> OF_match_linear \<gamma> oms p \<noteq> NoAction"
-apply(induction oms)
-	 apply(simp)
-	apply(simp split: if_splits)
-	 apply blast+
-done
-lemma OF_match_linear_not_iff: "OF_match_linear \<gamma> oms p \<noteq> NoAction \<longleftrightarrow> (\<exists>ome. ome \<in> set oms \<and> \<gamma> (ofe_fields ome) p)"
-  apply(rule)
-   using OF_match_linear_not_noD apply metis
-  using OF_match_linear_not_noE by metis
-
-lemma ex_find_iff: "(\<exists>m. find f l = Some m) \<longleftrightarrow> (\<exists>m \<in> set l. f m)"
-(*by (metis find_None_iff option.collapse option.simps(3))*)
-  apply(rule iffI)
-   subgoal by(blast dest: find_SomeD[rotated])
-   subgoal by(rule ccontr) (simp add: find_None_iff)
-done
-
-lemma OF_match_linear_action1: "ome \<in> set oms \<and> \<gamma> (ofe_fields ome) p \<Longrightarrow>
-      \<exists>a. a \<in> set oms \<and> OF_match_linear \<gamma> oms p = Action (ofe_action a)"
-by(induction oms) auto
-
-lemma OF_match_linear_action_find_iff: "OF_match_linear \<gamma> oms p = Action a \<longleftrightarrow> 
-       (\<exists>prio flds. List.find (\<lambda>f. \<gamma> (ofe_fields f) p) oms = Some (OFEntry prio flds a))"
-apply(induction oms)
-	 apply(simp)
-	apply(simp)
-	apply(safe)
-	   apply(simp_all)
-	 apply(rename_tac ome oms prio flds)
-	 apply(case_tac ome, simp)
-	apply(rename_tac ome oms)
-	apply(case_tac ome, simp)
-done
 
 lemma s3_correct:
 	assumes vsfwm: "list_all simple_match_valid (map (fst \<circ> snd) ard)"
@@ -1053,18 +761,9 @@ using vsfwm oiifs
   done
 done
 
-lemma has_default_policy_ex_general_result: "has_default_policy fw \<Longrightarrow> \<exists>m a. generalized_sfw (map simple_rule_dtor fw) p = Some (m,a)"
-by(induction fw rule: has_default_policy.induct) (simp_all add: generalized_sfw_simps simple_rule_dtor_def simple_match_any)
-
 context
   notes valid_prefix_00[simp, intro!]
 begin
-  lemma oif_ne_iif_valid: "gsfw_valid (oif_ne_iif ifs)"
-    unfolding oif_ne_iif_def gsfw_valid_def list_all_iff oif_ne_iif_p1_def oif_ne_iif_p2_def
-    apply(clarsimp simp add: Set.image_iff simple_match_valid_def simple_match_any_def valid_prefix_fw_def)
-    apply force
-  done
-
   lemma lr_of_tran_s1_valid: "valid_prefixes rt \<Longrightarrow> gsfw_valid (lr_of_tran_s1 rt)"
     unfolding lr_of_tran_s1_def route2match_def gsfw_valid_def list_all_iff
     apply(clarsimp simp: simple_match_valid_def valid_prefix_fw_def)
@@ -1326,7 +1025,6 @@ proof -
     apply(simp)
   done
   show notub: "OF_priority_match OF_match_fields_safe oft p \<noteq> Undefined" unfolding lin using OF_match_linear_ne_Undefined .
-    (*by (metis lr_of_tran_no_overlaps ifl lin nerr no_overlaps_ne_Unefined unsafe_safe_eq(1))*)
   show notmult: "\<And>ls. OF_priority_match OF_match_fields_safe oft p = Action ls \<longrightarrow> length ls \<le> 1"
   apply(cases "simple_linux_router_nol12 rt fw p")
     using w2 apply(simp)

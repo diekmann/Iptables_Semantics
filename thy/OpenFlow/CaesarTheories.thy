@@ -115,4 +115,8 @@ using card2_eE card_Suc_eq card_insert_if oops
 
 lemma f_Img_ex_set: "{f x|x. P x} = f ` {x. P x}" by auto
 
+lemma set_maps: "set (List.maps f a) = (\<Union>a\<in>set a. set (f a))" 
+unfolding List.maps_def set_concat set_map UN_simps(10) ..
+
+
 end
