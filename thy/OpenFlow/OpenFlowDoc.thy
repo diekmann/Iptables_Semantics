@@ -1,22 +1,10 @@
 text_raw\<open>
-\normalfont
-\title{Verified Migration of Linux Firewalls to SDN}
-\author{Julius Michaelis and Cornelius Diekmann}
-\maketitle
-
-\begin{abstract}
-	We present a system that transforms the main routing table and \texttt{FORWARD} chain of iptables of a Linux-based firewall into a set of static OpenFlow rules.
-	Our implementation is verified against a model of a simplified Linux-based router and we can directly show how much of the original functionality is preserved.
-\end{abstract}
-
-%\tableofcontents
-
-% sane default for proof documents
-\parindent 0pt\parskip 0.5ex
-
-\input{chap1}
+\twocolumn
+\columnsep 2pc          %    Space between columns
+\textwidth 42pc         % Width of text line.
+\part{Documentation}
+\label{part2}
 \<close>
-
 section\<open>Configuration Translation\<close>
 text_raw\<open>\label{sec:conv}\<close>
 text\<open>
@@ -158,7 +146,7 @@ text\<open>If no matching entry is found, the behavior is undefined.\<close>
 subsubsection\<open>iptables Firewall\<close>
 text_raw\<open>\label{sec:lfwfw}\<close>
 text\<open>The firewall subsystem in a linux router is not any less complex than any of the of the other systems.
-Fortunately, this complexity has been dealt with in~\cite{diekmann2016verified} already and we can directly use the result.\<close>
+Fortunately, this complexity has been dealt with in~\cite{diekmann2016verified,Iptables_Semantics-AFP} already and we can directly use the result.\<close>
 text\<open>In short, one of the results is that a complex \emph{iptables} configuration can be simplified to be represented by a single list of matches that only support the following match conditions:
 \begin{itemize}
   \item (String) prefix matches on the input and output interfaces.
@@ -535,12 +523,3 @@ There are some fundamental differences between Exodus and our work:
 (*<*)
 end
 (*>*)
-
-text_raw\<open>
-
-\input{chap3}
-
-\bibliographystyle{abbrv}
-\bibliography{root}
-\<close>
-(*\embedfile{OpenFlowDoc.tex}*)

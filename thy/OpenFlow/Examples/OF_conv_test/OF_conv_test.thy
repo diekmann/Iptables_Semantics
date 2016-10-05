@@ -7,7 +7,7 @@ imports
   "../../OpenFlowSerialize"
 begin
 
-section\<open>Example: Simple Test for Translation to OpenFlow\<close>
+(*section\<open>Example: Simple Test for Translation to OpenFlow\<close>*)
 
 
 parse_iptables_save SQRL_fw="iptables-save"
@@ -51,7 +51,7 @@ definition "SQRL_fw_simple \<equiv> remdups_rev (to_simple_firewall (upper_closu
 value[code] "SQRL_fw_simple"
 lemma "simple_fw_valid SQRL_fw_simple" by eval
 
-section\<open>Example: SQRL RTBL\<close>
+(*section\<open>Example: SQRL RTBL\<close>*)
 
 parse_ip_route SQRL_rtbl_main = "ip-route"
 value SQRL_rtbl_main

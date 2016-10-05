@@ -1,8 +1,24 @@
 chapter OpenFlow
-session "OpenFlow_Documentation" = OpenFlow +
-	options [document_output = "of_doc"]
+
+session "OpenFlow" = Iptables_Semantics +
+	options[document_output = "output"]
+
+	theories[document=false]
+  		CaesarTheories (* just some helper lemmas *)
+		List_Group
+		Sort_Descending
+
 	theories
+		OpenFlowAction
+		OpenFlowMatches
+		OpenFlowSerialize
+		Semantics_OpenFlow
+		FeatherweightOpenFlowComparison
+		LinuxRouterOpenFlowTranslation
+		"Examples/OF_conv_test/OF_conv_test"
+		"Examples/RFC2544/RFC2544"
 		OpenFlowDoc
+
 	document_files
 		"root.tex"
 		"chap1.tex"
@@ -13,24 +29,4 @@ session "OpenFlow_Documentation" = OpenFlow +
 		"fig/pipeline.pdf"
 		"fig/rtr.pdf"
 		"bench.csv"
-
-session "OpenFlow" = Iptables_Semantics +
-	options [document_output = "of_outp"]
-	theories[document=false]
-  		"CaesarTheories" (* just some helper lemmas *)
-		List_Group
-		Sort_Descending
-	theories
-		OpenFlowAction
-		OpenFlowMatches
-		OpenFlowSerialize
-		Semantics_OpenFlow
-		FeatherweightOpenFlowComparison
-		LinuxRouterOpenFlowTranslation
-		"Examples/OF_conv_test/OF_conv_test"
-		"Examples/RFC2544/RFC2544"
-
-	document_files
-		"root.tex"
-		"moeptikz.sty"
 	
