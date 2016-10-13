@@ -15,11 +15,11 @@ This means that they have been directly set to this document from Isabelle and n
 Additionally, it allows us to omit various helper lemmas that do not help the understanding.
 However, it causes some notation inaccuracy, as type and function definitions are stated as lemmas or schematic goals.
 \<close>
-theory OpenFlowDoc
+theory OpenFlow_Documentation
 (*<*)
 imports 
-  LinuxRouterOpenFlowTranslation 
-  FeatherweightOpenFlowComparison
+  LinuxRouter_OpenFlow_Translation 
+  Featherweight_OpenFlow_Comparison
   "~~/src/HOL/Library/LaTeXsugar"
 begin
 (*>*)

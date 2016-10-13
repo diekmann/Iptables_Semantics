@@ -3,8 +3,8 @@ imports
   "../../../Iptables_Semantics/Primitive_Matchers/Parser"
   "../../../Simple_Firewall/SimpleFw_toString"
   "../../../Routing/IpRoute_Parser"
-  "../../LinuxRouterOpenFlowTranslation"
-  "../../OpenFlowSerialize"
+  "../../LinuxRouter_OpenFlow_Translation"
+  "../../OpenFlow_Serialize"
 begin
 
 (*section\<open>Example: Simple Test for Translation to OpenFlow\<close>*)

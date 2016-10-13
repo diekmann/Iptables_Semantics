@@ -1,10 +1,10 @@
-theory LinuxRouterOpenFlowTranslation
+theory LinuxRouter_OpenFlow_Translation
 imports "../IP_Addresses/CIDR_Split"
   "../Automatic_Refinement/Lib/Misc" (*TODO@Peter: rename and make available at better place :)*)
 	"../Simple_Firewall/Generic_SimpleFw" 
 	"Semantics_OpenFlow"
-	"OpenFlowMatches"
-	"OpenFlowAction"
+	"OpenFlow_Matches"
+	"OpenFlow_Action"
 	"../Routing/Linux_Router"
 begin
 

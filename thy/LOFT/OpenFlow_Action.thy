@@ -1,6 +1,6 @@
-theory OpenFlowAction
+theory OpenFlow_Action
 imports
-	OpenFlowMatches
+	OpenFlow_Matches
 begin
 
 (* Beware the differences between Actions and Instructions. OF1.0 doesn't support the former and they're thus not modelled here. *)

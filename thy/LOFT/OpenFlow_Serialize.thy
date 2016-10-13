@@ -1,6 +1,6 @@
-theory OpenFlowSerialize
-imports OpenFlowMatches
-        OpenFlowAction
+theory OpenFlow_Serialize
+imports OpenFlow_Matches
+        OpenFlow_Action
         Semantics_OpenFlow
         "../Simple_Firewall/Primitives/Primitives_toString"
         "../IP_Addresses/Lib_Word_toString"

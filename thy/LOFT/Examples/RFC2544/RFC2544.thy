@@ -2,8 +2,8 @@ theory RFC2544
 imports 
   "../../../Iptables_Semantics/Primitive_Matchers/Parser"
   "../../../Routing/IpRoute_Parser"
-  "../../LinuxRouterOpenFlowTranslation"
-  "../../OpenFlowSerialize"
+  "../../LinuxRouter_OpenFlow_Translation"
+  "../../OpenFlow_Serialize"
 begin
 
 (*section\<open>Example: Simple Test for Translation to OpenFlow\<close>*)
