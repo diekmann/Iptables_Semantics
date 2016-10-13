@@ -20,8 +20,8 @@ value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primiti
 definition "unfolded = unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string_ipv4 SQRL_fw)"
 lemma "map (quote_rewrite \<circ> common_primitive_rule_toString) unfolded =
   [''-p icmp -j ACCEPT'',
-   ''-i s1-lan -o s1-wan -p tcp -m tcp --spts [1024:65535] -m tcp --dpts [80] -j ACCEPT'',
-   ''-i s1-wan -o s1-lan -p tcp -m tcp --spts [80] -m tcp --dpts [1024:65535] -j ACCEPT'',
+   ''-i s1-lan -p tcp -m tcp --spts [1024:65535] -m tcp --dpts [80] -j ACCEPT'',
+   ''-i s1-wan -p tcp -m tcp --spts [80] -m tcp --dpts [1024:65535] -j ACCEPT'',
    '' -j DROP'']" by eval
 
 lemma "length unfolded = 4" by eval
@@ -87,6 +87,13 @@ definition "SQRL_ports \<equiv> [
 	(''s1-wan'', ''2'')
 ]"
 
+value "SQRL_fw_simple"
+value "let fw = SQRL_fw_simple in no_oif_match fw"
+value "let fw = SQRL_fw_simple in has_default_policy fw"
+value "let fw = SQRL_fw_simple in simple_fw_valid fw"
+value "let rt = SQRL_rtbl_main_sorted in valid_prefixes rt \<and> has_default_route rt"
+value "let ifs = (map iface_name SQRL_ifs) in distinct ifs"
+
 definition "ofi \<equiv> 
     case (lr_of_tran SQRL_rtbl_main_sorted SQRL_fw_simple (map iface_name SQRL_ifs))
     of (Inr openflow_rules) \<Rightarrow> map (serialize_of_entry (the \<circ> map_of SQRL_ports)) openflow_rules"
@@ -133,9 +140,9 @@ lemma "ofi =
   ''priority=1,hard_timeout=0,idle_timeout=0,in_port=2,dl_type=0x800,nw_proto=6,tp_src=80,tp_dst=16384/0xc000,action=output:2'',
   ''priority=1,hard_timeout=0,idle_timeout=0,in_port=2,dl_type=0x800,nw_proto=6,tp_src=80,tp_dst=32768/0x8000,action=output:2'',
   ''priority=0,hard_timeout=0,idle_timeout=0,dl_type=0x800,action=drop'']" by eval
-value[code] "length ofi"
 
-(* TODO: Well, that's something\<dots> I'd really like to have a proper file with newlines though\<dots> *)
+value[code] "ofi"
+
 (*ML\<open>
 	val evterm = the (Code_Evaluation.dynamic_value @{context} @{term "intersperse (Char Nibble0 NibbleA) ofi"});
 	val opstr = Syntax.string_of_term (Config.put show_markup false @{context}) evterm;

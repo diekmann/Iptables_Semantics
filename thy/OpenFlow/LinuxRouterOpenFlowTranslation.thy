@@ -471,14 +471,18 @@ definition "lr_of_tran_fbs rt fw ifs \<equiv> let
 "
 
 definition "pack_OF_entries ifs ard \<equiv> (map (split3 OFEntry) (lr_of_tran_s3 ifs ard))"
+definition "no_oif_match \<equiv> list_all (\<lambda>m. oiface (match_sel m) = ifaceAny)"
 
-definition "lr_of_tran rt fw ifs \<equiv> let
-	nrd = lr_of_tran_fbs rt fw ifs;
+definition "lr_of_tran rt fw ifs \<equiv> 
+  if \<not> (no_oif_match fw \<and> has_default_policy fw \<and> simple_fw_valid fw	\<and> valid_prefixes rt \<and> has_default_route rt \<and> distinct ifs)
+    then Inl ''Error in creating OpenFlow table: prerequisites not satisifed''
+    else (
+  let	nrd = lr_of_tran_fbs rt fw ifs;
 	ard = map (apfst of_nat) (annotate_rlen nrd) (* give them a priority *)
 	in
 	if length nrd < unat (max_word :: 16 word)
 	then Inr (pack_OF_entries ifs ard)
-	else Inl ''Error in creating OpenFlow table: priority number space exhausted''
+	else Inl ''Error in creating OpenFlow table: priority number space exhausted'')
 "
 
 definition "is_iface_name i \<equiv> i \<noteq> [] \<and> \<not>Iface.iface_name_is_wildcard i"
@@ -833,7 +837,6 @@ using simple_action.exhaust by blast+
 lemma map_snd_apfst: "map snd (map (apfst x) l) = map snd l"
   unfolding map_map comp_def snd_apfst ..
 
-definition "no_oif_match \<equiv> list_all (\<lambda>m. oiface (match_sel m) = ifaceAny)"
 lemma match_ifaceAny_eq: "oiface m = ifaceAny \<Longrightarrow> simple_matches m p = simple_matches m (p\<lparr>p_oiface := any\<rparr>)"
 by(cases m) (simp add: simple_matches.simps match_ifaceAny)
 lemma no_oif_matchD: "no_oif_match fw \<Longrightarrow> simple_fw fw p = simple_fw fw (p\<lparr>p_oiface := any\<rparr>)"
@@ -946,11 +949,8 @@ qed
 
 lemma lr_of_tran_correct:
 	fixes p :: "(32, 'a) simple_packet_ext_scheme"
-	assumes s1: "valid_prefixes rt" "has_default_route rt"
-	    and s2: "has_default_policy fw" "simple_fw_valid fw" "no_oif_match fw"
-	  and nerr: "lr_of_tran rt fw ifs = Inr oft"
+assumes nerr: "lr_of_tran rt fw ifs = Inr oft"
 	 and ippkt: "p_l2type p = 0x800"
-	 and  difs: "distinct ifs"
 	 and ifvld: "p_iiface p \<in> set ifs"
 	shows "OF_priority_match OF_match_fields_safe oft p = Action [Forward oif] \<longleftrightarrow> simple_linux_router_nol12 rt fw p = (Some (p\<lparr>p_oiface := oif\<rparr>))"
 	      "OF_priority_match OF_match_fields_safe oft p = Action [] \<longleftrightarrow> simple_linux_router_nol12 rt fw p = None"
@@ -959,6 +959,12 @@ lemma lr_of_tran_correct:
 	      "OF_priority_match OF_match_fields_safe oft p = Action ls \<longrightarrow> length ls \<le> 1"
 	      "\<exists>ls. length ls \<le> 1 \<and> OF_priority_match OF_match_fields_safe oft p = Action ls"
 proof -
+	have s1: "valid_prefixes rt" "has_default_route rt" 
+   and s2: "has_default_policy fw" "simple_fw_valid fw" "no_oif_match fw"
+   and difs: "distinct ifs"
+	  using nerr unfolding lr_of_tran_def by(simp_all split: if_splits)
+  have "no_oif_match fw" using nerr unfolding lr_of_tran_def by(simp split: if_splits)
+  note s2 = s2 this
   have unsafe_safe_eq: 
     "OF_priority_match OF_match_fields_unsafe oft = OF_priority_match OF_match_fields_safe oft"
     "OF_match_linear OF_match_fields_unsafe oft = OF_match_linear OF_match_fields_safe oft"
