@@ -87,12 +87,10 @@ definition "SQRL_ports \<equiv> [
 	(''s1-wan'', ''2'')
 ]"
 
-value "SQRL_fw_simple"
-value "let fw = SQRL_fw_simple in no_oif_match fw"
-value "let fw = SQRL_fw_simple in has_default_policy fw"
-value "let fw = SQRL_fw_simple in simple_fw_valid fw"
-value "let rt = SQRL_rtbl_main_sorted in valid_prefixes rt \<and> has_default_route rt"
-value "let ifs = (map iface_name SQRL_ifs) in distinct ifs"
+(* preconditions (get checked by lr_of_tran, too) *)
+lemma "let fw = SQRL_fw_simple in no_oif_match fw \<and> has_default_policy fw \<and> simple_fw_valid fw" by eval
+lemma "let rt = SQRL_rtbl_main_sorted in valid_prefixes rt \<and> has_default_route rt" by eval
+lemma "let ifs = (map iface_name SQRL_ifs) in distinct ifs" by eval
 
 definition "ofi \<equiv> 
     case (lr_of_tran SQRL_rtbl_main_sorted SQRL_fw_simple (map iface_name SQRL_ifs))
