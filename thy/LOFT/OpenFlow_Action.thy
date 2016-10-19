@@ -1,6 +1,6 @@
-theory OpenFlowAction
+theory OpenFlow_Action
 imports
-	OpenFlowMatches
+	OpenFlow_Matches
 begin
 
 (* Beware the differences between Actions and Instructions. OF1.0 doesn't support the former and they're thus not modelled here. *)
@@ -8,7 +8,7 @@ begin
 (* OF1.0 says actions are a list and executed in-order, OF1.5 has two things: an action set with fixed order in 5.6 and an action list.
 So\<dots> list. *)
 
-(* Just those which we need. *)
+(* Just those which we need(ed). *)
 datatype of_action = Forward (oiface_sel: string) | ModifyField_l2dst "48 word"
 (* Note that the 1.0 is not entirely clear that there's no drop action. 1.5 clarifies that this is represented by and empty instruction/action set. *)
 

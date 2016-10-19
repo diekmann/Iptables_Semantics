@@ -2,11 +2,11 @@ theory RFC2544
 imports 
   "../../../Iptables_Semantics/Primitive_Matchers/Parser"
   "../../../Routing/IpRoute_Parser"
-  "../../LinuxRouterOpenFlowTranslation"
-  "../../OpenFlowSerialize"
+  "../../LinuxRouter_OpenFlow_Translation"
+  "../../OpenFlow_Serialize"
 begin
 
-section\<open>Example: Simple Test for Translation to OpenFlow\<close>
+(*section\<open>Example: Simple Test for Translation to OpenFlow\<close>*)
 
 
 parse_iptables_save SQRL_fw="iptables-save"
@@ -45,8 +45,6 @@ value[code] "(getParts (to_simple_firewall (lower_closure (optimize_matches abst
 definition "SQRL_fw_simple \<equiv> remdups_rev (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded)))))"
 value[code] "SQRL_fw_simple"
 lemma "simple_fw_valid SQRL_fw_simple" by eval
-
-section\<open>Example: SQRL RTBL\<close>
 
 parse_ip_route SQRL_rtbl_main = "ip-route"
 value SQRL_rtbl_main

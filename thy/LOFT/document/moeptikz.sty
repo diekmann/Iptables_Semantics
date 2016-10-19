@@ -34,24 +34,24 @@
 }%
 
 % http://tex.stackexchange.com/questions/218968/how-to-save-the-current-color-in-pgf-tikz
-\tikzset{get stroke color/.code={%
-	\expandafter\global%
-	\expandafter\let%
-	\expandafter\pgfsavedstrokecolor%
-	\csname\string\color@pgfstrokecolor\endcsname%
-	},%
-	restore stroke color/.code={\pgf@setstrokecolor#1},%
-	replace fill by stroke color/.code={\pgf@setfillcolor#1},%
-}
-\tikzset{get fill color/.code={%
-	\expandafter\global%
-	\expandafter\let%
-	\expandafter\pgfsavedfillcolor%
-	\csname\string\color@pgffillcolor\endcsname%
-	},%
-	restore fill color/.code={\pgf@setfillcolor#1},%
-	replace stroke by fill color/.code={\pgf@setstrokecolor#1},%
-}
+%\tikzset{get stroke color/.code={%
+%	\expandafter\global%
+%	\expandafter\let%
+%	\expandafter\pgfsavedstrokecolor%
+%	\csname\string\color@pgfstrokecolor\endcsname%
+%	},%
+%	restore stroke color/.code={\pgf@setstrokecolor#1},%
+%	replace fill by stroke color/.code={\pgf@setfillcolor#1},%
+%}
+%\tikzset{get fill color/.code={%
+%	\expandafter\global%
+%	\expandafter\let%
+%	\expandafter\pgfsavedfillcolor%
+%	\csname\string\color@pgffillcolor\endcsname%
+%	},%
+%	restore fill color/.code={\pgf@setfillcolor#1},%
+%	replace stroke by fill color/.code={\pgf@setstrokecolor#1},%
+%}
 
 \def\tikz@fillcolor{black}
 \newif\ifmoeptikz@shading
@@ -737,7 +737,7 @@ notebook/.default={1cm}{black}
 }
 \def\hubborder{
 	\moeptikz@setshading
-	\tikzset{get stroke color}
+	%\tikzset{get stroke color}
 	\pgfsetstrokecolor{black}
 	\pgfmathparse{.05*\pgfshapeminwidth}\let\linewidth\pgfmathresult
 	\pgfsetcornersarced{\pgfpoint{0.01pt}{0.01pt}}
@@ -764,7 +764,7 @@ notebook/.default={1cm}{black}
 	\pgflineto{\northeast \pgf@x=0pt \pgf@y=-.95\pgf@y}
 	\pgfusepath{stroke}
 
-	\tikzset{replace fill by stroke color/.expand once=\pgfsavedstrokecolor}
+	%\tikzset{replace fill by stroke color/.expand once=\pgfsavedstrokecolor}
 	\pgftransformshift{\northeast \pgf@x=0pt \pgf@y=.15\pgf@y}
 	{
 		\pgftransformxslant{1.33}
@@ -843,7 +843,7 @@ hub/.default={1cm}{black}
 }
 \def\switchborder{
 	\moeptikz@setshading
-	\tikzset{get stroke color}
+	%\tikzset{get stroke color}
 	\pgfsetstrokecolor{black}
 	\pgfmathparse{.05*\pgfshapeminwidth}\let\linewidth\pgfmathresult
 	\pgfmathparse{.1*\pgfshapeminwidth}\let\arrowdist\pgfmathresult
@@ -872,7 +872,7 @@ hub/.default={1cm}{black}
 	\pgfusepath{stroke}
 
 
-	\tikzset{replace fill by stroke color/.expand once=\pgfsavedstrokecolor}
+	%\tikzset{replace fill by stroke color/.expand once=\pgfsavedstrokecolor}
 	\pgftransformshift{\northeast \pgf@x=0pt \pgf@y=.15\pgf@y}
 	{
 		\pgftransformxslant{1.33}
@@ -1039,7 +1039,7 @@ switch/.default={1cm}{black}
 }
 \def\routerborder{
 	\moeptikz@setshading
-	\tikzset{get stroke color}
+	%\tikzset{get stroke color}
 	\pgfsetstrokecolor{black}
 
 	\pgfmathparse{.05*\pgfshapeminwidth}\let\linewidth\pgfmathresult
@@ -1064,7 +1064,7 @@ switch/.default={1cm}{black}
 	\pgfshadepath{moeptikz@shading}{0}
 	\pgfusepath{stroke}
 
-	\tikzset{replace fill by stroke color/.expand once=\pgfsavedstrokecolor}
+	%\tikzset{replace fill by stroke color/.expand once=\pgfsavedstrokecolor}
 	\pgftransformshift{\northeast \pgf@x=0pt \pgf@y=.15\pgf@y}{%
 		{
 		\pgftransformxslant{1.33}

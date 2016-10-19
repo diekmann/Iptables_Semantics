@@ -165,7 +165,6 @@ Furthermore, the function that joins two firewalls and the function that transla
 We want to explicitly formulate the following two goals for our future work:
 \begin{itemize}
 	\item We want to deal with output interface matches.
-		One possible approach to this has been outlined in Section~\ref{sec:convi}.
-		A more elegant approach that has a wider applicability is to formulate and verify destination interface / destination IP address rewriting that can dynamically exchange output interfaces and destination IP addressed in a firewall, based on the information from the routing table.
+		The idea is to formulate and verify a destination interface / destination IP address rewriting that can exchange output interfaces and destination IP addressed in a firewall, based on the information from the routing table.\footnote{As of now this has already been implemented, but is not yet fully ready.}
 	\item We want to develop a system that can provide a stricter approximation of stateful matches so our translation will be applicable in more cases.
 \end{itemize}
