@@ -25,7 +25,7 @@ definition routing_action_oiface_update :: "string \<Rightarrow> 32 routing_rule
 lemma "routing_action_oiface_update h pk = pk\<lparr> routing_action := (routing_action pk)\<lparr> output_iface :=  h\<rparr> \<rparr>"
   by(simp add: routing_action_oiface_update_def)
 
-definition "sanity_ip_route (r::32 prefix_routing) \<equiv> correct_routing r \<and> list_all (op \<noteq> '''' \<circ> routing_oiface) r"
+definition "sanity_ip_route (r::32 prefix_routing) \<equiv> correct_routing r \<and> unambiguous_routing r \<and> list_all (op \<noteq> '''' \<circ> routing_oiface) r"
 text\<open>The parser ensures that @{const sanity_ip_route} holds for any ruleset that is imported.\<close>
 
 (* Hide all the ugly ml in a file with the right extension *)
