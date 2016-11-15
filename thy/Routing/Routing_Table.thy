@@ -3,7 +3,7 @@ theory Routing_Table
 imports "../IP_Addresses/Prefix_Match"
         "../IP_Addresses/IPv4" "../IP_Addresses/IPv6"
         "Linorder_Helper"
-        "../IP_Addresses/IP_Address_toString"
+        "../IP_Addresses/Prefix_Match_toString"
 begin
 
 text\<open>This section makes the necessary definitions to work with a routing table using longest prefix matching.\<close>
@@ -185,7 +185,7 @@ lemma "routing_rule_sort_key (rr_ctor (0,0,0,0) 8 [] None 0) > routing_rule_sort
 (* get the inequality right\<dots> bigger means lower priority *)
 text\<open>In case you don't like that formulation of @{const is_longest_prefix_routing} over sorting, this is your lemma.\<close>
 theorem existential_routing: "valid_prefixes rtbl \<Longrightarrow> is_longest_prefix_routing rtbl \<Longrightarrow> has_default_route rtbl \<Longrightarrow> unambiguous_routing rtbl \<Longrightarrow>
-routing_table_semantics rtbl addr = act \<longleftrightarrow> (\<exists>rr \<in> set rtbl. prefix_match_semantics (routing_match rr) addr \<and> routing_action rr = act \<and> 
+routing_table_semantics rtbl addr = act \<longleftrightarrow> (\<exists>rr \<in> set rtbl. prefix_match_semantics (routing_match rr) addr \<and> routing_action rr = act \<and>
   (\<forall>ra \<in> set rtbl. routing_rule_sort_key ra < routing_rule_sort_key rr \<longrightarrow> \<not>prefix_match_semantics (routing_match ra) addr))"
 proof(induction rtbl)
   case Nil thus ?case by simp
@@ -196,10 +196,9 @@ next
     hence [simp]: "routing_table_semantics (rr # rtbl) addr = routing_table_semantics (rr # rtbl) addr" by simp
     show ?thesis proof(cases "routing_prefix rr = 0")
       case True text\<open>Need special treatment, rtbl won't have a default route, so the IH is not usable.\<close>
-      hence "\<forall>ra\<in>set rtbl. routing_rule_sort_key ra > routing_rule_sort_key rr = False"
-        apply(clarsimp simp add: routing_rule_sort_key_def linord_helper_less)
-        using Cons.prems(1) False valid_prefixes_split zero_prefix_match_all by blast (* TODO *)
-      from True show ?thesis using Cons.prems(1,3) apply(simp add: zero_prefix_match_all valid_prefixes_alt_def False) using False zero_prefix_match_all  by blast (* TODO *)
+      have "valid_prefix (routing_match rr)" using Cons.prems valid_prefixes_split by blast
+      with True False have False using zero_prefix_match_all by blast
+      thus ?thesis ..
     next
       case False
       with Cons.prems have mprems: "valid_prefixes rtbl" "is_longest_prefix_routing rtbl" "has_default_route rtbl" "unambiguous_routing rtbl" 
@@ -245,12 +244,6 @@ qed
 
 
 subsection\<open>Printing\<close>
-
-(* TODO: move on next update of IP_Addresses update *)
-definition prefix_match_32_toString :: "32 prefix_match \<Rightarrow> string" where
-  "prefix_match_32_toString pfx = (case pfx of PrefixMatch p l \<Rightarrow> ipv4addr_toString p @ (if l \<noteq> 32 then ''/'' @ string_of_nat l else []))"
-definition prefix_match_128_toString :: "128 prefix_match \<Rightarrow> string" where
-  "prefix_match_128_toString pfx = (case pfx of PrefixMatch p l \<Rightarrow> ipv6addr_toString p @ (if l \<noteq> 128 then ''/'' @ string_of_nat l else []))"
 
 definition "routing_rule_32_toString (rr::32 routing_rule) \<equiv> 
   prefix_match_32_toString (routing_match rr) 

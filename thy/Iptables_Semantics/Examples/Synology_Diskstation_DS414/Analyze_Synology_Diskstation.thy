@@ -320,7 +320,7 @@ Port 8080 only reachable from 192.168.0.0/24 and localhost (fulfilled).
 value[code] "unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw)"
 
 lemma "access_matrix_pretty_ipv4 parts_connection_ssh
-        (to_simple_firewall_without_interfaces ipassmt_generic_ipv4
+        (to_simple_firewall_without_interfaces ipassmt_generic_ipv4 None
           (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) =
   ([(''0.0.0.0'', ''{0.0.0.0 .. 255.255.255.255}'')
    ],
@@ -328,7 +328,7 @@ lemma "access_matrix_pretty_ipv4 parts_connection_ssh
 
 
 lemma "access_matrix_pretty_ipv4 parts_connection_http
-        (to_simple_firewall_without_interfaces ipassmt_generic_ipv4
+        (to_simple_firewall_without_interfaces ipassmt_generic_ipv4 None
           (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) =
   ([(''0.0.0.0'', ''{0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 255.255.255.255}''),
     (''127.0.0.0'', ''{127.0.0.0 .. 127.255.255.255}'')
@@ -337,7 +337,7 @@ lemma "access_matrix_pretty_ipv4 parts_connection_http
     (''127.0.0.0'', ''127.0.0.0'')])" by eval
 
 lemma "access_matrix_pretty_ipv4 (mk_parts_connection_TCP 10000 8080)
-        (to_simple_firewall_without_interfaces ipassmt_generic_ipv4
+        (to_simple_firewall_without_interfaces ipassmt_generic_ipv4 None
           (unfold_ruleset_INPUT ds2015_2_fw_INPUT_default_policy (map_of ds2015_2_fw))) = 
   ([(''127.0.0.0'', ''{127.0.0.0 .. 127.255.255.255} u {192.168.0.0 .. 192.168.255.255}''),
     (''0.0.0.0'', ''{0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 192.167.255.255} u {192.169.0.0 .. 255.255.255.255}'')

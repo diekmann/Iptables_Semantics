@@ -79,7 +79,7 @@ definition preprocess where
   "preprocess unfold closure ipassmt def fw \<equiv> to_simple_firewall (closure
               (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_L4_Flags a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_L4_Flags a))
               (closure
-              (iface_try_rewrite ipassmt
+              (iface_try_rewrite ipassmt None
               (closure
               (packet_assume_new
               (unfold def (map_of fw))))))))"

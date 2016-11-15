@@ -630,13 +630,13 @@ theorem transform_simple_fw_lower:
   qed
 
 
-definition "to_simple_firewall_without_interfaces ipassmt rs \<equiv>
+definition "to_simple_firewall_without_interfaces ipassmt rtblo rs \<equiv>
     to_simple_firewall
     (upper_closure
     (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a))
     (optimize_matches abstract_for_simple_firewall
     (upper_closure
-    (iface_try_rewrite ipassmt
+    (iface_try_rewrite ipassmt rtblo
     (upper_closure
     (packet_assume_new rs)))))))"
 
@@ -653,17 +653,23 @@ theorem to_simple_firewall_without_interfaces:
          This assumption implies that ipassmt lists ALL interfaces (!!)."
       and nospoofing: "\<forall>(p::('i::len, 'a) tagged_packet_scheme).
             \<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipcidr_union_set (set ips)"
+      --"If a routing table was passed, the output interface for any packet we consider is decided based on it."
+      and routing_decided: "\<And>rtbl (p::('i,'a) tagged_packet_scheme). rtblo = Some rtbl \<Longrightarrow> output_iface (routing_table_semantics rtbl (p_dst p)) = p_oiface p"
+      --"A passed routing table is wellformed"
+      and correct_routing: "\<And>rtbl. rtblo = Some rtbl \<Longrightarrow> correct_routing rtbl"
+      --"A passed routing table contains no interfaces with wildcard names"
+      and routing_no_wildcards: "\<And>rtbl. rtblo = Some rtbl \<Longrightarrow> ipassmt_sanity_nowildcards (map_of (routing_ipassmt rtbl))"
 
   --"the set of new packets, which are accepted is an overapproximations"
   shows "{p::('i,'a) tagged_packet_scheme. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
-         {p::('i,'a) tagged_packet_scheme. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
+         {p::('i,'a) tagged_packet_scheme. simple_fw (to_simple_firewall_without_interfaces ipassmt rtblo rs) p = Decision FinalAllow \<and> newpkt p}"
 
-  and "\<forall>r \<in> set (to_simple_firewall_without_interfaces ipassmt rs).
+  and "\<forall>r \<in> set (to_simple_firewall_without_interfaces ipassmt rtblo rs).
           iiface (match_sel r) = ifaceAny \<and> oiface (match_sel r) = ifaceAny"
   proof -
     let ?rs1="packet_assume_new rs"
     let ?rs2="upper_closure ?rs1"
-    let ?rs3="iface_try_rewrite ipassmt ?rs2"
+    let ?rs3="iface_try_rewrite ipassmt rtblo ?rs2"
     let ?rs4="upper_closure ?rs3"
     let ?rs5="optimize_matches abstract_for_simple_firewall ?rs4"
     let ?rs6="optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a)) ?rs5"
@@ -671,7 +677,7 @@ theorem to_simple_firewall_without_interfaces:
     let ?\<gamma>="(common_matcher, in_doubt_allow)
           :: ('i::len common_primitive, ('i, 'a) tagged_packet_scheme) match_tac"
 
-    have "to_simple_firewall_without_interfaces ipassmt rs = to_simple_firewall ?rs7"
+    have "to_simple_firewall_without_interfaces ipassmt rtblo rs = to_simple_firewall ?rs7"
       by(simp add: to_simple_firewall_without_interfaces_def)
 
     from packet_assume_new_simple_ruleset[OF simplers] have s1: "simple_ruleset ?rs1" .
@@ -814,8 +820,8 @@ theorem to_simple_firewall_without_interfaces:
       apply(subst transform_upper_closure(1)[OF s1])
       by simp
     also have "\<dots> = {p. ?\<gamma>,p\<turnstile> \<langle>?rs3, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
-      apply(subst iface_try_rewrite[OF s2 nnf2])
-        using wf_ipassmt1 wf_ipassmt2 nospoofing by simp_all
+      apply(cases rtblo; simp; (subst iface_try_rewrite_rtbl[OF s2 nnf2] | subst iface_try_rewrite_no_rtbl[OF s2 nnf2]))
+        using wf_ipassmt1 wf_ipassmt2 nospoofing wf_in_doubt_allow routing_no_wildcards correct_routing routing_decided by simp_all
     also have "\<dots> = {p. ?\<gamma>,p\<turnstile> \<langle>?rs4, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}"
       apply(subst transform_upper_closure(1)[OF s3])
       by simp
@@ -843,7 +849,7 @@ theorem to_simple_firewall_without_interfaces:
        {p. ?\<gamma>,p\<turnstile> \<langle>?rs7, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}" by blast
     
     thus "{p. (common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p} \<subseteq>
-         {p. simple_fw (to_simple_firewall_without_interfaces ipassmt rs) p = Decision FinalAllow \<and> newpkt p}"
+         {p. simple_fw (to_simple_firewall_without_interfaces ipassmt rtblo rs) p = Decision FinalAllow \<and> newpkt p}"
       apply(safe)
       subgoal for p   
        unfolding to_simple_firewall_without_interfaces_def
@@ -910,7 +916,7 @@ theorem to_simple_firewall_without_interfaces:
     done
    
     from to_simple_firewall_no_ifaces[OF simple_fw_preconditions no_interfaces] show 
-      "\<forall>r \<in> set (to_simple_firewall_without_interfaces ipassmt rs). iiface (match_sel r) = ifaceAny \<and> oiface (match_sel r) = ifaceAny"
+      "\<forall>r \<in> set (to_simple_firewall_without_interfaces ipassmt rtblo rs). iiface (match_sel r) = ifaceAny \<and> oiface (match_sel r) = ifaceAny"
       unfolding to_simple_firewall_without_interfaces_def
       by(simp add: to_simple_firewall_def simple_fw_preconditions)
       
