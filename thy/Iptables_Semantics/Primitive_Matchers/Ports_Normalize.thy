@@ -77,7 +77,7 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
   using c apply(induction pss rule: l4_ports_compress.induct)
     apply(simp; fail)
    apply(simp; fail)
-  apply(simp add: primitive_matcher_generic.Ports_single[OF generic] bunch_of_lemmata_about_matches split: split_if_asm)
+  apply(simp add: primitive_matcher_generic.Ports_single[OF generic] bunch_of_lemmata_about_matches split: if_split_asm)
    apply meson
   by(simp add: l2wi_wi2l ports_to_set_wordinterval)
 
@@ -89,7 +89,7 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
   using c apply(induction pss rule: l4_ports_compress.induct)
     apply(simp; fail)
    apply(simp; fail)
-  apply(simp add: primitive_matcher_generic.Ports_single[OF generic] bunch_of_lemmata_about_matches split: split_if_asm)
+  apply(simp add: primitive_matcher_generic.Ports_single[OF generic] bunch_of_lemmata_about_matches split: if_split_asm)
    apply meson
   by(simp add: l2wi_wi2l ports_to_set_wordinterval)
 
@@ -103,7 +103,7 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
   shows "matches (\<beta>, \<alpha>) (alist_and (map (Pos \<circ> Src_Ports) pss)) a p"
   and "matches (\<beta>, \<alpha>) (alist_and (map (Pos \<circ> Dst_Ports) pss)) a p"
   using c apply(induction pss rule: l4_ports_compress.induct)
-  by(simp add: l4_ports_compress_length_Matchall bunch_of_lemmata_about_matches split: split_if_asm)+
+  by(simp add: l4_ports_compress_length_Matchall bunch_of_lemmata_about_matches split: if_split_asm)+
 
   lemma raw_ports_compress_src_MatchExpr:
   fixes p :: "('i::len, 'a) tagged_packet_scheme"
@@ -117,7 +117,7 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
    apply(drule sym, simp)
    by(simp add: primitive_matcher_generic.Ports_single[OF generic] wordinterval_compress l2wi_wi2l ports_to_set_wordinterval)
   apply(case_tac m)
-  apply(simp add: bunch_of_lemmata_about_matches split: split_if_asm)
+  apply(simp add: bunch_of_lemmata_about_matches split: if_split_asm)
   apply(simp add: primitive_matcher_generic.Ports_single[OF generic])
   apply(simp add: l2wi_wi2l ports_to_set_wordinterval)
   by fastforce
@@ -134,7 +134,7 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
    apply(drule sym, simp)
    by(simp add: primitive_matcher_generic.Ports_single[OF generic] wordinterval_compress l2wi_wi2l ports_to_set_wordinterval)
   apply(case_tac m)
-  apply(simp add: bunch_of_lemmata_about_matches split: split_if_asm)
+  apply(simp add: bunch_of_lemmata_about_matches split: if_split_asm)
   apply(simp add: primitive_matcher_generic.Ports_single[OF generic])
   apply(simp add: l2wi_wi2l ports_to_set_wordinterval)
   by fastforce

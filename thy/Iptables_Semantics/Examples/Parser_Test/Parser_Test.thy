@@ -30,25 +30,25 @@ lemma "parser_test_firewall \<equiv>
     Rule (MatchAnd (Match (Prot (Proto ICMP)))
            (Match
              (Extra
-               (''-m comment --comment ''@ [Char Nibble2 Nibble2, CHR ''!'', Char Nibble2 Nibble2]) )))
+               (''-m comment --comment ''@ [char_of_nat 34, CHR ''!'', char_of_nat 34]) )))
      action.Accept,
     Rule (MatchAnd (Match (Prot (Proto ICMP)))
            (Match
              (Extra
                (''-m comment --comment ''
-                @ [Char Nibble2 Nibble2] @ ''has space'' @ [Char Nibble2 Nibble2]) )))
+                @ [char_of_nat 34] @ ''has space'' @ [char_of_nat 34]) )))
      action.Accept,
     Rule (Match (Prot (Proto ICMP))) action.Accept,
     Rule (MatchAnd (Match (Prot (Proto L4_Protocol.IPv6ICMP)))
           (Match (Extra  (''-m icmp6 --icmpv6-type 133 -m comment --comment ''
-                          @ [Char Nibble2 Nibble2]
+                          @ [char_of_nat 34]
                           @ ''this module only works for ip6tables but -p icmpv6 is fine''
-                          @ [Char Nibble2 Nibble2]) )))
+                          @ [char_of_nat 34]) )))
     action.Accept,
    Rule (MatchAnd (Match (Prot (Proto L4_Protocol.IPv6ICMP)))
          (MatchAnd
           (Match (Extra (''-m icmp6 --icmpv6-type 133 -m comment --comment ''
-                          @ [Char Nibble2 Nibble2, Char Nibble5 NibbleC, Char Nibble2 Nibble2, Char Nibble2 Nibble2])))
+                          @ [char_of_nat 34, char_of_nat 92, char_of_nat 34, char_of_nat 34])))
            (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8)))) )
     action.Accept,
     Rule (MatchNot (Match (Prot (Proto ICMP)))) Empty,
@@ -68,8 +68,8 @@ lemma "parser_test_firewall \<equiv>
    [Rule (Match
            (Extra
              (''--log-prefix ''
-              @ [Char Nibble2 Nibble2] @ ''!#*~%&/()=?''
-              @ [Char Nibble2 Nibble2] @ '' --log-level 6'') ))
+              @ [char_of_nat 34] @ ''!#*~%&/()=?''
+              @ [char_of_nat 34] @ '' --log-level 6'') ))
      Log,
     Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8))) action.Drop,
     Rule (MatchAnd (Match (IIface (Iface ''wlan0'')))

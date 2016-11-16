@@ -1,6 +1,7 @@
+chapter AFP
 
-chapter Routing
-session Routing = Simple_Firewall +
+session Routing (AFP) = Simple_Firewall +
+  options [timeout = 60]
   theories [document = false]
     "~~/src/HOL/Library/Monad_Syntax"
   theories

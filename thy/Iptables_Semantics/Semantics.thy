@@ -761,7 +761,7 @@ begin
       ''bar'' \<mapsto> [],
       ''baz'' \<mapsto> []] =
       {(''FORWARD'', ''foo''), (''FORWARD'', ''baz''), (''foo'', ''bar'')}"
-    unfolding calls_chain_def by(auto split: option.split_asm split_if_asm)
+    unfolding calls_chain_def by(auto split: option.split_asm if_split_asm)
   
   private lemma "wf (calls_chain [
       ''FORWARD'' \<mapsto> [(Rule m1 Log), (Rule m2 (Call ''foo'')), (Rule m3 Accept), (Rule m' (Call ''baz''))],
@@ -773,7 +773,7 @@ begin
             ''foo'' \<mapsto> [(Rule m4 Log), (Rule m5 Return), (Rule m6 (Call ''bar''))], 
             ''bar'' \<mapsto> [],
             ''baz'' \<mapsto> []] = {(''FORWARD'', ''foo''), (''FORWARD'', ''baz''), (''foo'', ''bar'')}"
-    by(auto simp add: calls_chain_def split: option.split_asm split_if_asm)
+    by(auto simp add: calls_chain_def split: option.split_asm if_split_asm)
     show ?thesis
       unfolding g
       apply(simp)
@@ -807,7 +807,7 @@ begin
          (\<exists>rs_called1 rs_called2 m'.
              rs_called = (rs_called1 @ [Rule m' Return] @ rs_called2) \<and>
              matches \<gamma> m' p \<and> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs_called1, Undecided\<rangle> \<Rightarrow> Undecided)"
-  using assms proof(induction rs_called arbitrary:)
+  proof(induction rs_called arbitrary:)
   case Nil hence "\<exists>t. \<Gamma>,\<gamma>,p\<turnstile> \<langle>[], Undecided\<rangle> \<Rightarrow> t"
      apply(rule_tac x=Undecided in exI)
      by(simp add: skip)

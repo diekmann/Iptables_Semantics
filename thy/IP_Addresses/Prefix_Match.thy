@@ -138,7 +138,7 @@ subsection\<open>Equivalence Proofs\<close>
   private lemma valid_prefix_ipset_from_netmask_ipset_from_cidr:
     shows "ipset_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx) =
             ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
-    using assms apply(cases pfx)
+    apply(cases pfx)
     apply(simp add: ipset_from_cidr_alt2 pfxm_mask_def)
    done
   
@@ -224,7 +224,7 @@ lemma prefix_never_empty:
 by (simp add: le_word_or2 prefix_to_wordinterval_def)
 
 
-text\<open>Getting the lowest element\<close>
+text\<open>Getting a lowest element\<close>
   lemma ipset_from_cidr_lowest: "a \<in> ipset_from_cidr a n" 
     using ip_cidr_set_def ipset_from_cidr_eq_ip_cidr_set by blast
 

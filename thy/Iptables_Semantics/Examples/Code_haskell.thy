@@ -34,7 +34,7 @@ export_code Rule
   ProtoAny Proto TCP UDP ICMP L4_Protocol.IPv6ICMP L4_Protocol.SCTP L4_Protocol.GRE
   L4_Protocol.ESP L4_Protocol.AH
   Iface
-  integer_to_16word nat_to_16word Nat word_less_eq word_to_nat
+  integer_to_16word nat_to_16word word_less_eq word_to_nat
   nat_to_8word
   IpAddrNetmask IpAddrRange IpAddr
   CT_New CT_Established CT_Related CT_Untracked CT_Invalid

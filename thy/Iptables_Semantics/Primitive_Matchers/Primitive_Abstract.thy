@@ -120,7 +120,7 @@ begin
       matches (\<beta>, in_doubt_allow) m action.Drop p"
      apply(induction disc m rule: abstract_primitive.induct)
            apply (simp_all add: bunch_of_lemmata_about_matches(1))
-       apply(auto simp add: primitive_matcher_generic.Extra_single primitive_matcher_generic.Extra_single_not split: split_if_asm)
+       apply(auto simp add: primitive_matcher_generic.Extra_single primitive_matcher_generic.Extra_single_not split: if_split_asm)
      done
   
   private lemma abstract_primitive_in_doubt_allow_Deny2: 
@@ -129,7 +129,7 @@ begin
       \<not> matches (\<beta>, in_doubt_allow) m action.Accept p"
      apply(induction disc m rule: abstract_primitive.induct)
            apply (simp_all add: bunch_of_lemmata_about_matches(1))
-       apply(auto simp add: primitive_matcher_generic.Extra_single primitive_matcher_generic.Extra_single_not split: split_if_asm)
+       apply(auto simp add: primitive_matcher_generic.Extra_single primitive_matcher_generic.Extra_single_not split: if_split_asm)
      done
   
   theorem abstract_primitive_in_doubt_allow_generic:
@@ -207,7 +207,7 @@ begin
               proof(cases "matches ?\<gamma> (abstract_primitive disc m) a p")
                 case False
                 with Nomatch.prems(2) have "approximating_bigstep_fun ?\<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalDeny"
-                  by(simp add: optimize_matches_def split: split_if_asm)
+                  by(simp add: optimize_matches_def split: if_split_asm)
                 with Nomatch have IH: "approximating_bigstep_fun ?\<gamma> p rs Undecided = Decision FinalDeny"
                   using simple_ruleset_tail by auto
                 with Nomatch(1) show ?thesis by simp
@@ -265,7 +265,7 @@ begin
       matches (\<beta>, in_doubt_deny) m action.Accept p"
      apply(induction disc m rule: abstract_primitive.induct)
            apply (simp_all add: bunch_of_lemmata_about_matches(1))
-       apply(auto simp add: primitive_matcher_generic.Extra_single primitive_matcher_generic.Extra_single_not split: split_if_asm)
+       apply(auto simp add: primitive_matcher_generic.Extra_single primitive_matcher_generic.Extra_single_not split: if_split_asm)
      done
   
   private lemma abstract_primitive_in_doubt_deny_Allow2: 
@@ -274,7 +274,7 @@ begin
       \<not> matches (\<beta>, in_doubt_deny) m action.Drop p"
      apply(induction disc m rule: abstract_primitive.induct)
            apply (simp_all add: bunch_of_lemmata_about_matches(1))
-       apply(auto simp add: primitive_matcher_generic.Extra_single primitive_matcher_generic.Extra_single_not split: split_if_asm)
+       apply(auto simp add: primitive_matcher_generic.Extra_single primitive_matcher_generic.Extra_single_not split: if_split_asm)
      done
 
   theorem abstract_primitive_in_doubt_deny_generic:
@@ -352,7 +352,7 @@ begin
               proof(cases "matches ?\<gamma> (abstract_primitive disc m) a p")
                 case False 
                 with Nomatch.prems(2) have "approximating_bigstep_fun ?\<gamma> p (optimize_matches (abstract_primitive disc) rs) Undecided = Decision FinalAllow"
-                  by(simp add: optimize_matches_def split: split_if_asm)
+                  by(simp add: optimize_matches_def split: if_split_asm)
                 with Nomatch have IH: "approximating_bigstep_fun ?\<gamma> p rs Undecided = Decision FinalAllow"
                   using simple_ruleset_tail by auto
                 with Nomatch(1) show ?thesis by simp

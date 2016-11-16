@@ -301,7 +301,7 @@ begin
       A \<noteq> B \<Longrightarrow> disjoint (interval_of A) (interval_of B)"
     apply(induction ss arbitrary: rule: listwordinterval_compress.induct)
      apply(simp)
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
     apply(elim disjE)
        apply(simp_all)
      apply(simp_all add: disjoint_intervals_def disjoint_def)
@@ -336,7 +336,7 @@ begin
       apply(elim conjE)
       apply(drule(2) word_adjacent_union)
       apply(blast)
-     using word_adjacent_union apply blast
+     using word_adjacent_union apply (metis (no_types, lifting) inf_sup_aci(6))
     by blast
 
   private lemma merge_adjacent_length:
@@ -387,14 +387,14 @@ begin
     "wordinterval_to_set (wordinterval_compress r) = wordinterval_to_set r"
     unfolding wordinterval_compress_def
     proof -
-      have interval_of': "\<And>s. interval_of s = (case s of (s,e) \<Rightarrow> {s .. e})" apply(case_tac s)
-        using interval_of.simps by simp
+      have interval_of': "interval_of s = (case s of (s,e) \<Rightarrow> {s .. e})" for s
+        by (cases s) (simp add: interval_of.simps)
 
       have "wordinterval_to_set (l2wi (remdups (listwordinterval_adjacent
               (listwordinterval_compress (wi2l (wordinterval_optimize_empty r)))))) =
             (\<Union>x\<in>set (listwordinterval_adjacent (listwordinterval_compress
                 (wi2l (wordinterval_optimize_empty r)))). interval_of x)"
-      using l2wi l2wi_remdups interval_of.simps[symmetric] by blast
+        by (force simp: interval_of' l2wi)
       also have "\<dots> =  (\<Union>s\<in>set (wi2l (wordinterval_optimize_empty r)). interval_of s)"
         by(simp add: listwordinterval_compress listwordinterval_adjacent)
       also have "\<dots> = (\<Union>(i, j)\<in>set (wi2l (wordinterval_optimize_empty r)). {i..j})"

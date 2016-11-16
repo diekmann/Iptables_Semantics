@@ -76,6 +76,7 @@ text\<open>The differences to @{const simple_linux_router} are illustrated by th
    This might be advantageous in $cases, however, this formulation is clearly easier to translate to openflow. *)
 
 lemma rtr_nomac_e1:
+  fixes pi
 	assumes "simple_linux_router rt fw mlf ifl pi = Some po"
 	assumes "simple_linux_router_nol12 rt fw pi = Some po'"
 	shows "\<exists>x. po = po'\<lparr>p_l2dst := x\<rparr>"
@@ -84,6 +85,7 @@ unfolding simple_linux_router_nol12_def simple_linux_router_def
 by(simp add: Let_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits) blast+
 
 lemma rtr_nomac_e2:
+  fixes pi
 	assumes "simple_linux_router rt fw mlf ifl pi = Some po"
 	shows "\<exists>po'. simple_linux_router_nol12 rt fw pi = Some po'"
 using assms
@@ -91,6 +93,7 @@ unfolding simple_linux_router_nol12_def simple_linux_router_def
 by(clarsimp simp add: Let_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits)
 
 lemma rtr_nomac_e3:
+  fixes pi
 	assumes "simple_linux_router_nol12 rt fw pi = Some po"
 	assumes "iface_packet_check ifl pi = Some i(*don'tcare*)"
 	assumes "mlf (fromMaybe (p_dst pi) (next_hop (routing_table_semantics rt (p_dst pi)))) = Some i2"
@@ -100,6 +103,7 @@ unfolding simple_linux_router_nol12_def simple_linux_router_def
 by(clarsimp simp add: Let_def split: option.splits state.splits final_decision.splits Option.bind_splits if_splits)
 
 lemma rtr_nomac_eq:
+  fixes pi
 	assumes "iface_packet_check ifl pi \<noteq> None"
 	assumes "mlf (fromMaybe (p_dst pi) (next_hop (routing_table_semantics rt (p_dst pi)))) \<noteq> None"
 	shows "\<exists>x. map_option (\<lambda>p. p\<lparr>p_l2dst := x\<rparr>) (simple_linux_router_nol12 rt fw pi) = simple_linux_router rt fw mlf ifl pi"

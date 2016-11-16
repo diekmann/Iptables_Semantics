@@ -339,7 +339,7 @@ theorem transform_optimize_dnf_strict_structure:
    { fix m
       have "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_n_primitive disc_sel f (optimize_primitive_univ m)"
       apply(induction disc_sel f m rule: normalized_n_primitive.induct)
-            apply(simp_all split: split_if_asm)
+            apply(simp_all split: if_split_asm)
         apply(rule optimize_primitive_univ_match_cases, simp_all)+
       done
     }  moreover { fix m

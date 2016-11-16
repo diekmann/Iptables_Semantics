@@ -366,7 +366,7 @@ subsection\<open>Clever Operations on IP Addresses in CIDR Notation\<close>
                                           of Some (bx, mx) \<Rightarrow> ipset_from_cidr bx mx
                                           |  None \<Rightarrow> {}) =
                                    (ipset_from_cidr b1 m1) \<inter> (ipset_from_cidr b2 m2)"
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
     using ip_cidr_intersect by fast
   declare ipcidr_conjunct.simps[simp del]
   
@@ -390,7 +390,7 @@ subsection\<open>Code Equations\<close>
   apply(simp)
   apply(cases ips1, cases ips2, rename_tac b1 m1 b2 m2, simp)
   apply(auto simp add: wordinterval_to_set_ipcidr_tuple_to_wordinterval ipcidr_conjunct.simps
-             split: split_if_asm)
+             split: if_split_asm)
   done
 
   (*with the code_unfold lemma before, this works!*)

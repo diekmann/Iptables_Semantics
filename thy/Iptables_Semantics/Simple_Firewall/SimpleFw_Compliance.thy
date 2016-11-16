@@ -326,9 +326,9 @@ lemma ctstate_assume_new_not_has_CT_State:
   apply(simp add: optimize_matches_def)
   apply(rename_tac r' rs, case_tac r')
   apply(safe)
-  apply(simp add:  split:split_if_asm)
+  apply(simp add:  split:if_split_asm)
   apply(elim disjE)
-   apply(simp_all add: not_hasdisc_ctstate_assume_state split:split_if_asm)
+   apply(simp_all add: not_hasdisc_ctstate_assume_state split:if_split_asm)
   done
 
   

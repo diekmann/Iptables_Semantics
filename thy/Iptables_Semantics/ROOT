@@ -1,6 +1,7 @@
-chapter Iptables_Semantics
+chapter AFP
 
-session "Iptables_Semantics" = Routing +
+session Iptables_Semantics (AFP) = Routing +
+  options [timeout = 1200]
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
     (*The Native_Word things destory the latex document! Does not compile, ...*)
@@ -19,7 +20,6 @@ session "Iptables_Semantics" = Routing +
     Semantics_Goto
     Call_Return_Unfolding
     "Common/Negation_Type_DNF"
-    "Semantics_Ternary/Packet_Set"
     "Semantics_Ternary/Semantics_Ternary"
     Matching_Embeddings
     Semantics_Embeddings
@@ -42,8 +42,9 @@ session "Iptables_Semantics" = Routing +
     "mathpartir.sty"
 
 
-session "Iptables_Semantics_Examples" = Iptables_Semantics +
-   theories
+session Iptables_Semantics_Examples (AFP slow very_slow) = Iptables_Semantics +
+  options [timeout = 60000]
+  theories
     "Examples/Parser_Test/Parser_Test"
     "Examples/Parser_Test/Parser6_Test"
     "Examples/Small_Examples"

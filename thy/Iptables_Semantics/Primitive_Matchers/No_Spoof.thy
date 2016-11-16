@@ -260,7 +260,7 @@ begin
 
         from a show "ip \<in> {ip. \<forall>p :: ('i, 'a) tagged_packet_scheme. matches (common_matcher, in_doubt_allow) m a (p\<lparr>p_iiface := iface_sel iface, p_src := ip\<rparr>)}"
           unfolding get_all_matching_src_ips_caseTrue
-          proof(clarsimp split: split_if_asm)
+          proof(clarsimp split: if_split_asm)
             fix p :: "('i, 'a) tagged_packet_scheme"
             assume "ip_matches = []"
             with case_nil have "matches ?\<gamma> (alist_and (NegPos_map Src ip_matches)) a (?p p)" by simp

@@ -148,7 +148,7 @@ subsection\<open>Basic optimisations\<close>
     lemma optimize_primitive_univ_unchanged_primitives:
     "optimize_primitive_univ (Match a) = (Match a) \<or> optimize_primitive_univ (Match a) = MatchAny"
       by (induction "(Match a)" rule: optimize_primitive_univ.induct)
-         (auto split: split_if_asm)
+         (auto split: if_split_asm)
     
   
   lemma optimize_primitive_univ_correct_matchexpr: fixes m::"'i::len common_primitive match_expr"

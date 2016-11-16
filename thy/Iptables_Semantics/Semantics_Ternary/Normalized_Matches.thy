@@ -228,7 +228,7 @@ section\<open>Normalizing rules instead of only match expressions\<close>
   "(\<forall>m a. match_list \<gamma> (f m) a p = matches \<gamma> m a p) \<Longrightarrow> simple_ruleset rs \<Longrightarrow>
    approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
   apply(rule normalize_rules_match_list_semantics_3[where P="\<lambda>_. True"])
-    using assms by(simp_all)
+    by(simp_all)
 
 lemma in_normalized_matches: "ls \<in> set (normalize_match m) \<and> matches \<gamma> ls a p \<Longrightarrow> matches \<gamma> m a p"
   by (meson match_list_matches matches_to_match_list_normalize)
@@ -396,7 +396,7 @@ lemma optimize_matches_normalized_nnf_match: "\<lbrakk>\<forall> r \<in> set rs.
   unfolding optimize_matches_def
   apply(rule optimize_matches_option_normalized_nnf_match)
    apply(simp; fail)
-  apply(simp split: split_if_asm)
+  apply(simp split: if_split_asm)
   by blast
 
 
