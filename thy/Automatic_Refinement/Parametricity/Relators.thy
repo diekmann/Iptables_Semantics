@@ -459,7 +459,7 @@ ML {*
         declare_natural_relator (natural_relator_from_term t) context
         handle 
           TERM (msg,_) => warn msg
-        | exn => if Exn.is_interrupt exn then reraise exn else warn ""
+        | exn => if Exn.is_interrupt exn then Exn.reraise exn else warn ""
       end
     in
       val natural_relator_attr = Scan.repeat1 Args.term >> (fn ts => 

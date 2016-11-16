@@ -279,7 +279,7 @@ ML {*
             ^ "\n for argument: " 
             ^ Syntax.string_of_term ctxt t
           ); 
-          reraise exc)
+          Exn.reraise exc)
 
       (* Extract GEN_OP-tags *)
       fun 

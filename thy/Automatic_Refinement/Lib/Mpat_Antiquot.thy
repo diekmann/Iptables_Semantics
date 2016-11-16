@@ -123,7 +123,7 @@ ML {*
         in (t1$t2,p) end
 
     val read = Scan.lift (Args.mode "typs" )
-      -- (Args.context -- Scan.lift (Parse.position Args.name_inner_syntax))
+      -- (Args.context -- Scan.lift (Parse.position Args.embedded_inner_syntax))
         
 
     fun write (with_types, t) = let
