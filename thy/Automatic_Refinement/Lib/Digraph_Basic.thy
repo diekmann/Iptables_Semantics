@@ -379,7 +379,7 @@ next
     thus "ipath E (iter p)"
       apply (auto simp: path_nth_conv ipath_def assms Let_def)
       apply (drule_tac x="i mod length p" in spec)
-      apply (auto simp: nth_append assms split: split_if_asm)
+      apply (auto simp: nth_append assms split: if_split_asm)
       apply (metis less_not_refl mod_Suc)
       by (metis PLEN diff_self_eq_0 mod_Suc nth_Cons_0 
         semiring_numeral_div_class.pos_mod_bound)

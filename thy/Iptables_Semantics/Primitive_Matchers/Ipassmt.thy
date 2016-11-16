@@ -113,7 +113,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
   lemma ipassmt_ignore_wildcard_le: "ipassmt_ignore_wildcard ipassmt \<subseteq>\<^sub>m ipassmt"
     apply(simp add: ipassmt_ignore_wildcard_def map_le_def)
     apply(clarify)
-    apply(simp split: option.split_asm split_if_asm)
+    apply(simp split: option.split_asm if_split_asm)
     done
 
   definition ipassmt_ignore_wildcard_list:: "(iface \<times> ('i::len word \<times> nat) list) list \<Rightarrow> (iface \<times> ('i word \<times> nat) list) list" where
@@ -195,7 +195,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
     apply(simp add: ipassmt_ignore_wildcard_def)
     apply(rule)
      apply(clarify)
-     apply(simp split: option.split_asm split_if_asm)
+     apply(simp split: option.split_asm if_split_asm)
      apply blast
     apply(clarify)
     apply(simp)
@@ -205,7 +205,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
     "ipassmt i = Some ips \<Longrightarrow> ipcidr_union_set (set ips) \<noteq> UNIV \<Longrightarrow> (the (ipassmt_ignore_wildcard ipassmt i)) = ips"
     "ipassmt_ignore_wildcard ipassmt i = Some ips \<Longrightarrow> the (ipassmt i) = ips"
     "ipassmt_ignore_wildcard ipassmt i = Some ips \<Longrightarrow> ipcidr_union_set (set ips) \<noteq> UNIV"
-    by (simp_all add: ipassmt_ignore_wildcard_def split: option.split_asm split_if_asm)
+    by (simp_all add: ipassmt_ignore_wildcard_def split: option.split_asm if_split_asm)
     
 
   lemma ipassmt_sanity_disjoint_ignore_wildcards:

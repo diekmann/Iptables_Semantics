@@ -35,12 +35,12 @@ section\<open>Optimizing protocols in match expressions\<close>
 lemma "simple_proto_conjunct (Proto p1) (Proto p2) \<noteq> None \<Longrightarrow> \<forall>pkt. match_proto (Proto p1) pkt \<longleftrightarrow> match_proto (Proto p2) pkt"
   apply(subgoal_tac "p1 = p2")
    apply(simp)
-  apply(simp split: split_if_asm)
+  apply(simp split: if_split_asm)
   done
 lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<forall>pkt. match_proto (Proto p2) pkt \<longrightarrow> match_proto p1 pkt"
  apply(cases p1)
   apply(simp)
- apply(simp split: split_if_asm)
+ apply(simp split: if_split_asm)
  done
 
   definition compress_protocols :: "protocol negation_type list \<Rightarrow> (protocol list \<times> protocol list) option" where
@@ -92,7 +92,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
   (*fully optimized, i.e. we cannot compress it better*)
   lemma "compress_protocols ps = Some (ps_pos, ps_neg) \<Longrightarrow>
     \<exists> p. ((\<forall>m\<in>set ps_pos. match_proto m p) \<and> (\<forall>m\<in>set ps_neg. \<not> match_proto m p))"
-    apply(simp add: compress_protocols_def all_proto_hlp2 split: option.split_asm split_if_asm)
+    apply(simp add: compress_protocols_def all_proto_hlp2 split: option.split_asm if_split_asm)
      apply(subgoal_tac "\<exists>p. (Proto p) \<notin> set ps_neg")
       apply(elim exE)
       apply(rename_tac x2 p)
@@ -122,7 +122,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
       apply(case_tac "compress_pos_protocols (getPos ps)")
        apply(simp_all)
       apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_Some)
-      apply(simp split:split_if_asm)
+      apply(simp split:if_split_asm)
       using simple_proto_conjunct_None by auto
   qed
 
@@ -146,7 +146,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
          apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_None)
          apply(simp; fail)
         apply(drule_tac p_prot="p_proto p" in compress_pos_protocols_Some)
-        apply(simp split:split_if_asm)
+        apply(simp split:if_split_asm)
          apply fastforce
         apply(elim bexE exE)
         apply(simp)
@@ -179,7 +179,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
      shows "\<not> has_disc_negated is_Prot False m'"
      apply(rule compress_normalize_primitive_not_introduces_C_negated[OF notdisc wf_disc_sel_common_primitive(7) nm])
      using some apply(simp add: compress_normalize_protocols_step_def)
-     by(simp add: compress_protocols_def split: option.split_asm split_if_asm)
+     by(simp add: compress_protocols_def split: option.split_asm if_split_asm)
 
 
   lemma compress_normalize_protocols_step_hasdisc:
@@ -451,7 +451,7 @@ subsection\<open>Putting things together\<close>
   lemma compress_normalize_protocols_nnf:
     "normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
       normalized_nnf_match m'"
-  using assms apply(simp add: compress_normalize_protocols_def)
+  apply(simp add: compress_normalize_protocols_def)
   by (metis import_protocols_from_ports_nnf compress_normalize_protocols_step_nnf)
  
 
@@ -469,7 +469,7 @@ subsection\<open>Putting things together\<close>
   lemma compress_normalize_protocols_hasdisc:
     "\<not> has_disc disc m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
      normalized_nnf_match m' \<and> \<not> has_disc disc m'"
-    using assms apply(simp add: compress_normalize_protocols_def)
+    apply(simp add: compress_normalize_protocols_def)
     using import_protocols_from_ports_hasdisc
           compress_normalize_protocols_step_hasdisc by blast
 
@@ -477,14 +477,14 @@ subsection\<open>Putting things together\<close>
     "\<not> has_disc_negated disc False m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow>
      normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
      normalized_nnf_match m' \<and> \<not> has_disc_negated disc False m'" (*original lemma allowed arbitrary neg*)
-    using assms apply(simp add: compress_normalize_protocols_def)
+    apply(simp add: compress_normalize_protocols_def)
     apply(frule(2) import_protocols_from_ports_hasdisc_negated)
     using compress_normalize_protocols_step_hasdisc_negated by blast
 
   lemma compress_normalize_protocols_preserves_normalized_n_primitive:
     "normalized_n_primitive (disc, sel) P m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols m = Some m' \<Longrightarrow>
      normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
-    using assms apply(simp add: compress_normalize_protocols_def)
+    apply(simp add: compress_normalize_protocols_def)
     using import_protocols_from_ports_preserves_normalized_n_primitive
           compress_normalize_protocols_step_preserves_normalized_n_primitive by blast
 

@@ -33,8 +33,8 @@ lemma "parser6_test_firewall =
          (MatchAnd (Match (IIface (Iface ''lo'')))
                    (Match (OIface (Iface ''lo'')))))
      action.Accept,
-    Rule (Match (Extra (''--log-prefix '' @ [Char Nibble2 Nibble2] @
-                        ''~%&/()=?'' @ [Char Nibble2 Nibble2] @ 
+    Rule (Match (Extra (''--log-prefix '' @ [char_of_nat 34] @
+                        ''~%&/()=?'' @ [char_of_nat 34] @ 
                         '' --log-level 6'')))
      Log,
     Rule (Match (Src (IpAddrNetmask 0 128))) action.Drop]),

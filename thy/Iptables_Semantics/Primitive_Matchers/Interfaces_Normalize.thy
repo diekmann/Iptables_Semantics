@@ -40,12 +40,12 @@ begin
         apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_None)
         apply(simp; fail)
        apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
-       apply(simp split:split_if_asm)
+       apply(simp split:if_split_asm)
        using iface_subset apply blast
        apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_None)
        apply(simp; fail)
       apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_Some)
-      apply(simp split:split_if_asm)
+      apply(simp split:if_split_asm)
       using iface_subset by blast
   
   private lemma compress_interfaces_Some: 
@@ -65,12 +65,12 @@ begin
       apply(case_tac [!] "compress_pos_interfaces (getPos ifces)")
          apply(simp_all)
        apply(drule_tac p_i="p_iiface p" in compress_pos_interfaces_Some)
-       apply(simp split:split_if_asm)
+       apply(simp split:if_split_asm)
          using iface_is_wildcard_def iface_subset match_iface_case_nowildcard apply fastforce
         using match_ifaceAny apply blast
        apply force
       apply(drule_tac p_i="p_oiface p" in compress_pos_interfaces_Some)
-      apply(simp split:split_if_asm)
+      apply(simp split:if_split_asm)
         using iface_is_wildcard_def iface_subset match_iface_case_nowildcard apply fastforce
        using match_ifaceAny apply blast
       by force
@@ -115,7 +115,7 @@ begin
      shows "\<not> has_disc_negated is_Iiface False m'"
      apply(rule compress_normalize_primitive_not_introduces_C_negated[OF notdisc wf_disc_sel_common_primitive(5) nm])
      using some apply(simp add: compress_normalize_input_interfaces_def)
-     by(simp add: compress_interfaces_def split: option.split_asm split_if_asm)
+     by(simp add: compress_interfaces_def split: option.split_asm if_split_asm)
 
   (* only for arbitrary discs that do not match Iiface*)
   lemma compress_normalize_input_interfaces_hasdisc:
@@ -188,7 +188,7 @@ begin
      shows "\<not> has_disc_negated is_Oiface False m'"
      apply(rule compress_normalize_primitive_not_introduces_C_negated[OF notdisc wf_disc_sel_common_primitive(6) nm])
      using some apply(simp add: compress_normalize_output_interfaces_def)
-     by(simp add: compress_interfaces_def split: option.split_asm split_if_asm)
+     by(simp add: compress_interfaces_def split: option.split_asm if_split_asm)
 
   (* only for arbitrary discs that do not match Oiface*)
   lemma compress_normalize_output_interfaces_hasdisc:

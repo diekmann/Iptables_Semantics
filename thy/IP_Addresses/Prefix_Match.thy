@@ -142,7 +142,7 @@ subsection\<open>Equivalence Proofs\<close>
   private lemma valid_prefix_ipset_from_netmask_ipset_from_cidr:
     shows "ipset_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx) =
             ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
-    using assms apply(cases pfx)
+    apply(cases pfx)
     apply(simp add: ipset_from_cidr_alt2 pfxm_mask_def)
    done
   

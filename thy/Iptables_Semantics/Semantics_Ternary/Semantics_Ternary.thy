@@ -169,7 +169,7 @@ subsection\<open>wf ruleset\<close>
   lemma wf_rulesetD: assumes "wf_ruleset \<gamma> p (r # rs)" shows "wf_ruleset \<gamma> p [r]" and "wf_ruleset \<gamma> p rs"
     using assms by(auto simp add: wf_ruleset_def)
   lemma wf_ruleset_fst: "wf_ruleset \<gamma> p (Rule m a # rs) \<longleftrightarrow> wf_ruleset \<gamma> p [Rule m a] \<and> wf_ruleset \<gamma> p rs"
-    using assms by(auto simp add: wf_ruleset_def)
+    by(auto simp add: wf_ruleset_def)
   lemma wf_ruleset_stripfst: "wf_ruleset \<gamma> p (r # rs) \<Longrightarrow> wf_ruleset \<gamma> p (rs)"
     by(simp add: wf_ruleset_def)
   lemma wf_ruleset_rest: "wf_ruleset \<gamma> p (Rule m a # rs) \<Longrightarrow> wf_ruleset \<gamma> p [Rule m a]"
@@ -552,9 +552,9 @@ lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) (get_
   unfolding optimize_matches_def
   apply(rule optimize_matches_option_generic)
     apply(simp; fail)
-   apply(simp split: split_if_asm)
+   apply(simp split: if_split_asm)
    apply blast
-  apply(simp split: split_if_asm)
+  apply(simp split: if_split_asm)
   using matcheq_matchNone_not_matches by fast
 
 

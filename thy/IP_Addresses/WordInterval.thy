@@ -301,7 +301,7 @@ begin
       A \<noteq> B \<Longrightarrow> disjoint (interval_of A) (interval_of B)"
     apply(induction ss arbitrary: rule: listwordinterval_compress.induct)
      apply(simp)
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
     apply(elim disjE)
        apply(simp_all)
      apply(simp_all add: disjoint_intervals_def disjoint_def)
@@ -335,8 +335,8 @@ begin
        apply (metis Un_assoc word_adjacent_union)
       apply(elim conjE)
       apply(drule(2) word_adjacent_union)
-      apply(blast)
-     using word_adjacent_union apply blast
+      subgoal by (blast)
+     subgoal by (metis word_adjacent_union Un_assoc)
     by blast
 
   private lemma merge_adjacent_length:
@@ -394,7 +394,7 @@ begin
               (listwordinterval_compress (wi2l (wordinterval_optimize_empty r)))))) =
             (\<Union>x\<in>set (listwordinterval_adjacent (listwordinterval_compress
                 (wi2l (wordinterval_optimize_empty r)))). interval_of x)"
-      using l2wi l2wi_remdups interval_of.simps[symmetric] by blast
+      using l2wi l2wi_remdups interval_of.simps[symmetric] by (metis (no_types) SUP_cong interval_of')
       also have "\<dots> =  (\<Union>s\<in>set (wi2l (wordinterval_optimize_empty r)). interval_of s)"
         by(simp add: listwordinterval_compress listwordinterval_adjacent)
       also have "\<dots> = (\<Union>(i, j)\<in>set (wi2l (wordinterval_optimize_empty r)). {i..j})"

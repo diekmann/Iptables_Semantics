@@ -183,7 +183,7 @@ lemma optimize_matches_preserves: "(\<And> r. r \<in> set rs \<Longrightarrow> P
     \<forall> r \<in> set (optimize_matches f rs). P (get_match r)"
   unfolding optimize_matches_def
   apply(rule optimize_matches_option_preserves)
-  by(auto split: split_if_asm)
+  by(auto split: if_split_asm)
 
 lemma optimize_matches_simple_ruleset: "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches f rs)"
   by(simp add: optimize_matches_def optimize_matches_option_simple_ruleset)

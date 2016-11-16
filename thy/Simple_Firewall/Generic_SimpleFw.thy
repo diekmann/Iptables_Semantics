@@ -32,7 +32,7 @@ subsection\<open>Lemmas\<close>
   
   lemma generalized_sfwSomeD: "generalized_sfw fw p = Some (r,d) \<Longrightarrow> (r,d) \<in> set fw \<and> simple_matches r p"
     unfolding generalized_sfw_def
-    by(induction fw) (simp split: split_if_asm)+
+    by(induction fw) (simp split: if_split_asm)+
   
   lemma generalized_sfw_NoneD: "generalized_sfw fw p = None \<Longrightarrow> \<forall>(a,b) \<in> set fw. \<not> simple_matches a p"
     by(induction fw) (clarsimp simp add: generalized_sfw_simps split: if_splits)+

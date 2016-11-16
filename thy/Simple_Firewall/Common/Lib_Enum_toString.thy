@@ -26,7 +26,7 @@ subsection\<open>Enum set to string\<close>
   lemma enum_set_get_one_Some: "S \<subseteq> set ss \<Longrightarrow> enum_set_get_one ss S = Some x \<Longrightarrow> x \<in> S"
     apply(induction ss)
      apply(simp; fail)
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
     apply(blast)
     done
   corollary enum_set_get_one_enum_Some: "enum_set_get_one enum_class.enum S = Some x \<Longrightarrow> x \<in> S"
@@ -35,7 +35,7 @@ subsection\<open>Enum set to string\<close>
   lemma enum_set_get_one_Ex_Some: "S \<subseteq> set ss \<Longrightarrow> S \<noteq> {} \<Longrightarrow> \<exists>x. enum_set_get_one ss S = Some x"
     apply(induction ss)
      apply(simp; fail)
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
     apply(blast)
     done
   corollary enum_set_get_one_enum_Ex_Some:

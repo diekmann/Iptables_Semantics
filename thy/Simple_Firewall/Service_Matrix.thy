@@ -726,8 +726,8 @@ qed
      apply(simp add: simple_conn_matches_simple_match_any; fail)
     apply(simp)
     apply(intro conjI)
-     apply(simp split: split_if_asm; fail)
-    apply(simp add: has_default_policy_fst split: split_if_asm)
+     apply(simp split: if_split_asm; fail)
+    apply(simp add: has_default_policy_fst split: if_split_asm)
     done
   
   
@@ -1169,7 +1169,7 @@ text\<open>However, the entries are only a representation of a whole set of IP a
 lemma map_of_zip_map: "map_of (zip (map f rs) rs) k = Some v \<Longrightarrow> k = f v"
   apply(induction rs)
    apply(simp)
-  apply(simp split: split_if_asm)
+  apply(simp split: if_split_asm)
   done
 
 lemma access_matrix_sound: assumes matrix: "(V,E) = access_matrix c rs" and

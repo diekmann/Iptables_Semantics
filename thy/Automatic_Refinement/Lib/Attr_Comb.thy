@@ -61,7 +61,7 @@ ML {*
     fun ITE_ATTR a b c = ITE_ATTR' a b (K c)
 
   
-    fun (a THEN_ATTR b) = ITE_ATTR' a b (reraise)
+    fun (a THEN_ATTR b) = ITE_ATTR' a b Exn.reraise
     fun (a ELSE_ATTR b) = ITE_ATTR a ID_ATTR b
 
     fun TRY_ATTR a = a ELSE_ATTR ID_ATTR

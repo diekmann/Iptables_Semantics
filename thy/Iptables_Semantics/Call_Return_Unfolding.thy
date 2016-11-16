@@ -775,7 +775,7 @@ proof -
         (rw_Reject
           (rm_LogEmpty
             (repeat_stabilize 10000 (process_call (map_of \<Gamma>)) [Rule MatchAny (Call chain_name), Rule MatchAny default_action]))))"
-    by(simp add: unfold_optimize_ruleset_CHAIN_def Let_def split: split_if_asm)
+    by(simp add: unfold_optimize_ruleset_CHAIN_def Let_def split: if_split_asm)
 
   have optimize_matches_generic_funpow_helper: "(\<And>m. matches \<gamma> (f m) p = matches \<gamma> m p) \<Longrightarrow>
         \<Gamma>,\<gamma>,p\<turnstile> \<langle>(optimize_matches f ^^ n) rs, s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"

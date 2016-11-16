@@ -19,7 +19,7 @@ record(overloaded) 'i routing_rule =
   metric :: nat
   routing_action :: "'i routing_action"
 
-text\<open>This definition is engineered to model routing tables on packet forwarding device.
+text\<open>This definition is engineered to model routing tables on packet forwarding devices.
 It eludes, e.g., the source address hint, which is only relevant for packets originating from the device itself.\<close>
 (* See also: http://linux-ip.net/html/routing-saddr-selection.html *)
 
@@ -78,7 +78,7 @@ qed simp
 subsection\<open>Longest Prefix Match\<close>
 
 text\<open>We can abuse @{const LinordHelper} to sort.\<close>
-definition "routing_rule_sort_key \<equiv> \<lambda>r. LinordHelper (0 - int_of_nat (pfxm_length (routing_match r))) (metric r)"
+definition "routing_rule_sort_key \<equiv> \<lambda>r. LinordHelper (0 - (of_nat :: nat \<Rightarrow> int) (pfxm_length (routing_match r))) (metric r)"
 text\<open>There is actually a slight design choice here. We can choose to sort based on @{thm less_eq_prefix_match_def} (thus including the address) or only the prefix length (excluding it).
   Which is taken does not matter gravely, since the bits of the prefix can't matter. They're either eqal or the rules don't overlap and the metric decides. (It does matter for the resulting list though.)
   Ignoring the prefix and taking only its length is slightly easier.\<close>
