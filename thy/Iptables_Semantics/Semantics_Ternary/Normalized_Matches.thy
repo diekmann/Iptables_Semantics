@@ -227,8 +227,7 @@ section\<open>Normalizing rules instead of only match expressions\<close>
  corollary normalize_rules_match_list_semantics: 
   "(\<forall>m a. match_list \<gamma> (f m) a p = matches \<gamma> m a p) \<Longrightarrow> simple_ruleset rs \<Longrightarrow>
    approximating_bigstep_fun \<gamma> p (normalize_rules f rs) s = approximating_bigstep_fun \<gamma> p rs s"
-  apply(rule normalize_rules_match_list_semantics_3[where P="\<lambda>_. True"])
-    by(simp_all)
+  by(rule normalize_rules_match_list_semantics_3[where P="\<lambda>_. True"]) simp_all
 
 lemma in_normalized_matches: "ls \<in> set (normalize_match m) \<and> matches \<gamma> ls a p \<Longrightarrow> matches \<gamma> m a p"
   by (meson match_list_matches matches_to_match_list_normalize)

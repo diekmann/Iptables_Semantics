@@ -72,6 +72,9 @@ lemma "parser_test_firewall \<equiv>
               @ [char_of_nat 34] @ '' --log-level 6'') ))
      Log,
     Rule (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (127, 0, 0, 0)) 8))) action.Drop,
+    Rule (MatchAnd (Match (Prot (Proto UDP)))
+           (MatchAnd (Match (MultiportPorts (L4Ports UDP [(8080, 8081), (8082, 8082)])))
+             (Match (Extra ''--something-else'')))) action.Accept,
     Rule (MatchAnd (Match (IIface (Iface ''wlan0'')))
            (MatchAnd (Match (Prot (Proto TCP)))
              (MatchAnd
@@ -138,7 +141,6 @@ lemma "parser_test_firewall \<equiv>
   by eval
 
 
-(*There is some ~~-m tcp~~  remaining because we cannot parse "-m tcp ! --tcp-flags"*)
 value[code] "map (\<lambda>(c,rs). (c, map (common_primitive_rule_toString) rs)) parser_test_firewall"
 
 

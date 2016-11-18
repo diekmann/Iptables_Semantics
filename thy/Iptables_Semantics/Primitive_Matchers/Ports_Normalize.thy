@@ -219,6 +219,7 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
     [ MatchNot (Match (Prot (Proto TCP)))
     , Match (Src_Ports (L4Ports 6 [(0, 21), (23, 79), (91, 0xFFFF)]))]" by eval
 
+  (*TODO: this one is generic, move?*)
   definition rewrite_negated_primitives
     :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> ('b \<Rightarrow> 'a) \<Rightarrow> (*disc_sel C*)
         (('b \<Rightarrow> 'a) \<Rightarrow> 'b \<Rightarrow> 'a match_expr) \<Rightarrow> (*negate_one function*)
@@ -290,7 +291,6 @@ subsection\<open>Rewriting Negated Matches on Ports\<close>
   qed
  
 
-  (*TODO: isar proof*)
   lemma rewrite_negated_primitives_not_has_disc:
   assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
   and nodisc: "\<not> has_disc disc2 m"
@@ -1052,5 +1052,303 @@ lemma "map opt_MatchAny_match_expr (normalize_src_ports
 
 lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [MatchAny]" by(simp)
 
+
+
+(*scratch*)
+(*TODO: move?*)
+  (*TODO: add nnf_normalization directly afterwards?*)
+  definition replace_primitive_matchexpr
+    :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<Rightarrow> (*disc_sel*)
+        ('b negation_type \<Rightarrow> 'a match_expr) \<Rightarrow> (*replace function*)
+        'a match_expr \<Rightarrow> 'a match_expr" where
+    "replace_primitive_matchexpr disc_sel replace_f m \<equiv>
+        let (as, rst) = primitive_extractor disc_sel m
+        in if as = [] then m else 
+          MatchAnd
+            (andfold_MatchExp (map replace_f as))
+            rst"
+
+
+  text\<open>It does nothing of there is not even a primitive in it\<close>
+  lemma replace_primitive_matchexpr_unchanged_if_not_has_disc:
+  assumes n: "normalized_nnf_match m"
+  and wf_disc_sel: "wf_disc_sel (disc,sel) C" (*any C*)
+  and noDisc: "\<not> has_disc disc m"
+  shows "replace_primitive_matchexpr (disc,sel) replace_f m = m"
+    apply(simp add: replace_primitive_matchexpr_def)
+    apply(case_tac "primitive_extractor (disc,sel) m", rename_tac spts rst)
+    apply(simp)
+    apply(frule primitive_extractor_correct(7)[OF n wf_disc_sel])
+     using noDisc by blast+
+
+  (*lemma replace_primitive_matchexpr_preserves_not_has_disc:
+  assumes n: "normalized_nnf_match m"
+  and wf_disc_sel: "wf_disc_sel (disc, sel) C'"
+  and nodisc: "\<not> has_disc disc2 m"
+  and noNeg: "\<not> has_disc disc m"
+  and disc2_noC: "\<forall>a. \<not> disc2 (C a)"
+  shows "\<not> has_disc disc2 (replace_primitive_matchexpr (disc, sel) negate_f m)"
+    apply(subst replace_primitive_matchexpr_unchanged_if_not_has_disc)
+    using n wf_disc_sel noNeg nodisc by(simp)+*)
+
+  lemma replace_primitive_matchexpr:
+  assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel disc_sel C"
+  and replace_f: "\<forall>pt. matches \<gamma> (replace_f pt) a p \<longleftrightarrow>
+                        matches \<gamma> (negation_type_to_match_expr_f C pt) a p"
+  shows "matches \<gamma> (replace_primitive_matchexpr disc_sel replace_f m) a p \<longleftrightarrow> matches \<gamma> m a p"
+  proof -
+    obtain spts rst where pext: "primitive_extractor disc_sel m = (spts, rst)"
+      by(cases "primitive_extractor disc_sel m") simp
+    obtain disc sel where disc_sel: "disc_sel = (disc, sel)" by(cases disc_sel) simp
+    with wf_disc_sel have wf_disc_sel': "wf_disc_sel (disc, sel) C" by simp
+    from disc_sel pext have pext': "primitive_extractor (disc, sel) m = (spts, rst)" by simp
+      
+    have "matches \<gamma> (andfold_MatchExp (map replace_f spts)) a p \<and> matches \<gamma> rst a p \<longleftrightarrow>
+       matches \<gamma> m a p"
+      apply(subst primitive_extractor_correct(1)[OF n wf_disc_sel' pext', symmetric])
+      apply(simp add: andfold_MatchExp_matches)
+      apply(simp add: replace_f)
+      using alist_and_negation_type_to_match_expr_f_matches by fast
+    thus ?thesis by(simp add: replace_primitive_matchexpr_def pext bunch_of_lemmata_about_matches)
+  qed
+
+  lemma replace_primitive_matchexpr_replaces_disc:
+  assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc, sel) C"
+  and replace_f: "\<forall>a. \<not> has_disc disc (replace_f a)"
+  shows "\<not> has_disc disc (replace_primitive_matchexpr (disc, sel) replace_f m)"
+    apply(simp add: replace_primitive_matchexpr_def)
+    apply(case_tac "primitive_extractor (disc,sel) m", rename_tac spts rst)
+    apply(simp)
+    apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel])
+    apply simp
+    apply(frule primitive_extractor_correct(7)[OF n wf_disc_sel])
+    apply simp
+    apply(case_tac "\<not> has_disc disc m")
+     apply(simp)
+    apply(simp)
+    apply(frule(1) primitive_extractor_correct(9)[OF n wf_disc_sel])
+    apply(simp)
+    apply(rule MatchExpr_Fold.andfold_MatchExp_not_discI)
+    using replace_f by simp
+
+
+  lemma replace_primitive_matchexpr_preserves_not_has_disc:
+  assumes n: "normalized_nnf_match m" and wf_disc_sel: "wf_disc_sel (disc,sel) C"
+  and nodisc: "\<not> has_disc disc2 m"
+  and replace_f: "has_disc disc m \<Longrightarrow> \<forall>pts. \<not> has_disc disc2 (replace_f pts)"
+  shows "\<not> has_disc disc2 (replace_primitive_matchexpr (disc,sel) replace_f m)"
+    apply(simp add: replace_primitive_matchexpr_def)
+    apply(case_tac "primitive_extractor (disc,sel) m", rename_tac spts rst)
+    apply(simp)
+    apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel])
+    apply(case_tac "\<not> has_disc disc m")
+     subgoal
+     apply(frule primitive_extractor_correct(7)[OF n wf_disc_sel])
+     using nodisc by blast
+    apply(simp)
+    apply(intro conjI impI)
+      using nodisc apply(simp; fail)
+     apply(rule andfold_MatchExp_not_discI)
+     apply(simp add: replace_f; fail)
+    using nodisc by blast
+
+  lemma normalize_replace_primitive_matchexpr_preserves_normalized_n_primitive:
+    assumes n: "normalized_nnf_match m"
+      and wf_disc_sel: "wf_disc_sel (disc, sel) C"
+      and replace_f:
+        "\<And>a m'. m' \<in> set (normalize_match (replace_f a)) \<Longrightarrow> normalized_n_primitive (disc2, sel2) f m'"
+      and nprim: "normalized_n_primitive (disc2, sel2) f m"
+      and m': "m' \<in> set (normalize_match (replace_primitive_matchexpr (disc,sel) replace_f m))"
+    shows "normalized_n_primitive (disc2, sel2) f m'"
+  proof -
+    have x: "x \<in> set (normalize_match (andfold_MatchExp (map replace_f as))) \<Longrightarrow>
+          normalized_n_primitive (disc2, sel2) f x" for x as
+      apply(rule normalize_andfold_MatchExp_normalized_n_primitive )
+       apply(simp_all)
+      using replace_f by blast
+    from m' show ?thesis
+    apply(simp add: replace_primitive_matchexpr_def)
+    apply(case_tac "primitive_extractor (disc, sel) m", rename_tac as rst)
+    apply(simp split: if_split_asm)
+     using normalize_match_preserves_normalized_n_primitive nprim apply blast
+    apply(frule_tac P=f in primitive_extractor_correct(5)[OF n wf_disc_sel])
+    apply(clarify)
+    apply(simp)
+    apply(intro conjI)
+     prefer 2
+     using normalize_match_preserves_normalized_n_primitive nprim apply blast
+    by(simp add: x)
+  qed
+
+  lemma normalize_replace_primitive_matchexpr_preserves_normalized_not_has_disc:
+    assumes n: "normalized_nnf_match m" 
+      and wf_disc_sel: "wf_disc_sel (disc, sel) C"
+      and nodisc: "\<not> has_disc disc2 m"
+      and replace_f: "\<And>a. \<not> has_disc disc2 (replace_f a)"
+     shows "m'\<in> set (normalize_match (replace_primitive_matchexpr (disc,sel) replace_f m))
+      \<Longrightarrow> \<not> has_disc disc2 m'"
+    apply(simp add: replace_primitive_matchexpr_def)
+    apply(case_tac "primitive_extractor (disc, sel) m", rename_tac as rst)
+    apply(simp split: if_split_asm)
+     using nodisc normalize_match_preserves_nodisc apply blast
+    apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel])
+    apply(elim bexE, rename_tac x)
+    apply(erule Set.imageE, rename_tac xright) (*m' = MatchAnd x xright*)
+    apply(simp)
+    apply(intro conjI)
+     apply(rule normalize_match_preserves_nodisc, simp_all)
+     apply(rule andfold_MatchExp_not_discI, simp)
+     using replace_f apply blast
+    apply(rule normalize_match_preserves_nodisc)
+     apply(insert nodisc)
+     by(simp_all)
+ 
+  lemma normalize_replace_primitive_matchexpr_preserves_normalized_not_has_disc_negated:
+    assumes n: "normalized_nnf_match m" 
+      and wf_disc_sel: "wf_disc_sel (disc, sel) C"
+      and nodisc: "\<not> has_disc_negated disc2 neg m"
+      and replace_f: "\<And>a. \<not> has_disc_negated disc2 neg (replace_f a)"
+     shows "m'\<in> set (normalize_match (replace_primitive_matchexpr (disc,sel) replace_f m))
+      \<Longrightarrow> \<not> has_disc_negated disc2 neg m'"
+    apply(simp add: replace_primitive_matchexpr_def)
+    apply(case_tac "primitive_extractor (disc, sel) m", rename_tac as rst)
+    apply(simp split: if_split_asm)
+     using nodisc not_has_disc_normalize_match apply blast
+    apply(frule primitive_extractor_correct(6)[OF n wf_disc_sel, where neg=neg])
+    apply(elim bexE, rename_tac x)
+    apply(erule Set.imageE, rename_tac xright) (*m' = MatchAnd x xright*)
+    apply(simp)
+    apply(intro conjI)
+     apply(rule not_has_disc_normalize_match, simp_all)
+     apply(rule andfold_MatchExp_not_disc_negatedI, simp)
+     using replace_f apply blast
+    apply(rule not_has_disc_normalize_match)
+     apply(insert nodisc)
+     by(simp_all)
+
+  corollary normalize_replace_primitive_matchexpr:
+    assumes n: "normalized_nnf_match m"
+    and replace_f:
+      "\<And>m. normalized_nnf_match m \<Longrightarrow> 
+      matches \<gamma> (replace_primitive_matchexpr disc_sel replace_f m) a p \<longleftrightarrow> matches \<gamma> m a p"
+    shows
+        "match_list \<gamma> (normalize_match (replace_primitive_matchexpr disc_sel replace_f m)) a p \<longleftrightarrow>
+          matches \<gamma> m a p"
+     by(simp add: matches_to_match_list_normalize[symmetric] replace_f n)
+
+
+  fun rewrite_MultiportPorts_one
+    :: "ipt_l4_ports negation_type\<Rightarrow> 'i::len common_primitive match_expr" where
+    "rewrite_MultiportPorts_one (Pos pts) = 
+        MatchOr (Match (Src_Ports pts)) (Match (Dst_Ports pts))" |
+    "rewrite_MultiportPorts_one (Neg pts) =
+        MatchAnd (MatchNot (Match (Src_Ports pts))) (MatchNot (Match (Dst_Ports pts)))"
+
+  lemma rewrite_MultiportPorts_one:
+  assumes generic: "primitive_matcher_generic \<beta>" and n: "normalized_nnf_match m"
+  shows
+    "matches (\<beta>, \<alpha>) (replace_primitive_matchexpr (is_MultiportPorts, multiportports_sel) rewrite_MultiportPorts_one m) a p \<longleftrightarrow>
+      matches (\<beta>, \<alpha>) m a p"
+    apply(rule replace_primitive_matchexpr[OF n wf_disc_sel_common_primitive(11)])
+    apply(rule allI, rename_tac pt)
+    apply(case_tac pt)
+     apply(simp add: primitive_matcher_generic.MultiportPorts_single_rewrite_MatchOr[OF generic]; fail)
+    apply(simp add: primitive_matcher_generic.MultiportPorts_single_not_rewrite_MatchAnd[OF generic]; fail)
+    done
+
+  lemma "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow>
+          normalized_n_primitive (disc, sel) f m \<Longrightarrow>
+         \<forall>m' \<in> set (normalize_match (rewrite_MultiportPorts_one a)).
+            normalized_n_primitive (disc, sel) f m'"
+    apply(cases a)
+     by(simp_all add: MatchOr_def)
+
+  lemma rewrite_MultiportPorts_one_nodisc: 
+    "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow>
+          \<not> has_disc disc (rewrite_MultiportPorts_one a)"
+    "\<forall>a. \<not> disc (Src_Ports a) \<Longrightarrow> \<forall>a. \<not> disc (Dst_Ports a) \<Longrightarrow>
+          \<not> has_disc_negated disc neg (rewrite_MultiportPorts_one a)"
+    by(cases a, simp_all add: MatchOr_def)+
+
+  definition rewrite_MultiportPorts
+    :: "'i::len common_primitive match_expr \<Rightarrow> 'i common_primitive match_expr list" where
+    "rewrite_MultiportPorts m \<equiv> normalize_match 
+        (replace_primitive_matchexpr (is_MultiportPorts, multiportports_sel) rewrite_MultiportPorts_one m)"
+
+
+  lemma rewrite_MultiportPorts:
+    assumes generic: "primitive_matcher_generic \<beta>"
+    and n: "normalized_nnf_match m"
+    shows
+        "match_list (\<beta>, \<alpha>) (rewrite_MultiportPorts m) a p \<longleftrightarrow> matches (\<beta>, \<alpha>) m a p"
+    unfolding rewrite_MultiportPorts_def
+    apply(intro normalize_replace_primitive_matchexpr[OF n])
+    by(simp add: rewrite_MultiportPorts_one[OF generic])
+
+  lemma rewrite_MultiportPorts_normalized_nnf_match:
+      "m' \<in> set (rewrite_MultiportPorts m) \<Longrightarrow> normalized_nnf_match m'"
+    apply(simp add: rewrite_MultiportPorts_def)
+    using normalized_nnf_match_normalize_match by blast
+
+
+  text\<open>It does nothing of there is not even the primitive in it\<close>
+  lemma rewrite_MultiportPorts_unchanged_if_not_has_disc:
+  assumes n: "normalized_nnf_match m"
+  and noDisc: "\<not> has_disc is_MultiportPorts m"
+  shows "rewrite_MultiportPorts m = [m]"
+    apply(simp add: rewrite_MultiportPorts_def)
+    apply(subst replace_primitive_matchexpr_unchanged_if_not_has_disc[OF n
+            wf_disc_sel_common_primitive(11) noDisc])
+    using n by(fact normalize_match_already_normalized)
+    
+
+  lemma rewrite_MultiportPorts_preserves_normalized_n_primitive:
+    assumes n: "normalized_nnf_match m"
+      and disc2_noSrcPorts: "\<forall>a. \<not> disc2 (Src_Ports a)"
+      and disc2_noDstPorts: "\<forall>a. \<not> disc2 (Dst_Ports a)"
+    shows "m' \<in> set (rewrite_MultiportPorts m) \<Longrightarrow>
+         normalized_n_primitive (disc2, sel2) f  m \<Longrightarrow>
+          normalized_n_primitive (disc2, sel2) f m'"
+      unfolding rewrite_MultiportPorts_def
+      apply(rule normalize_replace_primitive_matchexpr_preserves_normalized_n_primitive[OF
+                  n wf_disc_sel_common_primitive(11)])
+        apply simp_all
+      apply(rename_tac a a')
+      apply(case_tac a)
+       apply(simp_all add: MatchOr_def)
+       using disc2_noSrcPorts disc2_noDstPorts by fastforce+ 
+
+  lemma rewrite_MultiportPorts_preserves_normalized_not_has_disc:
+    assumes n: "normalized_nnf_match m" 
+      and nodisc: "\<not> has_disc disc2 m"
+      and disc2_noSrcPorts: "\<forall>a. \<not> disc2 (Src_Ports a)"
+      and disc2_noDstPorts: "\<forall>a. \<not> disc2 (Dst_Ports a)"
+     shows "m'\<in> set (rewrite_MultiportPorts m)
+      \<Longrightarrow> \<not> has_disc disc2 m'"
+  apply(simp add: rewrite_MultiportPorts_def)
+  apply(rule normalize_replace_primitive_matchexpr_preserves_normalized_not_has_disc[OF n wf_disc_sel_common_primitive(11) nodisc])
+   by(simp_all add: rewrite_MultiportPorts_one_nodisc disc2_noSrcPorts disc2_noDstPorts)
+
+
+  lemma rewrite_MultiportPorts_preserves_normalized_not_has_disc_negated:
+    assumes n: "normalized_nnf_match m" 
+      and nodisc: "\<not> has_disc_negated disc2 neg m"
+      and disc2_noSrcPorts: "\<forall>a. \<not> disc2 (Src_Ports a)"
+      and disc2_noDstPorts: "\<forall>a. \<not> disc2 (Dst_Ports a)"
+     shows "m'\<in> set (rewrite_MultiportPorts m)
+      \<Longrightarrow> \<not> has_disc_negated disc2 neg m'"
+  apply(simp add: rewrite_MultiportPorts_def)
+  apply(rule normalize_replace_primitive_matchexpr_preserves_normalized_not_has_disc_negated[OF n wf_disc_sel_common_primitive(11) nodisc])
+   by(simp_all add: rewrite_MultiportPorts_one_nodisc disc2_noSrcPorts disc2_noDstPorts)
+
+  lemma rewrite_MultiportPorts_removes_MultiportsPorts:
+    assumes n: "normalized_nnf_match m"
+    shows "m' \<in> set (rewrite_MultiportPorts m) \<Longrightarrow> \<not> has_disc is_MultiportPorts m'"
+    apply(simp add: rewrite_MultiportPorts_def)
+    apply(rule normalize_match_preserves_nodisc)
+     apply(simp_all)
+    apply(rule replace_primitive_matchexpr_replaces_disc[OF n wf_disc_sel_common_primitive(11)])
+    apply(intro allI, rename_tac a)
+    by(case_tac a, simp_all add: MatchOr_def)
 
 end

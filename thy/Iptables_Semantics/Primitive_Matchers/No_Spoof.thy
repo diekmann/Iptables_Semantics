@@ -138,6 +138,7 @@ begin
          \<not> has_disc is_Prot m \<and>
          \<not> has_disc is_Src_Ports m \<and>
          \<not> has_disc is_Dst_Ports m \<and>
+         \<not> has_disc is_MultiportPorts m \<and>
          \<not> has_disc is_L4_Flags m \<and>
          \<not> has_disc is_CT_State m \<and>
          \<not> has_disc is_Extra m"

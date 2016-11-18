@@ -19,6 +19,8 @@ locale primitive_matcher_generic =
         and Prot: "\<forall> p proto. \<beta> (Prot proto) p = bool_to_ternary (match_proto proto (p_proto p))"
    and Src_Ports: "\<forall> p proto ps. \<beta> (Src_Ports (L4Ports proto ps)) p = bool_to_ternary (proto = p_proto p \<and> p_sport p \<in> ports_to_set ps)"
    and Dst_Ports: "\<forall> p proto ps. \<beta> (Dst_Ports (L4Ports proto ps)) p = bool_to_ternary (proto = p_proto p \<and> p_dport p \<in> ports_to_set ps)"
+   -- "-m multiport --ports matches source or destination port"
+   and MultiportsPorts: "\<forall> p proto ps. \<beta> (MultiportPorts (L4Ports proto ps)) p = bool_to_ternary (proto = p_proto p \<and> (p_sport p \<in> ports_to_set ps \<or> p_dport p \<in> ports_to_set ps))"
     and L4_Flags: "\<forall> p flags. \<beta> (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags (p_tcp_flags p))"
     and CT_State: "\<forall> p S. \<beta> (CT_State S) p = bool_to_ternary (match_ctstate S (p_tag_ctstate p))"
         and Extra: "\<forall> p str. \<beta> (Extra str) p = TernaryUnknown"
@@ -71,6 +73,33 @@ begin
         "(\<exists>rg\<in>set dpts. matches (\<beta>, \<alpha>) (Match (Dst_Ports (L4Ports proto [rg]))) a p) \<longleftrightarrow> matches (\<beta>, \<alpha>) (Match (Dst_Ports (L4Ports proto dpts))) a p"
     by(auto simp add: Src_Ports Dst_Ports match_raw_ternary bool_to_ternary_simps ports_to_set
                    split: ternaryvalue.split)
+
+  lemma MultiportPorts_single_rewrite:
+    "matches (\<beta>, \<alpha>) (Match (MultiportPorts ports)) a p \<longleftrightarrow>
+      matches (\<beta>, \<alpha>) (Match (Src_Ports ports)) a p \<or> matches (\<beta>, \<alpha>) (Match (Dst_Ports ports)) a p"
+    apply(cases ports)
+    apply(simp add: Ports_single)
+    by(simp add: MultiportsPorts match_raw_ternary bool_to_ternary_simps
+            split: ternaryvalue.split)
+  lemma MultiportPorts_single_rewrite_MatchOr:
+    "matches (\<beta>, \<alpha>) (Match (MultiportPorts ports)) a p \<longleftrightarrow>
+      matches (\<beta>, \<alpha>) (MatchOr (Match (Src_Ports ports)) (Match (Dst_Ports ports))) a p"
+    apply(cases ports)
+    by(simp add: MatchOr MultiportPorts_single_rewrite)
+
+  lemma MultiportPorts_single_not_rewrite_MatchAnd:
+    "matches (\<beta>, \<alpha>) (MatchNot (Match (MultiportPorts ports))) a p \<longleftrightarrow>
+      matches (\<beta>, \<alpha>) (MatchAnd (MatchNot (Match (Src_Ports ports))) (MatchNot (Match (Dst_Ports ports)))) a p"
+    apply(cases ports)
+    apply(simp add: Ports_single_not bunch_of_lemmata_about_matches)
+    by(simp add: MultiportsPorts matches_case_ternaryvalue_tuple bool_to_ternary_simps
+            split: ternaryvalue.split)
+  lemma MultiportPorts_single_not_rewrite:
+    "matches (\<beta>, \<alpha>) (MatchNot (Match (MultiportPorts ports))) a p \<longleftrightarrow>
+      \<not> matches (\<beta>, \<alpha>) (Match (Src_Ports ports)) a p \<and> \<not> matches (\<beta>, \<alpha>) (Match (Dst_Ports ports)) a p"
+    apply(cases ports)
+    by(simp add: MultiportPorts_single_not_rewrite_MatchAnd bunch_of_lemmata_about_matches
+                 Ports_single_not Ports_single)
 
 
   lemma Extra_single:

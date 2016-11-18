@@ -32,10 +32,12 @@
 \usepackage{booktabs}
 \newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
 \usepackage{pifont}
+\usepackage{tikz}
+\usetikzlibrary{calc}
 \usepackage{moeptikz}
 \DeclareUnicodeCharacter{2713}{\ding{52}}
 \DeclareUnicodeCharacter{2717}{\ding{56}}
-\DeclareUnicodeCharacter{00D7}{\ensuremath{\times}}%               ×
+\DeclareUnicodeCharacter{00D7}{\ensuremath{\times}}%               \<times>
 \usepackage{flushend}
 \usepackage{stmaryrd}
 \usepackage{mathtools}
@@ -48,19 +50,19 @@
 \clubpenalty100000
 \usepackage{pbox}
 \usepackage{subcaption}
+\usepackage{framed}
 \usepackage{listings}
 \lstset{breaklines=true,numbers=left,numberstyle=\tiny\color{gray},basicstyle=\footnotesize\ttfamily}
 \usepackage{pgfplots}
-\twocolumn
 \columnsep 2pc          %    Space between columns
 \textwidth 42pc         % Width of text line.
 \oddsidemargin 4.5pc
 \evensidemargin 4.5pc
-\advance\oddsidemargin by -1in  % Correct for LaTeX gratuitousness
-\advance\evensidemargin by -1in % Correct for LaTeX gratuitousness
+\advance\oddsidemargin by -1.11in  % Correct for LaTeX gratuitousness
+\advance\evensidemargin by -1.11in % Correct for LaTeX gratuitousness
 \marginparwidth 0pt             % Margin pars are not allowed.
 \marginparsep 11pt              % Horizontal space between outer margin and
-\emergencystretch=3cm
+\emergencystretch=10cm
 
 
 % this should be the last package used
@@ -77,8 +79,38 @@
 % for \frqq (whatever that actually is)
 
 \begin{document}
+\title{LOFT — Verified Migration of Linux Firewalls to SDN}
+\author{Julius Michaelis and Cornelius Diekmann}
+\maketitle
+
+\begin{abstract}
+	We present LOFT — \emph{L}inux firewall \emph{O}pen\emph{F}low \emph{T}ranslator, a system that transforms the main routing table and \texttt{FORWARD} chain of iptables of a Linux-based firewall into a set of static OpenFlow rules.
+	Our implementation is verified against a model of a simplified Linux-based router and we can directly show how much of the original functionality is preserved.
+\end{abstract}
+\vspace{1em}
+
+Please note that this document is organized in two distinct parts.
+The first part contains the necessary definitions, helper lemmas and proofs in all their technicality as made in the theory code.
+The second part reiterates the most important definitions and proofs in a manner that is more suitable for human readers and enriches them with detailed explanations in natural language.
+Any interested reader should start from there.
+
+Many of the considerations that have led to the definitions made here have been explained in \cite{michaelis2016middlebox}.
+
+\tableofcontents
+
+\newpage
+
+\part{Code}
+
+% sane default for proof documents
+\parindent 0pt\parskip 0.5ex
 
 \input{session}
+
+\input{chap3}
+
+\bibliographystyle{abbrv}
+\bibliography{root}
 
 % optional bibliography
 %\bibliographystyle{abbrv}
@@ -90,3 +122,4 @@
 %%% mode: latex
 %%% TeX-master: t
 %%% End:
+

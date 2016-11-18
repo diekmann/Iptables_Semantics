@@ -12,7 +12,7 @@ COMMIT
 :FORWARD DROP [0:0]
 :OUTPUT ACCEPT [0:0]
 -A FORWARD -p icmp -j ACCEPT
--A FORWARD -i s1-lan -o s1-wan -p tcp -m tcp --sport 1024:65535 --dport 80 -j ACCEPT
--A FORWARD -i s1-wan -o s1-lan -p tcp -m tcp --sport 80 --dport 1024:65535 -j ACCEPT
+-A FORWARD -i s1-lan -p tcp -m tcp --sport 1024:65535 --dport 80 -j ACCEPT
+-A FORWARD -i s1-wan -p tcp -m tcp --sport 80 --dport 1024:65535 -j ACCEPT
 COMMIT
 # Completed on Mon Mar  7 19:29:19 2016

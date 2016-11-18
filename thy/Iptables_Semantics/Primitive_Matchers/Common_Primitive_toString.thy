@@ -49,6 +49,7 @@ fun common_primitive_toString :: "('i::len word \<Rightarrow> string) \<Rightarr
   "common_primitive_toString _ (Prot prot) = ''-p ''@protocol_toString prot" |
   "common_primitive_toString _ (Src_Ports (L4Ports prot pts)) = ''-m ''@primitive_protocol_toString prot@'' --spts '' @ list_toString (ports_toString '''') pts" |
   "common_primitive_toString _ (Dst_Ports (L4Ports prot pts)) = ''-m ''@primitive_protocol_toString prot@'' --dpts '' @ list_toString (ports_toString '''') pts" |
+  "common_primitive_toString _ (MultiportPorts (L4Ports prot pts)) = ''-p ''@primitive_protocol_toString prot@'' -m multiport --ports '' @ list_toString (ports_toString '''') pts" |
   "common_primitive_toString _ (CT_State S) = ''-m state --state ''@ctstate_set_toString S" |
   "common_primitive_toString _ (L4_Flags (TCP_Flags c m)) = ''--tcp-flags ''@ipt_tcp_flags_toString c@'' ''@ipt_tcp_flags_toString m" |
   "common_primitive_toString _ (Extra e) = ''~~''@e@''~~''"

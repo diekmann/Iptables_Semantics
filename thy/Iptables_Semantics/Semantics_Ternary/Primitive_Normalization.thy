@@ -197,6 +197,16 @@ lemma normalized_n_primitive_if_no_primitive: "normalized_nnf_match m \<Longrigh
        normalized_n_primitive (disc, sel) f m"
   by(induction "(disc, sel)" f m rule: normalized_n_primitive.induct) (simp)+
 
+lemma normalized_n_primitive_false_eq_notdisc: "normalized_nnf_match m \<Longrightarrow>
+  normalized_n_primitive (disc, sel) (\<lambda>_. False) m \<longleftrightarrow> \<not> has_disc disc m"
+proof -
+  have "normalized_nnf_match m \<Longrightarrow> false = (\<lambda>_. False) \<Longrightarrow>
+  \<not> has_disc disc m \<longleftrightarrow> normalized_n_primitive (disc, sel) false m" for false
+  by(induction "(disc, sel)" false m rule: normalized_n_primitive.induct)
+  (simp)+
+  thus "normalized_nnf_match m \<Longrightarrow> ?thesis" by simp
+qed
+
 lemma normalized_n_primitive_MatchAnd_combine_map: "normalized_n_primitive disc_sel f rst \<Longrightarrow>
        \<forall>m' \<in> (\<lambda>spt. Match (C spt)) ` set pts. normalized_n_primitive disc_sel f m' \<Longrightarrow>
         m' \<in> (\<lambda>spt. MatchAnd (Match (C spt)) rst) ` set pts \<Longrightarrow> normalized_n_primitive disc_sel f m'"
@@ -252,8 +262,9 @@ theorem primitive_extractor_correct: assumes
   and "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
   and "\<forall>disc2 sel2. normalized_n_primitive (disc2, sel2) P m \<longrightarrow> normalized_n_primitive (disc2, sel2) P ms"
   and "\<forall>disc2. \<not> has_disc_negated disc2 neg m \<longrightarrow> \<not> has_disc_negated disc2 neg ms"
-  and "\<not> has_disc disc m \<Longrightarrow> as = [] \<and> ms = m"
+  and "\<not> has_disc disc m \<longleftrightarrow> as = [] \<and> ms = m"
   and "\<not> has_disc_negated disc False m \<longleftrightarrow> getNeg as = []"
+  and "has_disc disc m \<Longrightarrow> as \<noteq> []"
 proof -
   --"better simplification rule"
   from assms have assm3': "(as, ms) = primitive_extractor (disc, sel) m" by simp
@@ -311,9 +322,13 @@ proof -
       apply(simp_all)
     done
 
-   from assms(1) assm3' show "\<not> has_disc disc m \<Longrightarrow> as = [] \<and> ms = m"
+   from assms(1) assm3' show "\<not> has_disc disc m \<longleftrightarrow> as = [] \<and> ms = m"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-    case 4 thus ?case by(simp split: prod.split_asm)
+    case 2 thus ?case by(simp split: if_split_asm)
+    next
+    case 3 thus ?case by(simp split: if_split_asm)
+    next
+    case 4 thus ?case by(auto split: prod.split_asm)
     qed(simp_all)
 
    from assms(1) assm3' show "\<not> has_disc_negated disc False m \<longleftrightarrow> getNeg as = []"
@@ -323,6 +338,12 @@ proof -
     case 3 thus ?case by(simp split: if_split_asm)
     next
     case 4 thus ?case by(simp add: getNeg_append split: prod.split_asm)
+    qed(simp_all)
+
+   from assms(1) assm3' show "has_disc disc m \<Longrightarrow> as \<noteq> []"
+    proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
+    case 4 thus ?case apply(simp split: prod.split_asm)
+      by metis
     qed(simp_all)
 qed
 

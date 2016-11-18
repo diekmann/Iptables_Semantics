@@ -119,7 +119,8 @@ knownMatch_generic parser_ipaddr_cidr parser_iprange = do
       
       <|> (parseWithModulePrefix "-m multiport "$ 
                 (probablyNegated $ lit "--sports " >> Isabelle.Src_Ports <$> Isabelle.mk_L4Ports_pre <$> parseCommaSeparatedList parsePortOne)
-            <|> (probablyNegated $ lit "--dports " >> Isabelle.Dst_Ports <$> Isabelle.mk_L4Ports_pre <$> parseCommaSeparatedList parsePortOne))
+            <|> (probablyNegated $ lit "--dports " >> Isabelle.Dst_Ports <$> Isabelle.mk_L4Ports_pre <$> parseCommaSeparatedList parsePortOne)
+            <|> (probablyNegated $ lit "--ports " >> Isabelle.MultiportPorts <$> Isabelle.mk_L4Ports_pre <$> parseCommaSeparatedList parsePortOne))
       
       <|> (probablyNegatedSingleton $ lit "-i " >> Isabelle.IIface <$> iface)
       <|> (probablyNegatedSingleton $ lit "-o " >> Isabelle.OIface <$> iface)

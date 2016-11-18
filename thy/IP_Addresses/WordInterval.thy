@@ -335,8 +335,8 @@ begin
        apply (metis Un_assoc word_adjacent_union)
       apply(elim conjE)
       apply(drule(2) word_adjacent_union)
-      apply(blast)
-     using word_adjacent_union apply (metis (no_types, lifting) inf_sup_aci(6))
+      subgoal by (blast)
+     subgoal by (metis word_adjacent_union Un_assoc)
     by blast
 
   private lemma merge_adjacent_length:

@@ -2,6 +2,7 @@ theory Interface_Replace
 imports
   No_Spoof
   Common_Primitive_toString
+  Output_Interface_Replace
 begin
 
 section\<open>Trying to connect inbound interfaces by their IP ranges\<close>
@@ -376,70 +377,5 @@ end
       apply(simp add: i1_ips i2_ips)
       by blast
   qed
-
-
-
-
-
-definition iface_try_rewrite
-  :: "(iface \<times> ('i::len word \<times> nat) list) list
-   \<Rightarrow> 'i common_primitive rule list
-      \<Rightarrow> 'i common_primitive rule list"
-where
-  "iface_try_rewrite ipassmt rs \<equiv> if ipassmt_sanity_disjoint (map_of ipassmt) \<and> ipassmt_sanity_defined rs (map_of ipassmt) then
-  optimize_matches (iiface_rewrite (map_of_ipassmt ipassmt)) rs
-  else
-  optimize_matches (iiface_constrain (map_of_ipassmt ipassmt)) rs"
-
-text\<open>Where @{typ "(iface \<times> ('i::len word \<times> nat) list) list"} is @{const map_of}@{typ "'i::len ipassignment"}. 
- The sanity checkers need to iterate over the interfaces, hence we don't pass a map but a list of tuples.\<close>
-
-
-text\<open>In @{file "Transform.thy"} there should be the final correctness theorem for @{text "iface_try_rewrite"}. 
-     Here are some structural properties.\<close>
-
-
-lemma iface_try_rewrite_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset (iface_try_rewrite ipassmt rs)"
-    by(simp add: iface_try_rewrite_def optimize_matches_simple_ruleset)
-
-lemma iiface_rewrite_preserves_nodisc:
-  "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_rewrite ipassmt m)"
-  proof(induction ipassmt m rule: iiface_rewrite.induct)
-  case 2 
-    have "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> disc (IIface ifce) \<Longrightarrow> \<not> has_disc disc (ipassmt_iface_replace_srcip_mexpr ipassmt ifce)"
-      for ifce ipassmt
-      apply(simp add: ipassmt_iface_replace_srcip_mexpr_def split: option.split)
-      apply(intro allI impI, rename_tac ips)
-      apply(drule_tac X=Src and ls="map (uncurry IpAddrNetmask) ips" in match_list_to_match_expr_not_has_disc)
-      apply(simp)
-      done
-    with 2 show ?case by simp
-  qed(simp_all)
-
-lemma iiface_constrain_preserves_nodisc:
-  "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_constrain ipassmt m)"
-  proof(induction ipassmt m rule: iiface_rewrite.induct)
-  case 2 
-    have "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> disc (IIface ifce) \<Longrightarrow> \<not> has_disc disc (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce)"
-      for ifce ipassmt
-      apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def split: option.split)
-      apply(intro allI impI, rename_tac ips)
-      apply(drule_tac X=Src and ls="map (uncurry IpAddrNetmask) ips" in match_list_to_match_expr_not_has_disc)
-      apply(simp)
-      done
-    with 2 show ?case by simp
-  qed(simp_all)
-
-lemma iface_try_rewrite_preserves_nodisc: "\<forall>a. \<not> disc (Src a) \<Longrightarrow> 
-      \<forall>r\<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
-        \<forall>r\<in> set (iface_try_rewrite ipassmt rs). \<not> has_disc disc (get_match r)"   
-  apply(simp add: iface_try_rewrite_def)
-  apply(intro conjI impI)
-   apply(rule optimize_matches_preserves)
-   apply(simp add: iiface_rewrite_preserves_nodisc)
-  apply(rule optimize_matches_preserves)
-  apply(simp add: iiface_constrain_preserves_nodisc)
-  done
-
 
 end

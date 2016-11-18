@@ -3,11 +3,11 @@ imports
   "../../../Iptables_Semantics/Primitive_Matchers/Parser"
   "../../../Simple_Firewall/SimpleFw_toString"
   "../../../Routing/IpRoute_Parser"
-  "../../LinuxRouterOpenFlowTranslation"
-  "../../OpenFlowSerialize"
+  "../../LinuxRouter_OpenFlow_Translation"
+  "../../OpenFlow_Serialize"
 begin
 
-section\<open>Example: Simple Test for Translation to OpenFlow\<close>
+(*section\<open>Example: Simple Test for Translation to OpenFlow\<close>*)
 
 
 parse_iptables_save SQRL_fw="iptables-save"
@@ -20,8 +20,8 @@ value[code] "map (\<lambda>(c,rs). (c, map (quote_rewrite \<circ> common_primiti
 definition "unfolded = unfold_ruleset_FORWARD SQRL_fw_FORWARD_default_policy (map_of_string_ipv4 SQRL_fw)"
 lemma "map (quote_rewrite \<circ> common_primitive_rule_toString) unfolded =
   [''-p icmp -j ACCEPT'',
-   ''-i s1-lan -o s1-wan -p tcp -m tcp --spts [1024:65535] -m tcp --dpts [80] -j ACCEPT'',
-   ''-i s1-wan -o s1-lan -p tcp -m tcp --spts [80] -m tcp --dpts [1024:65535] -j ACCEPT'',
+   ''-i s1-lan -p tcp -m tcp --spts [1024:65535] -m tcp --dpts [80] -j ACCEPT'',
+   ''-i s1-wan -p tcp -m tcp --spts [80] -m tcp --dpts [1024:65535] -j ACCEPT'',
    '' -j DROP'']" by eval
 
 lemma "length unfolded = 4" by eval
@@ -51,7 +51,7 @@ definition "SQRL_fw_simple \<equiv> remdups_rev (to_simple_firewall (upper_closu
 value[code] "SQRL_fw_simple"
 lemma "simple_fw_valid SQRL_fw_simple" by eval
 
-section\<open>Example: SQRL RTBL\<close>
+(*section\<open>Example: SQRL RTBL\<close>*)
 
 parse_ip_route SQRL_rtbl_main = "ip-route"
 value SQRL_rtbl_main
@@ -86,6 +86,11 @@ definition "SQRL_ports \<equiv> [
 	(''s1-lan'', ''1''),
 	(''s1-wan'', ''2'')
 ]"
+
+(* preconditions (get checked by lr_of_tran, too) *)
+lemma "let fw = SQRL_fw_simple in no_oif_match fw \<and> has_default_policy fw \<and> simple_fw_valid fw" by eval
+lemma "let rt = SQRL_rtbl_main_sorted in valid_prefixes rt \<and> has_default_route rt" by eval
+lemma "let ifs = (map iface_name SQRL_ifs) in distinct ifs" by eval
 
 definition "ofi \<equiv> 
     case (lr_of_tran SQRL_rtbl_main_sorted SQRL_fw_simple (map iface_name SQRL_ifs))
@@ -133,9 +138,9 @@ lemma "ofi =
   ''priority=1,hard_timeout=0,idle_timeout=0,in_port=2,dl_type=0x800,nw_proto=6,tp_src=80,tp_dst=16384/0xc000,action=output:2'',
   ''priority=1,hard_timeout=0,idle_timeout=0,in_port=2,dl_type=0x800,nw_proto=6,tp_src=80,tp_dst=32768/0x8000,action=output:2'',
   ''priority=0,hard_timeout=0,idle_timeout=0,dl_type=0x800,action=drop'']" by eval
-value[code] "length ofi"
 
-(* TODO: Well, that's something\<dots> I'd really like to have a proper file with newlines though\<dots> *)
+value[code] "ofi"
+
 (*ML\<open>
 	val evterm = the (Code_Evaluation.dynamic_value @{context} @{term "intersperse (Char Nibble0 NibbleA) ofi"});
 	val opstr = Syntax.string_of_term (Config.put show_markup false @{context}) evterm;

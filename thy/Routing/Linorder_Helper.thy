@@ -20,6 +20,8 @@ begin
 instance
 by standard (auto simp: linord_helper_less_eq1_def less_eq_linord_helper_def less_linord_helper_def split: linord_helper.splits)
 end
+lemmas linord_helper_less = less_linord_helper_def linord_helper_less_eq1_def
+lemmas linord_helper_le = less_eq_linord_helper_def linord_helper_less_eq1_def
 
 text\<open>Now, it is possible to use @{term "sort_key f"}, 
 with @{term f} constructing a @{const LinordHelper} containing the two desired properties for sorting.\<close>

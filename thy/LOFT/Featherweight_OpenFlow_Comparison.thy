@@ -1,4 +1,4 @@
-theory FeatherweightOpenFlowComparison
+theory Featherweight_OpenFlow_Comparison
 imports Semantics_OpenFlow
 begin
 
