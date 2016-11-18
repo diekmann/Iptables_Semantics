@@ -36,7 +36,7 @@ export_code Rule
   ProtoAny Proto TCP UDP ICMP L4_Protocol.IPv6ICMP L4_Protocol.SCTP L4_Protocol.GRE
   L4_Protocol.ESP L4_Protocol.AH
   Iface
-  integer_to_16word nat_to_16word word_less_eq word_to_nat
+  integer_to_16word nat_to_16word nat_of_integer integer_of_nat word_less_eq word_to_nat 
   nat_to_8word
   IpAddrNetmask IpAddrRange IpAddr
   CT_New CT_Established CT_Related CT_Untracked CT_Invalid
@@ -80,6 +80,6 @@ export_code Rule
   routing_action_oiface_update metric_update routing_action_next_hop_update empty_rr_hlp sort_rtbl
   prefix_match_32_toString routing_rule_32_toString prefix_match_128_toString routing_rule_128_toString
   default_prefix sanity_ip_route ipassmt_diff routing_ipassmt
-  checking SML Haskell? (*Haskell module_name "Network.IPTables.Generated" file "generated_code/"*)
+  checking SML Haskell? (*in Haskell module_name "Network.IPTables.Generated" file "generated_code/"*)
 
 end

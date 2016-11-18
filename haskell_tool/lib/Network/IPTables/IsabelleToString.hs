@@ -16,7 +16,7 @@ instance Show a => Show (Isabelle.Negation_type a) where
     show (Isabelle.Neg x) = "Neg " ++ show x
 
 instance Show Isabelle.Nat where
-    show (Isabelle.Nat n) = "Nat " ++ show n
+    show n = "Nat " ++ show (Isabelle.integer_of_nat n)
 
 instance Show (Isabelle.Common_primitive Word32) where
     show = Isabelle.common_primitive_ipv4_toString

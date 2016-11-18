@@ -73,7 +73,7 @@ parseMetric :: Isabelle.Len a => Parsec String s (Routing_rule a -> Routing_rule
 parseMetric = do
     lit "metric"
     skipWS
-    metric_update . const . Isabelle.Nat <$> nat
+    metric_update . const . Isabelle.nat_of_integer <$> nat
 
 rTblToIsabelle (RTbl t) = t
 
@@ -85,6 +85,6 @@ instance Show (RTbl Word128) where
 {- now, for some code duplication... -}
 skipWS = void $ many $ oneOf " \t"
 lit str = (string str)
-ipaddrOrCidr ippars = try (Isabelle.PrefixMatch <$> (ippars <* char '/') <*> (Isabelle.Nat <$> nat))
-             <|> try (flip Isabelle.PrefixMatch (Isabelle.Nat 32) <$> ippars)
+ipaddrOrCidr ippars = try (Isabelle.PrefixMatch <$> (ippars <* char '/') <*> (Isabelle.nat_of_integer <$> nat))
+             <|> try (flip Isabelle.PrefixMatch (Isabelle.nat_of_integer 32) <$> ippars)
 siface = many1 (oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['+', '*', '.'])

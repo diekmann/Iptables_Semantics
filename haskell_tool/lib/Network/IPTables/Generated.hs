@@ -1,10 +1,11 @@
 {-# LANGUAGE EmptyDataDecls, RankNTypes, ScopedTypeVariables #-}
 
 module
-  Network.IPTables.Generated(Int, Num, Nat(..), Word, Len, Iface(..), Bit0,
-                              Num1, Match_expr(..), Action(..), Rule(..),
+  Network.IPTables.Generated(Int, Num, Nat, integer_of_nat, Word, Len,
+                              Iface(..), nat_of_integer, Bit0, Num1,
+                              Match_expr(..), Action(..), Rule(..),
                               Protocol(..), Tcp_flag(..), Ctstate(..),
-                              Linord_helper, Set, Ipt_tcp_flags(..), Nibble,
+                              Linord_helper, Set, Ipt_tcp_flags(..),
                               Ipt_iprange(..), Ipt_l4_ports,
                               Common_primitive(..), Ipv6addr_syntax(..),
                               Prefix_match(..), Wordinterval, Negation_type(..),
@@ -212,12 +213,12 @@ divmod_integer k l =
                                 else (negate r - (1 :: Integer),
                                        Prelude.abs l - s)))));
 
-mod_integer :: Integer -> Integer -> Integer;
-mod_integer k l = snd (divmod_integer k l);
+modulo_integer :: Integer -> Integer -> Integer;
+modulo_integer k l = snd (divmod_integer k l);
 
-mod_int :: Int -> Int -> Int;
-mod_int k l =
-  Int_of_integer (mod_integer (integer_of_int k) (integer_of_int l));
+modulo_int :: Int -> Int -> Int;
+modulo_int k l =
+  Int_of_integer (modulo_integer (integer_of_int k) (integer_of_int l));
 
 max :: forall a. (Ord a) => a -> a -> a;
 max a b = (if less_eq a b then b else a);
@@ -240,7 +241,7 @@ power a n =
 
 word_of_int :: forall a. (Len0 a) => Int -> Word a;
 word_of_int k =
-  Word (mod_int k
+  Word (modulo_int k
          (power (Int_of_integer (2 :: Integer))
            ((len_of :: Itself a -> Nat) Type)));
 
@@ -434,7 +435,7 @@ class Finite a where {
 newtype Bit0 a = Abs_bit0 Int;
 
 len_of_bit0 :: forall a. (Len0 a) => Itself (Bit0 a) -> Nat;
-len_of_bit0 x =
+len_of_bit0 uu =
   times_nat (nat_of_integer (2 :: Integer)) ((len_of :: Itself a -> Nat) Type);
 
 instance (Len0 a) => Len0 (Bit0 a) where {
@@ -447,7 +448,7 @@ instance (Len a) => Len (Bit0 a) where {
 data Num1 = One_num1;
 
 len_of_num1 :: Itself Num1 -> Nat;
-len_of_num1 x = one_nat;
+len_of_num1 uu = one_nat;
 
 instance Len0 Num1 where {
   len_of = len_of_num1;
@@ -804,10 +805,6 @@ instance Eq State where {
 data Set a = Set [a] | Coset [a];
 
 data Ipt_tcp_flags = TCP_Flags (Set Tcp_flag) (Set Tcp_flag);
-
-data Nibble = Nibble0 | Nibble1 | Nibble2 | Nibble3 | Nibble4 | Nibble5
-  | Nibble6 | Nibble7 | Nibble8 | Nibble9 | NibbleA | NibbleB | NibbleC
-  | NibbleD | NibbleE | NibbleF;
 
 membera :: forall a. (Eq a) => [a] -> a -> Bool;
 membera [] y = False;
@@ -1305,17 +1302,17 @@ wi2l :: forall a. (Len0 a) => Wordinterval a -> [(Word a, Word a)];
 wi2l (RangeUnion r1 r2) = wi2l r1 ++ wi2l r2;
 wi2l (WordInterval s e) = (if less_word e s then [] else [(s, e)]);
 
+modulo_nat :: Nat -> Nat -> Nat;
+modulo_nat m n = Nat (modulo_integer (integer_of_nat m) (integer_of_nat n));
+
 divide_integer :: Integer -> Integer -> Integer;
 divide_integer k l = fst (divmod_integer k l);
 
 divide_nat :: Nat -> Nat -> Nat;
 divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
 
-mod_nat :: Nat -> Nat -> Nat;
-mod_nat m n = Nat (mod_integer (integer_of_nat m) (integer_of_nat n));
-
 divmod_nat :: Nat -> Nat -> (Nat, Nat);
-divmod_nat m n = (divide_nat m n, mod_nat m n);
+divmod_nat m n = (divide_nat m n, modulo_nat m n);
 
 list_replace1 :: forall a. (Eq a) => a -> a -> [a] -> [a];
 list_replace1 uu uv [] = [];
@@ -3199,7 +3196,7 @@ string_of_nat n =
     else string_of_nat (divide_nat n (nat_of_integer (10 :: Integer))) ++
            [char_of_nat
               (plus_nat (nat_of_integer (48 :: Integer))
-                (mod_nat n (nat_of_integer (10 :: Integer))))]);
+                (modulo_nat n (nat_of_integer (10 :: Integer))))]);
 
 dotteddecimal_toString :: (Nat, (Nat, (Nat, Nat))) -> [Prelude.Char];
 dotteddecimal_toString (a, (b, (c, d))) =
@@ -3391,15 +3388,15 @@ string_of_word_single lc w =
                      (unat w))]
            else error "undefined"));
 
+modulo_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
+modulo_word a b = word_of_int (modulo_int (uint a) (uint b));
+
 divide_int :: Int -> Int -> Int;
 divide_int k l =
   Int_of_integer (divide_integer (integer_of_int k) (integer_of_int l));
 
 divide_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
 divide_word a b = word_of_int (divide_int (uint a) (uint b));
-
-mod_word :: forall a. (Len0 a) => Word a -> Word a -> Word a;
-mod_word a b = word_of_int (mod_int (uint a) (uint b));
 
 string_of_word ::
   forall a. (Len a) => Bool -> Word a -> Nat -> Word a -> [Prelude.Char];
@@ -3412,7 +3409,7 @@ string_of_word lc base ml w =
            then string_of_word_single lc w
            else string_of_word lc base (minus_nat ml one_nat)
                   (divide_word w base) ++
-                  string_of_word_single lc (mod_word w base)));
+                  string_of_word_single lc (modulo_word w base)));
 
 hex_string_of_word :: forall a. (Len a) => Nat -> Word a -> [Prelude.Char];
 hex_string_of_word l =
@@ -4048,10 +4045,27 @@ simple_ruleset rs =
         equal_action (get_action r) Accept || equal_action (get_action r) Drop)
     rs;
 
+equal_prefix_match ::
+  forall a. (Len a) => Prefix_match a -> Prefix_match a -> Bool;
+equal_prefix_match (PrefixMatch x1 x2) (PrefixMatch y1 y2) =
+  equal_word x1 y1 && equal_nat x2 y2;
+
+unambiguous_routing_code ::
+  forall a b. (Len a) => [Routing_rule_ext a b] -> Bool;
+unambiguous_routing_code [] = True;
+unambiguous_routing_code (rr : rtbl) =
+  all (\ ra ->
+        not (equal_prefix_match (routing_match rr) (routing_match ra)) ||
+          not (equal_linord_helper (routing_rule_sort_key rr)
+                (routing_rule_sort_key ra)))
+    rtbl &&
+    unambiguous_routing_code rtbl;
+
 sanity_ip_route :: forall a. (Len a) => [Routing_rule_ext a ()] -> Bool;
 sanity_ip_route r =
   correct_routing r &&
-    all ((\ y -> not (null y)) . (\ a -> output_iface (routing_action a))) r;
+    unambiguous_routing_code r &&
+      all ((\ y -> not (null y)) . (\ a -> output_iface (routing_action a))) r;
 
 fill_l4_protocol_raw ::
   forall a.
