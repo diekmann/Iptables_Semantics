@@ -1,11 +1,13 @@
-chapter AFP
+chapter Iptables_Semantics
 
-session "IP_Addresses" (AFP) = Word_Lib +
-  options [timeout = 1000]
+session "IP_Addresses" = Word_Lib +
   theories[document=false]
+    "~~/src/HOL/Word/Word"
     "~~/src/HOL/Library/Code_Target_Nat"
+    "~~/src/HOL/Word/WordBitwise"
     "~~/src/HOL/Library/Code_Target_Int"
     "~~/src/HOL/Library/Code_Char"
+    "../Word_Lib/Word_Lemmas"
     "../Automatic_Refinement/Lib/Misc" (* mergesort *)
     NumberWang_IPv4
     NumberWang_IPv6

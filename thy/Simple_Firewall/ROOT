@@ -1,9 +1,8 @@
-chapter AFP
+chapter Simple_Firewall
 
-session Simple_Firewall (AFP) = IP_Addresses +
-  options [timeout = 600]
+session "Simple_Firewall" = IP_Addresses +
   theories
-    Simple_Packet
+	Simple_Packet
     SimpleFw_Syntax
     SimpleFw_Semantics
     Generic_SimpleFw
