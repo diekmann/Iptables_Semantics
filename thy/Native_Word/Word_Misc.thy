@@ -257,7 +257,7 @@ by (metis of_nat_inverse of_nat_numeral uno_simps(2) word_of_nat zdiv_int of_nat
     using n m unfolding q
     by(simp_all add: word_sub_wi word_mult_def uint_nat unat_of_nat of_nat_mult [symmetric] word_of_nat[symmetric] zdiff_int word_le_nat_alt del: of_nat_mult)
   thus ?thesis using n m div_half_nat[OF `m \<noteq> 0`, of n] unfolding q
-    by(simp add: word_le_nat_alt word_div_def word_mod_def uint_nat unat_of_nat zmod_int[symmetric] zdiv_int[symmetric] word_of_nat[symmetric])(simp add: Let_def split del: split_if split: split_if_asm)
+    by(simp add: word_le_nat_alt word_div_def word_mod_def uint_nat unat_of_nat zmod_int[symmetric] zdiv_int[symmetric] word_of_nat[symmetric])(simp add: Let_def split del: split_if split: if_split_asm)
 qed
 
 

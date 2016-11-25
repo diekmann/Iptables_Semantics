@@ -656,7 +656,8 @@ proof cases
     also have "(\<lambda>n. \<forall>n'\<ge>Suc n. \<not> f n') = (\<lambda>n. \<forall>n'\<ge>n. \<not> f (Suc n'))" by(auto dest: Suc_le_D)
     also from zeros have "\<forall>n'\<ge>n. \<not> f (Suc n')" by auto
     ultimately show ?thesis using zeros
-      by(simp (no_asm_simp) add: set_bits_int_def exI split del: split_if)(rule bin_rl_eqI, auto simp add: bin_last_bl_to_bin hd_map bin_rest_bl_to_bin map_tl[symmetric] map_map[symmetric] map_Suc_upt simp del: map_map)
+      by(simp (no_asm_simp) add: set_bits_int_def exI split del: if_split) 
+        (rule bin_rl_eqI, auto simp add: bin_last_bl_to_bin hd_map bin_rest_bl_to_bin map_tl[symmetric] map_map[symmetric] map_Suc_upt simp del: map_map)
   qed
 next
   case (ones n)
@@ -673,11 +674,12 @@ next
     also have "(\<lambda>n. \<forall>n'\<ge>Suc n. f n') = (\<lambda>n. \<forall>n'\<ge>n. f (Suc n'))" by(auto dest: Suc_le_D)
     also from ones have "\<forall>n'\<ge>n. f (Suc n')" by auto
     moreover from ones have "(\<exists>n. \<forall>n'\<ge>n. \<not> f n') = False"
-      by(auto intro!: exI[where x="max n m" for n m] simp add: max_def split: split_if_asm)
+      by(auto intro!: exI[where x="max n m" for n m] simp add: max_def split: if_split_asm)
     moreover hence "(\<exists>n. \<forall>n'\<ge>n. \<not> f (Suc n')) = False"
       by(auto elim: allE[where x="Suc n" for n] dest: Suc_le_D)
     ultimately show ?thesis using ones
-      by(simp (no_asm_simp) add: set_bits_int_def exI split del: split_if)(auto simp add: Let_def bin_last_bl_to_bin hd_map bin_rest_bl_to_bin map_tl[symmetric] map_map[symmetric] map_Suc_upt simp del: map_map)
+      by(simp (no_asm_simp) add: set_bits_int_def exI split del: if_split)
+        (auto simp add: Let_def bin_last_bl_to_bin hd_map bin_rest_bl_to_bin map_tl[symmetric] map_map[symmetric] map_Suc_upt simp del: map_map)
   qed
 qed
 

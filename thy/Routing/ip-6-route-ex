@@ -1,0 +1,3 @@
+2400:6180:0:d0::/64 dev eth0  proto kernel  metric 256 
+fe80::/64 dev eth0  proto kernel  metric 256 
+default via 2400:6180:0:d0::1 dev eth0  metric 1024 

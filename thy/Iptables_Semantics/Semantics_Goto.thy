@@ -1074,13 +1074,13 @@ begin
   qualified theorem rewrite_Goto_chain_safe:
     "rewrite_Goto_chain_safe \<Gamma> rs = Some rs' \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs', s\<rangle> \<Rightarrow> t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t"
   proof(induction \<Gamma> rs arbitrary: rs' s rule: rewrite_Goto_chain_safe.induct)
-  case 1 thus ?case by (simp split: option.split_asm split_if_asm)
+  case 1 thus ?case by (simp split: option.split_asm if_split_asm)
   next
   case (2 \<Gamma> m chain rs) 
     from 2(2) obtain z x2 where "\<Gamma> chain = Some x2" and "terminal_chain x2"
             and "rs' = Rule m (Call chain) # z"
             and "Some z = rewrite_Goto_chain_safe \<Gamma> rs"
-    by(auto split: option.split_asm split_if_asm)
+    by(auto split: option.split_asm if_split_asm)
     from 2(1) \<open>\<Gamma> chain = Some x2\<close> \<open>terminal_chain x2\<close> \<open>Some z = rewrite_Goto_chain_safe \<Gamma> rs\<close> 
       have IH: "\<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>z, s\<rangle> \<Rightarrow> t = \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs, s\<rangle> \<Rightarrow> t" for s by simp
 

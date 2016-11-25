@@ -36,7 +36,7 @@ begin
   lemma iface_cons_less_eq_i:
     "Iface (b # bs) \<le> i \<Longrightarrow> \<exists> q qs. i=Iface (q#qs) \<and> (b < q \<or> (Iface bs) \<le> (Iface qs))"
     apply(induction "Iface (b # bs)" i rule: less_eq_iface.induct)
-     apply(simp_all split: split_if_asm)
+     apply(simp_all split: if_split_asm)
     apply(clarify)
     apply(simp)
     done
@@ -69,7 +69,7 @@ instance
       proof(induction n m rule: less_eq_iface.induct)
       case 1 thus ?case using Iface_less_eq_empty by blast
       next
-      case 3 thus ?case by (simp split: split_if_asm)
+      case 3 thus ?case by (simp split: if_split_asm)
       qed(simp)+
   next
     fix n m q :: iface show "n \<le> m \<Longrightarrow> m \<le> q \<Longrightarrow> n \<le> q" 
@@ -86,7 +86,7 @@ instance
       case 3 thus ?case
         apply simp
         apply(frule iface_cons_less_eq_i)
-         by(auto split: split_if_asm)
+         by(auto split: if_split_asm)
       qed
   next
     fix n m :: iface show "n \<le> m \<or> m \<le> n"
@@ -224,21 +224,21 @@ begin
     --\<open>@{const match_iface} explained by the individual cases\<close>
     lemma match_iface_case_nowildcard: "\<not> iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<longleftrightarrow> i = p_i"
       proof(induction i p_i rule: internal_iface_name_match.induct)
-      qed(auto simp add: iface_name_is_wildcard_alt split: split_if_asm)
+      qed(auto simp add: iface_name_is_wildcard_alt split: if_split_asm)
     lemma match_iface_case_wildcard_prefix:
       "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<longleftrightarrow> butlast i = take (length i - 1) p_i"
       apply(induction i p_i rule: internal_iface_name_match.induct)
          apply(simp; fail)
-        apply(simp add: iface_name_is_wildcard_alt split: split_if_asm; fail)
+        apply(simp add: iface_name_is_wildcard_alt split: if_split_asm; fail)
        apply(simp; fail)
       apply(simp)
       apply(intro conjI)
-       apply(simp add: iface_name_is_wildcard_alt split: split_if_asm; fail)
+       apply(simp add: iface_name_is_wildcard_alt split: if_split_asm; fail)
       apply(simp add: iface_name_is_wildcard_fst)
       by (metis One_nat_def length_0_conv list.sel(1) list.sel(3) take_Cons')
     lemma match_iface_case_wildcard_length: "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<Longrightarrow> length p_i \<ge> (length i - 1)"
       proof(induction i p_i rule: internal_iface_name_match.induct)
-      qed(simp_all add: iface_name_is_wildcard_alt split: split_if_asm)
+      qed(simp_all add: iface_name_is_wildcard_alt split: if_split_asm)
     corollary match_iface_case_wildcard:
       "iface_name_is_wildcard i \<Longrightarrow> match_iface (Iface i) p_i \<longleftrightarrow> butlast i = take (length i - 1) p_i \<and> length p_i \<ge> (length i - 1)"
       using match_iface_case_wildcard_length match_iface_case_wildcard_prefix by blast
@@ -285,7 +285,7 @@ begin
           from match_iface_case_wildcard_prefix[OF assm2] have 2:
             "internal_iface_name_match i2 p_i = (take (length i2 - 1) i2 = take (length i2 - 1) p_i)" by(simp add: butlast_conv_take)
           from assm3 have 3: "take (min (length i1 - 1) (length i2 - 1)) i1 \<noteq> take (min (length i1 - 1) (length i2 - 1)) i2"
-           by(simp add: internal_iface_name_wildcard_longest_def split: split_if_asm)
+           by(simp add: internal_iface_name_wildcard_longest_def split: if_split_asm)
           from 3 show ?thesis using 1 2 min.commute take_take by metis
         qed
       } note internal_iface_name_wildcard_longest_correct_None=this
@@ -295,7 +295,7 @@ begin
         have "(internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i) \<longleftrightarrow> internal_iface_name_match X p_i"
         proof -
           from assm3 have assm3': "take (min (length i1 - 1) (length i2 - 1)) i1 = take (min (length i1 - 1) (length i2 - 1)) i2"
-            unfolding internal_iface_name_wildcard_longest_def by(simp split: split_if_asm)
+            unfolding internal_iface_name_wildcard_longest_def by(simp split: if_split_asm)
       
           { fix i1 i2
             assume iw1: "iface_name_is_wildcard i1" and iw2: "iface_name_is_wildcard i2" and len: "length i1 \<le> length i2" and
@@ -327,13 +327,13 @@ begin
          show ?thesis
           proof(cases "length i1 \<le> length i2")
           case True
-            with assm3 have "X = i2" unfolding internal_iface_name_wildcard_longest_def by(simp split: split_if_asm)
+            with assm3 have "X = i2" unfolding internal_iface_name_wildcard_longest_def by(simp split: if_split_asm)
             from True assm3' have take_i1i2: "take (length i1 - 1) i1 = take (length i1 - 1) i2" by linarith
             from longer_iface_imp_shorter[OF assm1 assm2 True take_i1i2] \<open>X = i2\<close>
             show "(internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i) \<longleftrightarrow> internal_iface_name_match X p_i" by fastforce
           next
           case False
-            with assm3 have "X = i1" unfolding internal_iface_name_wildcard_longest_def by(simp split: split_if_asm)
+            with assm3 have "X = i1" unfolding internal_iface_name_wildcard_longest_def by(simp split: if_split_asm)
             from False assm3' have take_i1i2: "take (length i2 - 1) i2 = take (length i2 - 1) i1" by (metis min_def min_diff)
             from longer_iface_imp_shorter[OF assm2 assm1 _ take_i1i2] False \<open>X = i1\<close>
             show "(internal_iface_name_match i1 p_i \<and> internal_iface_name_match i2 p_i) \<longleftrightarrow> internal_iface_name_match X p_i" by auto
@@ -366,7 +366,7 @@ begin
       by (metis match_iface.simps option.distinct(1) option.inject)
     lemma iface_conjunct_None: "iface_conjunct i1 i2 = None \<Longrightarrow> \<not> (match_iface i1 p_i \<and> match_iface i2 p_i)"
       apply(cases i1, cases i2, rename_tac i1name i2name)
-      apply(simp split: bool.split_asm split_if_asm)
+      apply(simp split: bool.split_asm if_split_asm)
          using internal_iface_name_wildcard_longest_correct apply fastforce
         apply (metis match_iface.simps match_iface_case_nowildcard)+
       done

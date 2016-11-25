@@ -339,7 +339,7 @@ theorem transform_optimize_dnf_strict_structure:
    { fix m
       have "normalized_n_primitive disc_sel f m \<Longrightarrow> normalized_n_primitive disc_sel f (optimize_primitive_univ m)"
       apply(induction disc_sel f m rule: normalized_n_primitive.induct)
-            apply(simp_all split: split_if_asm)
+            apply(simp_all split: if_split_asm)
         apply(rule optimize_primitive_univ_match_cases, simp_all)+
       done
     }  moreover { fix m
@@ -1262,7 +1262,7 @@ theorem iiface_rewrite:
     and "simple_ruleset (optimize_matches (iiface_rewrite ipassmt) rs)"
   proof -
     show simplers_t: "simple_ruleset (optimize_matches (iiface_rewrite ipassmt) rs)"
-      by (simp add: optimize_matches_simple_ruleset simplers)
+      by(simp add: simplers optimize_matches_simple_ruleset)
 
     --"packet must come from a defined interface!"
     from nospoofing have "Iface (p_iiface p) \<in> dom ipassmt" by blast
@@ -1280,6 +1280,29 @@ theorem iiface_rewrite:
      done
 qed
 
+(* Copy of iiface_rewrite *)
+theorem oiface_rewrite:
+  assumes simplers: "simple_ruleset rs"
+      and normalized: "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)"
+      and wf_ipassmt: "ipassmt_sanity_nowildcards ipassmt"
+      and ipassmt_from_rt: "ipassmt = map_of (routing_ipassmt rt)"
+      and correct_routing: "correct_routing rt"
+      and rtbl_decided: "output_iface (routing_table_semantics rt (p_dst p)) = p_oiface p"
+  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (oiface_rewrite ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+    and "simple_ruleset (optimize_matches (oiface_rewrite ipassmt) rs)"
+  proof -
+    show simplers_t: "simple_ruleset (optimize_matches (oiface_rewrite ipassmt) rs)"
+      using simplers by(fact optimize_matches_simple_ruleset)
+    show "(common_matcher, \<alpha>),p\<turnstile> \<langle>optimize_matches (oiface_rewrite ipassmt) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers_t]]
+     unfolding approximating_semantics_iff_fun_good_ruleset[OF simple_imp_good_ruleset[OF simplers]]
+     apply(rule arg_cong[where f="\<lambda>x. x = t"])
+     apply(rule optimize_matches_generic[where P="\<lambda> m _. normalized_nnf_match m"])
+      apply(simp add: normalized ;fail)
+     apply(rule matches_oiface_rewrite[OF _ _ _ ipassmt_from_rt]; assumption?)
+        apply(simp_all add: wf_ipassmt correct_routing rtbl_decided)
+     done
+qed
 
 
 definition upper_closure :: "'i::len common_primitive rule list \<Rightarrow> 'i common_primitive rule list" where
@@ -1694,26 +1717,159 @@ lemma transform_lower_closure:
   qed
 
 
+definition iface_try_rewrite
+  :: "(iface \<times> ('i::len word \<times> nat) list) list
+   \<Rightarrow> 'i prefix_routing option
+   \<Rightarrow> 'i common_primitive rule list
+      \<Rightarrow> 'i common_primitive rule list"
+where
+  "iface_try_rewrite ipassmt rtblo rs \<equiv> 
+  let o_rewrite = (case rtblo of None \<Rightarrow> id | Some rtbl \<Rightarrow> 
+    transform_optimize_dnf_strict \<circ> optimize_matches (oiface_rewrite (map_of_ipassmt (routing_ipassmt rtbl)))) in
+  if ipassmt_sanity_disjoint (map_of ipassmt) \<and> ipassmt_sanity_defined rs (map_of ipassmt) then
+  optimize_matches (iiface_rewrite (map_of_ipassmt ipassmt)) (o_rewrite rs)
+  else
+  optimize_matches (iiface_constrain (map_of_ipassmt ipassmt)) (o_rewrite rs)"
+
+text\<open>Where @{typ "(iface \<times> ('i::len word \<times> nat) list) list"} is @{const map_of}@{typ "'i::len ipassignment"}. 
+ The sanity checkers need to iterate over the interfaces, hence we don't pass a map but a list of tuples.\<close>
 
 
+text\<open>In @{file "Transform.thy"} there should be the final correctness theorem for @{text "iface_try_rewrite"}. 
+     Here are some structural properties.\<close>
 
 
-theorem iface_try_rewrite:
+lemma iface_try_rewrite_simplers: "simple_ruleset rs \<Longrightarrow> simple_ruleset (iface_try_rewrite ipassmt rtblo rs)"
+  by(simp add: iface_try_rewrite_def optimize_matches_simple_ruleset transform_optimize_dnf_strict_structure(1)[OF _ wf_in_doubt_allow 
+     (* The wf_unknown_match_tac is only required for some other parts of that lemma group, so any wellfounded tactic will do. *)] Let_def split: option.splits)
+    
+
+lemma iiface_rewrite_preserves_nodisc:
+  "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_rewrite ipassmt m)"
+  proof(induction ipassmt m rule: iiface_rewrite.induct)
+  case 2 
+    have "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> disc (IIface ifce) \<Longrightarrow> \<not> has_disc disc (ipassmt_iface_replace_srcip_mexpr ipassmt ifce)"
+      for ifce ipassmt
+      apply(simp add: ipassmt_iface_replace_srcip_mexpr_def split: option.split)
+      apply(intro allI impI, rename_tac ips)
+      apply(drule_tac X=Src and ls="map (uncurry IpAddrNetmask) ips" in match_list_to_match_expr_not_has_disc)
+      apply(simp)
+      done
+    with 2 show ?case by simp
+  qed(simp_all)
+
+lemma iiface_constrain_preserves_nodisc:
+  "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> has_disc disc m \<Longrightarrow> \<not> has_disc disc (iiface_constrain ipassmt m)"
+  proof(induction ipassmt m rule: iiface_rewrite.induct)
+  case 2 
+    have "\<forall>a. \<not> disc (Src a) \<Longrightarrow> \<not> disc (IIface ifce) \<Longrightarrow> \<not> has_disc disc (ipassmt_iface_constrain_srcip_mexpr ipassmt ifce)"
+      for ifce ipassmt
+      apply(simp add: ipassmt_iface_constrain_srcip_mexpr_def split: option.split)
+      apply(intro allI impI, rename_tac ips)
+      apply(drule_tac X=Src and ls="map (uncurry IpAddrNetmask) ips" in match_list_to_match_expr_not_has_disc)
+      apply(simp)
+      done
+    with 2 show ?case by simp
+  qed(simp_all)
+
+
+lemma iface_try_rewrite_preserves_nodisc: "
+      simple_ruleset rs \<Longrightarrow>
+      \<forall>a. \<not> disc (Src a) \<Longrightarrow> \<forall>a. \<not> disc (Dst a) \<Longrightarrow> 
+      \<forall>r\<in> set rs. \<not> has_disc disc (get_match r) \<Longrightarrow>
+        \<forall>r\<in> set (iface_try_rewrite ipassmt rtblo rs). \<not> has_disc disc (get_match r)"   
+  apply(insert wf_in_doubt_deny) (* to appease transform_optimize_dnf_strict_structure *)
+  apply(simp add: iface_try_rewrite_def Let_def)
+  apply(intro conjI impI optimize_matches_preserves)
+  apply(case_tac[!] rtblo)
+     apply(simp_all add: oiface_rewrite_preserves_nodisc iiface_rewrite_preserves_nodisc iiface_constrain_preserves_nodisc) (* solves the two None-cases *)
+   apply(rule iiface_rewrite_preserves_nodisc; assumption?)
+   apply(rule transform_optimize_dnf_strict_structure(2)[THEN bspec]; (assumption|simp add: optimize_matches_simple_ruleset; fail)?)
+   apply(rule optimize_matches_preserves)
+   apply(rule oiface_rewrite_preserves_nodisc; simp; fail)
+  apply(rule iiface_constrain_preserves_nodisc; assumption?)
+  apply(rule transform_optimize_dnf_strict_structure(2)[THEN bspec]; (assumption|simp add: optimize_matches_simple_ruleset; fail)?)
+  apply(rule optimize_matches_preserves)
+  apply(rule oiface_rewrite_preserves_nodisc; simp; fail)
+done
+
+
+theorem iface_try_rewrite_no_rtbl:
   assumes simplers: "simple_ruleset rs"
       and normalized: "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)"
       and wf_ipassmt1: "ipassmt_sanity_nowildcards (map_of ipassmt)" and wf_ipassmt2: "distinct (map fst ipassmt)"
       and nospoofing: "\<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipcidr_union_set (set ips)"
-  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>iface_try_rewrite ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>iface_try_rewrite ipassmt None rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
 proof -
-  show "(common_matcher, \<alpha>),p\<turnstile> \<langle>iface_try_rewrite ipassmt rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
-    apply(simp add: iface_try_rewrite_def)
+  show "(common_matcher, \<alpha>),p\<turnstile> \<langle>iface_try_rewrite ipassmt None rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+    apply(simp add: iface_try_rewrite_def Let_def comp_def)
     apply(simp add: map_of_ipassmt_def wf_ipassmt1 wf_ipassmt2)
     apply(intro conjI impI)
      apply(elim conjE)
      using iiface_rewrite(1)[OF simplers normalized wf_ipassmt1 _ nospoofing] apply blast
-    using iiface_constrain(1)[OF simplers normalized wf_ipassmt1] nospoofing apply force
+    using iiface_constrain(1)[OF simplers normalized wf_ipassmt1, where p = p] nospoofing apply force
     done
 qed
 
+lemma optimize_matches_comp:
+  assumes mono: "\<And>m. matcheq_matchNone m \<Longrightarrow> matcheq_matchNone (g m)"
+  shows "optimize_matches (g \<circ> f) rs = optimize_matches g ((optimize_matches f)  rs)"
+unfolding optimize_matches_def
+proof(induction rs)
+  case (Cons r rs)
+  obtain m a where [simp]: "r = Rule m a" by(cases r)
+  show ?case 
+  proof(cases "matcheq_matchNone (f m)")
+    case True
+    hence mn: "matcheq_matchNone (g (f m))" by(fact mono)
+    show ?thesis by(unfold comp_def (* occasionally, the simplifier is weird *); simp add: mn Cons.IH[unfolded comp_def])
+  next
+    case False
+    show ?thesis by(unfold comp_def; simp add: False Cons.IH[unfolded comp_def])
+  qed
+qed simp
+(* optimize_matches_comp is a really nice lemma. 
+The problem is that it is useless because I cannot execute the two rewrites after each other without going back to nnf.
+*)
+context begin
+
+private lemma iiface_rewrite_monoNone: "matcheq_matchNone m \<Longrightarrow> matcheq_matchNone (iiface_rewrite ipassmt m)"
+  by(induction m rule: matcheq_matchNone.induct) auto
+private lemma iiface_constrain_monoNone: "matcheq_matchNone m \<Longrightarrow> matcheq_matchNone (iiface_constrain ipassmt m)"
+  by(induction m rule: matcheq_matchNone.induct) auto
+
+private lemmas optimize_matches_iiface_comp = optimize_matches_comp[OF iiface_rewrite_monoNone] 
+                                      optimize_matches_comp[OF iiface_constrain_monoNone]
+end
+
+theorem iface_try_rewrite_rtbl:
+  assumes simplers: "simple_ruleset rs"
+      and normalized: "\<forall> r \<in> set rs. normalized_nnf_match (get_match r)"
+      and wf_ipassmt: "ipassmt_sanity_nowildcards (map_of ipassmt)" "distinct (map fst ipassmt)"
+      and nospoofing: "\<exists>ips. (map_of ipassmt) (Iface (p_iiface p)) = Some ips \<and> p_src p \<in> ipcidr_union_set (set ips)"
+      and routing_decided: "output_iface (routing_table_semantics rtbl (p_dst p)) = p_oiface p"
+      and correct_routing: "correct_routing rtbl"
+      and wf_ipassmt_o: "ipassmt_sanity_nowildcards (map_of (routing_ipassmt rtbl))"
+      and wf_match_tac: "wf_unknown_match_tac \<alpha>"
+  shows "(common_matcher, \<alpha>),p\<turnstile> \<langle>iface_try_rewrite ipassmt (Some rtbl) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+proof -
+  note oiface_rewrite = oiface_rewrite[OF simplers normalized wf_ipassmt_o refl correct_routing routing_decided]
+  let ?ors = "optimize_matches (oiface_rewrite (map_of (routing_ipassmt rtbl))) rs"
+  let ?nrs = "transform_optimize_dnf_strict ?ors"
+  have osimplers: "simple_ruleset ?ors" using oiface_rewrite(2) .
+  have nsimplers: "simple_ruleset ?nrs" using transform_optimize_dnf_strict_structure(1)[OF osimplers wf_match_tac] .
+  have nnormalized: "\<forall> r \<in> set ?nrs. normalized_nnf_match (get_match r)" using transform_optimize_dnf_strict_structure(3)[OF osimplers wf_match_tac] .
+  note nnf = transform_optimize_dnf_strict[OF osimplers wf_match_tac]
+  have nospoofing_alt: "\<And>ips. map_of ipassmt (Iface (p_iiface p)) = Some ips \<Longrightarrow> p_src p \<in> ipcidr_union_set (set ips)" using nospoofing by simp
+  show "(common_matcher, \<alpha>),p\<turnstile> \<langle>iface_try_rewrite ipassmt (Some rtbl) rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t \<longleftrightarrow> (common_matcher, \<alpha>),p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>\<alpha> t"
+    apply(simp add: iface_try_rewrite_def Let_def)
+    apply(simp add: map_of_ipassmt_def wf_ipassmt routing_ipassmt_distinct wf_ipassmt_o)
+    apply(intro conjI impI; (elim conjE)?)
+    subgoal using iiface_rewrite(1)[OF nsimplers nnormalized wf_ipassmt(1) _ nospoofing] oiface_rewrite(1) nnf by simp
+    subgoal using iiface_constrain(1)[OF nsimplers nnormalized wf_ipassmt(1), where p = p] nospoofing_alt oiface_rewrite(1) nnf by simp
+    done
+qed
+
+  
 
 end

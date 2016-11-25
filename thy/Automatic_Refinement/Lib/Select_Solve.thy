@@ -10,7 +10,7 @@ begin
 *)
 
 lemma retrofit_with_prems:
-  fixes P Q R TAG
+  fixes P Q R TAG :: "prop"
   assumes 1: "PROP P ==> PROP Q" (* Original goal state *)
   assumes 2: "PROP R ==> PROP TAG &&& PROP P" (* Result of first subgoal *)
   shows "PROP R ==> PROP Q" (* New goal state with &&&*)
@@ -21,7 +21,7 @@ proof -
 qed
 
 lemma retrofit_no_prems:
-  fixes P Q TAG
+  fixes P Q TAG :: "prop"
   assumes 1: "PROP P ==> PROP Q" (* Original goal state *)
   assumes 2: "PROP TAG &&& PROP P" (* Result of first subgoal *)
   shows "PROP Q" (* New goal state *)
@@ -31,8 +31,6 @@ proof -
 qed
 
 consts NO_TAG :: "prop"
-lemma NO_TAG: "TERM NO_TAG" .
-
 
 
 ML {*
@@ -94,7 +92,7 @@ structure Select_Solve :SELECT_SOLVE = struct
 
     (* Prepare tag *)
     local 
-      fun intr_bal [] = @{thm NO_TAG}
+      fun intr_bal [] = @{thm \<open>TERM NO_TAG\<close>}
         | intr_bal l = Conjunction.intr_balanced l
 
       val t = Thm.term_of P 

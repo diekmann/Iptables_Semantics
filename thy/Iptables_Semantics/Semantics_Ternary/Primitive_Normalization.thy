@@ -36,7 +36,7 @@ lemma has_disc_negated_MatchNot:
 
 lemma has_disc_negated_has_disc: "has_disc_negated disc neg m \<Longrightarrow> has_disc disc m"
   apply(induction m arbitrary: neg)
-     apply(simp_all split: split_if_asm)
+     apply(simp_all split: if_split_asm)
   by blast
 
 lemma has_disc_negated_positiv_has_disc: "has_disc_negated disc neg m \<or> has_disc_negated disc (\<not> neg) m \<longleftrightarrow> has_disc disc m"
@@ -147,7 +147,7 @@ lemma normalized_n_primitive_opt_MatchAny_match_expr:
 lemma normalized_n_primitive_imp_not_disc_negated:
   "wf_disc_sel (disc,sel) C \<Longrightarrow> normalized_n_primitive (disc,sel) f m \<Longrightarrow> \<not> has_disc_negated disc False m"
   apply(induction "(disc,sel)" f m rule: normalized_n_primitive.induct)
-  by(simp add: wf_disc_sel.simps split: split_if_asm)+
+  by(simp add: wf_disc_sel.simps split: if_split_asm)+
 
 lemma normalized_n_primitive_alist_and: "normalized_n_primitive disc_sel P (alist_and as) \<longleftrightarrow>
       (\<forall> a \<in> set as. normalized_n_primitive disc_sel P (negation_type_to_match_expr a))"
@@ -271,16 +271,16 @@ proof -
   with assms(1) assms(2) show "matches \<gamma> (alist_and (NegPos_map C as)) a p \<and> matches \<gamma> ms a p \<longleftrightarrow> matches \<gamma> m a p"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
     case 4 thus ?case
-      apply(simp split: split_if_asm prod.split_asm add: NegPos_map_append)
+      apply(simp split: if_split_asm prod.split_asm add: NegPos_map_append)
       apply(auto simp add: alist_and_append bunch_of_lemmata_about_matches)
       done
-    qed(simp_all add: bunch_of_lemmata_about_matches wf_disc_sel.simps split: split_if_asm)
+    qed(simp_all add: bunch_of_lemmata_about_matches wf_disc_sel.simps split: if_split_asm)
 
   from assms(1) assm3' show "normalized_nnf_match ms"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-         case 2 thus ?case by(simp split: split_if_asm)
+         case 2 thus ?case by(simp split: if_split_asm)
          next
-         case 3 thus ?case by(simp split: split_if_asm)
+         case 3 thus ?case by(simp split: if_split_asm)
          next
          case 4 thus ?case 
            apply(clarify) (*if i don't clarify, the simplifier loops*)
@@ -290,14 +290,14 @@ proof -
 
   from assms(1) assm3' show "\<not> has_disc disc ms"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-    qed(simp_all split: split_if_asm prod.split_asm)
+    qed(simp_all split: if_split_asm prod.split_asm)
 
 
   from assms(1) assm3' show "\<forall>disc2. \<not> has_disc disc2 m \<longrightarrow> \<not> has_disc disc2 ms"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-         case 2 thus ?case by(simp split: split_if_asm)
+         case 2 thus ?case by(simp split: if_split_asm)
          next
-         case 3 thus ?case by(simp split: split_if_asm)
+         case 3 thus ?case by(simp split: if_split_asm)
          next
          case 4 thus ?case by(simp split: prod.split_asm)
     qed(simp_all)
@@ -305,9 +305,9 @@ proof -
 
   from assms(1) assm3' show "\<forall>disc2. \<not> has_disc_negated disc2 neg m \<longrightarrow> \<not> has_disc_negated disc2 neg ms"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-         case 2 thus ?case by(simp split: split_if_asm)
+         case 2 thus ?case by(simp split: if_split_asm)
          next
-         case 3 thus ?case by(simp split: split_if_asm)
+         case 3 thus ?case by(simp split: if_split_asm)
          next
          case 4 thus ?case by(simp split: prod.split_asm)
     qed(simp_all)
@@ -316,26 +316,26 @@ proof -
   from assms(1) assm3' show "\<forall>disc2 sel2. normalized_n_primitive (disc2, sel2) P m \<longrightarrow> normalized_n_primitive (disc2, sel2) P ms"
     apply(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
           apply(simp)
-         apply(simp split: split_if_asm)
-        apply(simp split: split_if_asm)
+         apply(simp split: if_split_asm)
+        apply(simp split: if_split_asm)
        apply(simp split: prod.split_asm)
       apply(simp_all)
     done
 
    from assms(1) assm3' show "\<not> has_disc disc m \<longleftrightarrow> as = [] \<and> ms = m"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-    case 2 thus ?case by(simp split: split_if_asm)
+    case 2 thus ?case by(simp split: if_split_asm)
     next
-    case 3 thus ?case by(simp split: split_if_asm)
+    case 3 thus ?case by(simp split: if_split_asm)
     next
     case 4 thus ?case by(auto split: prod.split_asm)
     qed(simp_all)
 
    from assms(1) assm3' show "\<not> has_disc_negated disc False m \<longleftrightarrow> getNeg as = []"
     proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
-    case 2 thus ?case by(simp split: split_if_asm)
+    case 2 thus ?case by(simp split: if_split_asm)
     next
-    case 3 thus ?case by(simp split: split_if_asm)
+    case 3 thus ?case by(simp split: if_split_asm)
     next
     case 4 thus ?case by(simp add: getNeg_append split: prod.split_asm)
     qed(simp_all)
@@ -356,7 +356,7 @@ proof -
   hence "has_disc_negated disc False m \<longleftrightarrow> (\<exists>a. Neg a \<in> set as)"
     using assms proof(induction m arbitrary: as ms)
     case Match thus ?case
-       by(simp split: split_if_asm) fastforce
+       by(simp split: if_split_asm) fastforce
     next
     case (MatchNot m)
       thus ?case
@@ -368,7 +368,7 @@ proof -
       apply(cases "primitive_extractor (disc, sel) m1")
       apply(cases "primitive_extractor (disc, sel) m2")
       by auto
-  qed(simp_all split: split_if_asm)
+  qed(simp_all split: if_split_asm)
   thus ?thesis using asms by simp
 qed
 
@@ -386,12 +386,12 @@ lemma primitive_extractor_reassemble_preserves:
    P (alist_and' (NegPos_map C as))"
   proof(induction "(disc, sel)" m  arbitrary: as ms rule: primitive_extractor.induct)
   case 2 thus ?case
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
     apply(clarify)
     by(simp add: wf_disc_sel.simps)
   next
   case 3 thus ?case
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
     apply(clarify)
     by(simp add: wf_disc_sel.simps)
   next
@@ -402,7 +402,7 @@ lemma primitive_extractor_reassemble_preserves:
       apply(clarify)
       apply(simp add: NegPos_map_append)
     done
-qed(simp_all split: split_if_asm)
+qed(simp_all split: if_split_asm)
 
 lemma primitive_extractor_reassemble_not_has_disc:
   "wf_disc_sel (disc, sel) C \<Longrightarrow>

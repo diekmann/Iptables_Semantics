@@ -107,9 +107,9 @@ lemma "simple_linux_router_nol12 rt fw p \<equiv> do {
 text\<open>We continue with this definition as a basis for our translation.
 Even this strongly altered version and the original linux firewall still behave the same in a substantial amount of cases:\<close>
 theorem
-	"\<lbrakk>iface_packet_check ifl pi \<noteq> None;
-	mlf (case next_hop (routing_table_semantics rt (p_dst pi)) of None \<Rightarrow> p_dst pi | Some a \<Rightarrow> a) \<noteq> None\<rbrakk> \<Longrightarrow>
-	\<exists>x. map_option (\<lambda>p. p\<lparr>p_l2dst := x\<rparr>) (simple_linux_router_nol12 rt fw pi) = simple_linux_router rt fw mlf ifl pi"
+	"\<lbrakk>iface_packet_check ifl pii \<noteq> None;
+	mlf (case next_hop (routing_table_semantics rt (p_dst pii)) of None \<Rightarrow> p_dst pii | Some a \<Rightarrow> a) \<noteq> None\<rbrakk> \<Longrightarrow>
+	\<exists>x. map_option (\<lambda>p. p\<lparr>p_l2dst := x\<rparr>) (simple_linux_router_nol12 rt fw pii) = simple_linux_router rt fw mlf ifl pii"
 by(fact rtr_nomac_eq[unfolded fromMaybe_def])
 text\<open>The conditions are to be read as ``The check whether a received packet has the correct destination MAC never returns @{const False}'' and 
 ``The next hop MAC address for all packets can be looked up''.
@@ -270,7 +270,7 @@ Deciding the right flow entry to use for a given packet is explained in the Open
 \end{quote}
 We use the term ``overlapping'' for  the flow entries that can cause a packet to match multiple flow entries with the same priority.
 Guha \emph{et al.}~\cite{guha2013machine} have dealt with overlapping.
-However, the semantics for a flow table they presented \cite[Figure 5]{guha2013machien}
+However, the semantics for a flow table they presented \cite[Figure 5]{guha2013machine}
   is slightly different from what they actually used in their theory files.
 We have tried to reproduce the original inductive definition (while keeping our abstraction @{term \<gamma>}),
  in Isabelle/HOL\footnote{The original is written in Coq~\cite{barras1997coq} and we can not use it directly.}:\<close>
@@ -389,10 +389,10 @@ text\<open>Using the join, it should be possible to compute any $n$-ary logical 
 We will use it for something somewhat different in the next section.\<close>
 
 subsubsection\<open>Translation Implementation\<close>
+
 text_raw\<open>
 \begin{figure*}
-\fbox{
-\parbox{\textwidth}{
+\begin{framed}
 \<close>
 lemma "lr_of_tran rt fw ifs \<equiv> 
 if \<not> (no_oif_match fw \<and> has_default_policy fw \<and> simple_fw_valid fw	\<and> valid_prefixes rt \<and> has_default_route rt \<and> distinct ifs)
@@ -409,13 +409,14 @@ let
   else Inl ''Error in creating OpenFlow table: priority number space exhausted''
 )"
 unfolding Let_def lr_of_tran_def lr_of_tran_fbs_def lr_of_tran_s1_def comp_def route2match_def by force
+
 text_raw\<open>
-}
-}
-  \caption{Function for translating a @{typ "'i::len simple_rule list"}, a @{typ "'i routing_rule list"} and a list of interfaces to a flow table.}
+  \end{framed}
+  \caption{Function for translating a @{typ "'i::len simple_rule list"}, a @{typ "'i routing_rule list"}, and a list of interfaces to a flow table.}
   \label{fig:convi}
 \end{figure*}
 \<close>
+
 text\<open>
 This section shows the actual definition of the translation function, in Figure~\ref{fig:convi}.
 Before beginning the translation, the definition checks whether the necessary preconditions are valid.
@@ -471,8 +472,7 @@ For now, we limit ourselves to firewalls that do not do output port matching, i.
 \<close>
 
 text_raw\<open>\begin{figure*}
-\fbox{
-\parbox{\textwidth}{
+\begin{framed}
 \<close>
 theorem
 fixes
@@ -487,7 +487,8 @@ shows
   "OF_priority_match OF_match_fields_safe oft p = Action ls \<longrightarrow> length ls \<le> 1"
   "\<exists>ls. length ls \<le> 1 \<and> OF_priority_match OF_match_fields_safe oft p = Action ls"
 using assms lr_of_tran_correct by simp_all
-text_raw\<open> }}
+text_raw\<open>
+\end{framed}
 \caption{Central theorem on @{const lr_of_tran}}
 \label{fig:central}
 \end{figure*}

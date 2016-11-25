@@ -337,8 +337,8 @@ lemma optimize_matches_generic: "\<forall> r \<in> set rs. P (get_match r) \<Lon
   unfolding optimize_matches_def
   apply(rule optimize_matches_option_generic)
     apply(simp; fail)
-   apply(simp split: split_if_asm)
+   apply(simp split: if_split_asm)
    apply blast
-  apply(simp split: split_if_asm)
+  apply(simp split: if_split_asm)
   using matcheq_matchNone_not_matches by fast
 end

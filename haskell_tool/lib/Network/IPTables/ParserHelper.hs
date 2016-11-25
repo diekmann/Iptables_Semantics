@@ -31,7 +31,7 @@ natMaxval maxval = do
     if n > maxval then
         error ("nat `" ++ show n ++ "' must be smaller than or equal to " ++ show maxval)
     else
-        return (Isabelle.Nat n)
+        return (Isabelle.nat_of_integer n)
 
 ipv4dotdecimal :: Parsec String s (Isabelle.Word Word32)
 ipv4dotdecimal = do

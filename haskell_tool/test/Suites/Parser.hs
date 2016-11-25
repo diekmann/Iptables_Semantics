@@ -314,7 +314,7 @@ test_service_matrix ipassmtMaybeString fileName expected_result errormsg = do
         Left err -> error $ show err
         Right res -> do
             unfolded <- loadUnfoldedRuleset False "filter" "FORWARD" res
-            let service_matrix = Analysis.accessMatrix_ipv4 ipassmt unfolded 10000 22
+            let service_matrix = Analysis.accessMatrix_ipv4 ipassmt Nothing {- TODO: Test with a passed routing table -} unfolded 10000 22
             --putStrLn $ show service_matrix
             if service_matrix == expected_result then
                 return ()
