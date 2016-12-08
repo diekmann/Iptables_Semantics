@@ -87,4 +87,4 @@ skipWS = void $ many $ oneOf " \t"
 lit str = (string str)
 ipaddrOrCidr ippars = try (Isabelle.PrefixMatch <$> (ippars <* char '/') <*> (Isabelle.nat_of_integer <$> nat))
              <|> try (flip Isabelle.PrefixMatch (Isabelle.nat_of_integer 32) <$> ippars)
-siface = many1 (oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['+', '*', '.'])
+siface = many1 (oneOf $ ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ ['+', '*', '.', '-'])
