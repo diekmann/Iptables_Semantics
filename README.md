@@ -14,7 +14,7 @@ It features
   * ...
 
 
-![isabelle/hol logo](https://raw.githubusercontent.com/diekmann/Iptables_Semantics/refactoring/images/isabelle.png "Isabelle/HOL")
+![isabelle/hol logo](https://raw.githubusercontent.com/diekmann/Iptables_Semantics/master/images/isabelle.png "Isabelle/HOL")
 
 
 ### Obtaining
