@@ -113,7 +113,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
   lemma ipassmt_ignore_wildcard_le: "ipassmt_ignore_wildcard ipassmt \<subseteq>\<^sub>m ipassmt"
     apply(simp add: ipassmt_ignore_wildcard_def map_le_def)
     apply(clarify)
-    apply(simp split: option.split_asm split_if_asm)
+    apply(simp split: option.split_asm if_split_asm)
     done
 
   definition ipassmt_ignore_wildcard_list:: "(iface \<times> ('i::len word \<times> nat) list) list \<Rightarrow> (iface \<times> ('i word \<times> nat) list) list" where
@@ -195,7 +195,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
     apply(simp add: ipassmt_ignore_wildcard_def)
     apply(rule)
      apply(clarify)
-     apply(simp split: option.split_asm split_if_asm)
+     apply(simp split: option.split_asm if_split_asm)
      apply blast
     apply(clarify)
     apply(simp)
@@ -205,7 +205,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
     "ipassmt i = Some ips \<Longrightarrow> ipcidr_union_set (set ips) \<noteq> UNIV \<Longrightarrow> (the (ipassmt_ignore_wildcard ipassmt i)) = ips"
     "ipassmt_ignore_wildcard ipassmt i = Some ips \<Longrightarrow> the (ipassmt i) = ips"
     "ipassmt_ignore_wildcard ipassmt i = Some ips \<Longrightarrow> ipcidr_union_set (set ips) \<noteq> UNIV"
-    by (simp_all add: ipassmt_ignore_wildcard_def split: option.split_asm split_if_asm)
+    by (simp_all add: ipassmt_ignore_wildcard_def split: option.split_asm if_split_asm)
     
 
   lemma ipassmt_sanity_disjoint_ignore_wildcards:
@@ -389,6 +389,18 @@ subsection\<open>IP Assignment difference\<close>
     apply(simp add: wordinterval_Union wordinterval_to_set_ipcidr_tuple_to_wordinterval_uncurry)
     done
   qed
+
+  lemma ipcidr_union_cidr_split[simp]: "ipcidr_union_set (set (cidr_split a)) = wordinterval_to_set a"
+    by(simp add: ipcidr_union_set_uncurry cidr_split_prefix)
+
+  lemma 
+    defines "assmt as ifce \<equiv> ipcidr_union_set (set (the ((map_of as ifce))))"
+    assumes diffs: "(ifce, d1, d2) \<in> set (ipassmt_diff ipassmt1 ipassmt2)"
+        and  doms: "ifce \<in> dom (map_of ipassmt1)" "ifce \<in> dom (map_of ipassmt2)"
+    shows "ipcidr_union_set (set d1) = assmt ipassmt1 ifce - assmt ipassmt2 ifce"
+          "ipcidr_union_set (set d2) = assmt ipassmt2 ifce - assmt ipassmt1 ifce"
+    using assms by (clarsimp simp add: ipassmt_diff_def Let_def assmt_def wordinterval_Union; simp add: ipcidr_union_set_uncurry uncurry_def wordinterval_to_set_ipcidr_tuple_to_wordinterval_uncurry)+
+            
   
   text\<open>Explanation for interface @{term "Iface ''a''"}: 
           Left ipassmt: The IP range 4/30 contains the addresses 4,5,6,7
@@ -397,9 +409,8 @@ subsection\<open>IP Assignment difference\<close>
   lemma "ipassmt_diff (ipassmt_generic_ipv4 @ [(Iface ''a'', [(4,30)])])
                        (ipassmt_generic_ipv4 @ [(Iface ''a'', [(6,32), (0,30)]), (Iface ''b'', [(42,32)])]) =
     [(Iface ''lo'', [], []),
-     (Iface ''a'', [(4::32 word, 31::nat),
-                    (7::32 word, 32::nat)],
-                   [(0::32 word, 30::nat)]
+     (Iface ''a'', [(4, 31),(7, 32)],
+                   [(0, 30)]
      ),
      (Iface ''b'', [], [(42, 32)])]" by eval
 

@@ -23,9 +23,9 @@ section\<open>Code Interface\<close>
 
 text\<open>HACK: rewrite quotes such that they are better printable by Isabelle\<close>
 definition quote_rewrite :: "string \<Rightarrow> string" where
-  "quote_rewrite \<equiv> map (\<lambda>c. if c = Char Nibble2 Nibble2 then CHR ''~'' else c)"
+  "quote_rewrite \<equiv> map (\<lambda>c. if c = char_of_nat 34 then CHR ''~'' else c)"
 
-lemma "quote_rewrite (''foo''@[Char Nibble2 Nibble2]) = ''foo~''" by eval
+lemma "quote_rewrite (''foo''@[char_of_nat 34]) = ''foo~''" by eval
 
 text\<open>The parser returns the @{typ "'i::len common_primitive ruleset"} not as a map but as an association list.
       This function converts it\<close>
@@ -46,7 +46,7 @@ definition unfold_ruleset_CHAIN_safe :: "string \<Rightarrow> action \<Rightarro
 "unfold_ruleset_CHAIN_safe = unfold_optimize_ruleset_CHAIN optimize_primitive_univ"
 
 lemma "(unfold_ruleset_CHAIN_safe chain a rs = Some rs') \<Longrightarrow> simple_ruleset rs'"
-  by(simp add: Let_def unfold_ruleset_CHAIN_safe_def unfold_optimize_ruleset_CHAIN_def split: split_if_asm)
+  by(simp add: Let_def unfold_ruleset_CHAIN_safe_def unfold_optimize_ruleset_CHAIN_def split: if_split_asm)
 
 (*This is just for legacy code compatibility. Use the new _safe function instead*)
 definition unfold_ruleset_CHAIN :: "string \<Rightarrow> action \<Rightarrow> 'i::len common_primitive ruleset \<Rightarrow> 'i common_primitive rule list" where

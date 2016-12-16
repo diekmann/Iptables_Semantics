@@ -383,7 +383,7 @@ ML {*
       Scan.lift (Args.mode "asm" -- Scan.optional (Args.parens (Scan.repeat Parse.nat)) [0]) --
       Scan.optional (Scan.lift
         (Parse.and_list1 
-          (Parse.position Args.var -- (Args.$$$ "=" |-- Parse.!!! Args.name_inner_syntax)) --|
+          (Parse.position Args.var -- (Args.$$$ "=" |-- Parse.!!! Args.embedded_inner_syntax)) --|
           Args.$$$ "in")) [] --
       Attrib.thms >>
       (fn (((quant, (asm, occL)), insts), thms) => fn ctxt => METHOD 
@@ -483,9 +483,9 @@ ML {*
       val _ = tracing (msg ^ " (gets): " ^ @{make_string} ct);
       val res = conv ct 
         handle exc =>
-         (if Exn.is_interrupt exc then reraise exc
+         (if Exn.is_interrupt exc then Exn.reraise exc
           else tracing (msg ^ " (raises): " ^ @{make_string} exc);
-          reraise exc)
+          Exn.reraise exc)
       val _ = tracing (msg ^ " (yields): " ^ @{make_string} res);
     in res end
 

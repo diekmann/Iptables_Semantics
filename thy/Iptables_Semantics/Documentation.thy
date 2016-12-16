@@ -75,7 +75,7 @@ lemma unfold_optimize_common_matcher_univ_ruleset_CHAIN:
     and "simple_ruleset rs"
 apply(intro unfold_optimize_ruleset_CHAIN[where optimize=optimize_primitive_univ, OF assms(1) assms(2) assms(3)])
   using assms apply(simp_all add: unfold_ruleset_CHAIN_safe_def Semantics_optimize_primitive_univ_common_matcher)
-by(simp add: unfold_optimize_ruleset_CHAIN_def Let_def split: split_if_asm)
+by(simp add: unfold_optimize_ruleset_CHAIN_def Let_def split: if_split_asm)
 
 
 subsection\<open>Spoofing protection\<close>

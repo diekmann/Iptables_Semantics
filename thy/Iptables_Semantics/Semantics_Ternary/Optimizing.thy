@@ -1,5 +1,5 @@
 theory Optimizing
-imports Semantics_Ternary Packet_Set_Impl
+imports Semantics_Ternary
 begin
 
 

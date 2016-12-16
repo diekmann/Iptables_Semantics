@@ -69,7 +69,7 @@ definition preprocess where
               (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_L4_Flags a
                                                                  | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_L4_Flags a))
               (closure
-              (iface_try_rewrite ipassmt
+              (iface_try_rewrite ipassmt None
               (closure
               (packet_assume_new
               (unfold def (map_of fw))))))))"
@@ -115,7 +115,7 @@ lemma "access_matrix_pretty_ipv4 parts_connection_ssh
               (optimize_matches (abstract_primitive (\<lambda>r. case r of Pos a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_L4_Flags a
                                                                  | Neg a \<Rightarrow> is_Iiface a \<or> is_Oiface a \<or> is_Prot a \<or> is_L4_Flags a))
               (upper_closure
-              (iface_try_rewrite ipassmt
+              (iface_try_rewrite ipassmt None
               (upper_closure
               (optimize_matches (ctstate_assume_state CT_Established)
               (unfold_ruleset_FORWARD factory_fw_FORWARD_default_policy (map_of factory_fw))))))))) =

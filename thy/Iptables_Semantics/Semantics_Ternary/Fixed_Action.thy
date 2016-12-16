@@ -225,13 +225,13 @@ subsection\<open>@{term match_list}\<close>
               )"
     apply(induction ms)
      apply(simp)
-    apply(simp split: split_if_asm action.split)
+    apply(simp split: if_split_asm action.split)
     apply(simp add: fixed_action_simps)
     done
   lemma match_list_False: "\<not> match_list \<gamma> ms a p \<Longrightarrow> approximating_bigstep_fun \<gamma> p (map (\<lambda>m. Rule m a) ms) Undecided = Undecided"
     apply(induction ms)
      apply(simp)
-    apply(simp split: split_if_asm action.split)
+    apply(simp split: if_split_asm action.split)
     done
 
   text\<open>The key idea behind @{const match_list}: Reducing semantics to match list\<close>
@@ -244,10 +244,10 @@ subsection\<open>@{term match_list}\<close>
      apply(simp)
      apply(induction ms1)
       apply(simp)
-     apply(simp split: split_if_asm)
+     apply(simp split: if_split_asm)
     apply(rename_tac m ms2)
     apply(simp del: approximating_bigstep_fun.simps)
-    apply(simp split: split_if_asm del: approximating_bigstep_fun.simps)
+    apply(simp split: if_split_asm del: approximating_bigstep_fun.simps)
      apply(simp split: action.split add: match_list_True fixed_action_simps)
     apply(simp)
     done
@@ -276,27 +276,27 @@ subsection\<open>@{term match_list}\<close>
   lemma match_list_helper1: "\<not> matches \<gamma> m2 a p \<Longrightarrow> match_list \<gamma> (map (\<lambda>x. MatchAnd x m2) m1') a p \<Longrightarrow> False"
     apply(induction m1')
      apply(simp; fail)
-    apply(simp split:split_if_asm)
+    apply(simp split:if_split_asm)
     by(auto dest: matches_dest)
   lemma match_list_helper2: " \<not> matches \<gamma> m a p \<Longrightarrow> \<not> match_list \<gamma> (map (MatchAnd m) m2') a p"
     apply(induction m2')
      apply(simp; fail)
-    apply(simp split:split_if_asm)
+    apply(simp split:if_split_asm)
     by(auto dest: matches_dest)
   lemma match_list_helper3: "matches \<gamma> m a p \<Longrightarrow> match_list \<gamma> m2' a p \<Longrightarrow> match_list \<gamma> (map (MatchAnd m) m2') a p"
     apply(induction m2')
      apply(simp; fail)
-    apply(simp split:split_if_asm)
+    apply(simp split:if_split_asm)
     by (simp add: matches_simps)
   lemma match_list_helper4: "\<not> match_list \<gamma> m2' a p \<Longrightarrow> \<not> match_list \<gamma> (map (MatchAnd aa) m2') a p "
     apply(induction m2')
      apply(simp; fail)
-    apply(simp split:split_if_asm)
+    apply(simp split:if_split_asm)
     by(auto dest: matches_dest)
   lemma match_list_helper5: " \<not> match_list \<gamma> m2' a p \<Longrightarrow> \<not> match_list \<gamma> (concat (map (\<lambda>x. map (MatchAnd x) m2') m1')) a p "
     apply(induction m2')
      apply(simp add:empty_concat; fail)
-    apply(simp split:split_if_asm)
+    apply(simp split:if_split_asm)
     apply(induction m1')
      apply(simp; fail)
     apply(simp add: match_list_append)
@@ -304,10 +304,10 @@ subsection\<open>@{term match_list}\<close>
   lemma match_list_helper6: "\<not> match_list \<gamma> m1' a p \<Longrightarrow> \<not> match_list \<gamma> (concat (map (\<lambda>x. map (MatchAnd x) m2') m1')) a p "
     apply(induction m2')
      apply(simp add:empty_concat; fail)
-    apply(simp split:split_if_asm)
+    apply(simp split:if_split_asm)
     apply(induction m1')
      apply(simp; fail)
-    apply(simp add: match_list_append split: split_if_asm)
+    apply(simp add: match_list_append split: if_split_asm)
     by(auto dest: matches_dest)
   
   lemmas match_list_helper = match_list_helper1 match_list_helper2 match_list_helper3 match_list_helper4 match_list_helper5 match_list_helper6
@@ -317,7 +317,7 @@ subsection\<open>@{term match_list}\<close>
            matches \<gamma> (MatchAnd m1 m2) a p \<longleftrightarrow> match_list \<gamma>  (map (\<lambda>x. MatchAnd x m2) m1') a p"
     apply(induction m1')
      apply(auto dest: matches_dest; fail)[1]
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
      apply safe
         apply(simp_all add: matches_simps)
       apply(auto dest: match_list_helper(1))[1]
@@ -327,7 +327,7 @@ subsection\<open>@{term match_list}\<close>
            matches \<gamma> (MatchAnd m1 m2) a p \<longleftrightarrow> match_list \<gamma> [MatchAnd x y. x <- m1', y <- m2'] a p"
     apply(induction m1')
      apply(auto dest: matches_dest; fail)[1]
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
      prefer 2
      apply(simp add: match_list_append)
      apply(subgoal_tac "\<not> match_list \<gamma> (map (MatchAnd aa) m2') a p")

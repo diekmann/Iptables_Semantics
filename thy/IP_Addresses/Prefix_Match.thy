@@ -28,6 +28,8 @@ definition pfxm_mask :: "'a prefix_match \<Rightarrow> 'a::len word" where
 
 definition valid_prefix :: "('a::len) prefix_match \<Rightarrow> bool" where
   "valid_prefix pf = ((pfxm_mask pf) AND pfxm_prefix pf = 0)"
+text\<open>Note that @{const valid_prefix} looks very elegant as a definition. However, it hides something nasty:\<close>
+lemma "valid_prefix (PrefixMatch (0::32 word) 42)" by eval
 
 text\<open>When zeroing all least significant bits which exceed the @{const pfxm_length},
      you get a @{const valid_prefix}\<close>
@@ -102,6 +104,8 @@ subsection\<open>Address Semantics\<close>
   definition prefix_match_semantics where
     "prefix_match_semantics m a \<equiv> pfxm_prefix m = (NOT pfxm_mask m) AND a"
 
+lemma same_length_prefixes_distinct: "valid_prefix pfx1 \<Longrightarrow> valid_prefix pfx2 \<Longrightarrow> pfx1 \<noteq> pfx2 \<Longrightarrow> pfxm_length pfx1 = pfxm_length pfx2 \<Longrightarrow> prefix_match_semantics pfx1 w \<Longrightarrow> prefix_match_semantics pfx2 w \<Longrightarrow> False"
+  by (simp add: pfxm_mask_def prefix_match.expand prefix_match_semantics_def)
 
 subsection\<open>Relation between prefix and set\<close>
 
@@ -138,7 +142,7 @@ subsection\<open>Equivalence Proofs\<close>
   private lemma valid_prefix_ipset_from_netmask_ipset_from_cidr:
     shows "ipset_from_netmask (pfxm_prefix pfx) (NOT pfxm_mask pfx) =
             ipset_from_cidr (pfxm_prefix pfx) (pfxm_length pfx)"
-    using assms apply(cases pfx)
+    apply(cases pfx)
     apply(simp add: ipset_from_cidr_alt2 pfxm_mask_def)
    done
   
@@ -224,7 +228,7 @@ lemma prefix_never_empty:
 by (simp add: le_word_or2 prefix_to_wordinterval_def)
 
 
-text\<open>Getting the lowest element\<close>
+text\<open>Getting a lowest element\<close>
   lemma ipset_from_cidr_lowest: "a \<in> ipset_from_cidr a n" 
     using ip_cidr_set_def ipset_from_cidr_eq_ip_cidr_set by blast
 

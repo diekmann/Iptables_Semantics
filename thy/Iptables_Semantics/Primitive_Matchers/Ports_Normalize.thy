@@ -77,7 +77,7 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
   using c apply(induction pss rule: l4_ports_compress.induct)
     apply(simp; fail)
    apply(simp; fail)
-  apply(simp add: primitive_matcher_generic.Ports_single[OF generic] bunch_of_lemmata_about_matches split: split_if_asm)
+  apply(simp add: primitive_matcher_generic.Ports_single[OF generic] bunch_of_lemmata_about_matches split: if_split_asm)
    apply meson
   by(simp add: l2wi_wi2l ports_to_set_wordinterval)
 
@@ -89,7 +89,7 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
   using c apply(induction pss rule: l4_ports_compress.induct)
     apply(simp; fail)
    apply(simp; fail)
-  apply(simp add: primitive_matcher_generic.Ports_single[OF generic] bunch_of_lemmata_about_matches split: split_if_asm)
+  apply(simp add: primitive_matcher_generic.Ports_single[OF generic] bunch_of_lemmata_about_matches split: if_split_asm)
    apply meson
   by(simp add: l2wi_wi2l ports_to_set_wordinterval)
 
@@ -103,7 +103,7 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
   shows "matches (\<beta>, \<alpha>) (alist_and (map (Pos \<circ> Src_Ports) pss)) a p"
   and "matches (\<beta>, \<alpha>) (alist_and (map (Pos \<circ> Dst_Ports) pss)) a p"
   using c apply(induction pss rule: l4_ports_compress.induct)
-  by(simp add: l4_ports_compress_length_Matchall bunch_of_lemmata_about_matches split: split_if_asm)+
+  by(simp add: l4_ports_compress_length_Matchall bunch_of_lemmata_about_matches split: if_split_asm)+
 
   lemma raw_ports_compress_src_MatchExpr:
   fixes p :: "('i::len, 'a) tagged_packet_scheme"
@@ -117,7 +117,7 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
    apply(drule sym, simp)
    by(simp add: primitive_matcher_generic.Ports_single[OF generic] wordinterval_compress l2wi_wi2l ports_to_set_wordinterval)
   apply(case_tac m)
-  apply(simp add: bunch_of_lemmata_about_matches split: split_if_asm)
+  apply(simp add: bunch_of_lemmata_about_matches split: if_split_asm)
   apply(simp add: primitive_matcher_generic.Ports_single[OF generic])
   apply(simp add: l2wi_wi2l ports_to_set_wordinterval)
   by fastforce
@@ -134,7 +134,7 @@ subsection\<open>Compressing Positive Matches on Ports into a Single Match\<clos
    apply(drule sym, simp)
    by(simp add: primitive_matcher_generic.Ports_single[OF generic] wordinterval_compress l2wi_wi2l ports_to_set_wordinterval)
   apply(case_tac m)
-  apply(simp add: bunch_of_lemmata_about_matches split: split_if_asm)
+  apply(simp add: bunch_of_lemmata_about_matches split: if_split_asm)
   apply(simp add: primitive_matcher_generic.Ports_single[OF generic])
   apply(simp add: l2wi_wi2l ports_to_set_wordinterval)
   by fastforce
@@ -1169,7 +1169,7 @@ lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [Ma
     from m' show ?thesis
     apply(simp add: replace_primitive_matchexpr_def)
     apply(case_tac "primitive_extractor (disc, sel) m", rename_tac as rst)
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
      using normalize_match_preserves_normalized_n_primitive nprim apply blast
     apply(frule_tac P=f in primitive_extractor_correct(5)[OF n wf_disc_sel])
     apply(clarify)
@@ -1189,7 +1189,7 @@ lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [Ma
       \<Longrightarrow> \<not> has_disc disc2 m'"
     apply(simp add: replace_primitive_matchexpr_def)
     apply(case_tac "primitive_extractor (disc, sel) m", rename_tac as rst)
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
      using nodisc normalize_match_preserves_nodisc apply blast
     apply(frule primitive_extractor_correct(4)[OF n wf_disc_sel])
     apply(elim bexE, rename_tac x)
@@ -1212,7 +1212,7 @@ lemma "normalize_match (andfold_MatchExp (map (l4_ports_negate_one C) [])) = [Ma
       \<Longrightarrow> \<not> has_disc_negated disc2 neg m'"
     apply(simp add: replace_primitive_matchexpr_def)
     apply(case_tac "primitive_extractor (disc, sel) m", rename_tac as rst)
-    apply(simp split: split_if_asm)
+    apply(simp split: if_split_asm)
      using nodisc not_has_disc_normalize_match apply blast
     apply(frule primitive_extractor_correct(6)[OF n wf_disc_sel, where neg=neg])
     apply(elim bexE, rename_tac x)

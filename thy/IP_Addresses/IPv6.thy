@@ -390,7 +390,7 @@ next
   assume ?rhs
   thus ?lhs
     unfolding parse_ipv6_address_compressed_def
-    by (auto split: option.split list.split split_if_asm)
+    by (auto split: option.split list.split if_split_asm)
 qed
 
   text_raw\<open>
@@ -647,7 +647,7 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
    apply(subgoal_tac "parse_ipv6_address_compressed ls \<noteq> None")
     prefer 2
     apply(subst RFC_4291_format)
-    apply(simp add: ipv6_unparsed_compressed_to_preferred_def split: split_if_asm; fail)
+    apply(simp add: ipv6_unparsed_compressed_to_preferred_def split: if_split_asm; fail)
    apply(simp)
    apply(erule exE, rename_tac ipv6compressed)
    apply(rule_tac x="ipv6compressed" in exI)
@@ -842,7 +842,7 @@ begin
           length (filter (\<lambda>p. p = None) as) = 1 \<and> length (filter (\<lambda>p. p \<noteq> None) as) \<le> 7"
   apply(cases ip)
   apply(simp add: ipv6_preferred_to_compressed_pull_out_if)
-  apply(simp only: split: split_if_asm)
+  apply(simp only: split: if_split_asm)
    subgoal for a b c d e f g h
    apply(rule disjI2)
    apply(case_tac "a=0",case_tac [!] "b=0",case_tac [!] "c=0",case_tac [!] "d=0",
@@ -937,14 +937,14 @@ begin
     for ipv6compressed
       apply(erule parse_ipv6_address_compressed_someE)
                                          apply(simp_all)
-                                         apply(erule ipv6_preferred_to_compressed_None1, simp split: split_if_asm)+
-                                 apply(erule ipv6_preferred_to_compressed_None2, simp split: split_if_asm)+
-                         apply(erule ipv6_preferred_to_compressed_None3, simp split: split_if_asm)+
-                    apply(erule ipv6_preferred_to_compressed_None4, simp split: split_if_asm)+
-               apply(erule ipv6_preferred_to_compressed_None5, simp split: split_if_asm)+
-           apply(erule ipv6_preferred_to_compressed_None6, simp split: split_if_asm)+
-        apply(erule ipv6_preferred_to_compressed_None7, simp split: split_if_asm)+
-      apply(erule ipv6_preferred_to_compressed_None8, simp split: split_if_asm)
+                                         apply(erule ipv6_preferred_to_compressed_None1, simp split: if_split_asm)+
+                                 apply(erule ipv6_preferred_to_compressed_None2, simp split: if_split_asm)+
+                         apply(erule ipv6_preferred_to_compressed_None3, simp split: if_split_asm)+
+                    apply(erule ipv6_preferred_to_compressed_None4, simp split: if_split_asm)+
+               apply(erule ipv6_preferred_to_compressed_None5, simp split: if_split_asm)+
+           apply(erule ipv6_preferred_to_compressed_None6, simp split: if_split_asm)+
+        apply(erule ipv6_preferred_to_compressed_None7, simp split: if_split_asm)+
+      apply(erule ipv6_preferred_to_compressed_None8, simp split: if_split_asm)
       done
     from 1 2 ip show ?thesis by(elim exE conjE, simp)
   qed

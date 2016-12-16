@@ -3,7 +3,7 @@ theory Routing_Table
 imports "../IP_Addresses/Prefix_Match"
         "../IP_Addresses/IPv4" "../IP_Addresses/IPv6"
         "Linorder_Helper"
-        "../IP_Address/IP_Address_toString"
+        "../IP_Addresses/Prefix_Match_toString"
 begin
 
 text\<open>This section makes the necessary definitions to work with a routing table using longest prefix matching.\<close>
@@ -19,7 +19,7 @@ record(overloaded) 'i routing_rule =
   metric :: nat
   routing_action :: "'i routing_action"
 
-text\<open>This definition is engineered to model routing tables on packet forwarding device.
+text\<open>This definition is engineered to model routing tables on packet forwarding devices.
 It eludes, e.g., the source address hint, which is only relevant for packets originating from the device itself.\<close>
 (* See also: http://linux-ip.net/html/routing-saddr-selection.html *)
 
@@ -31,6 +31,7 @@ definition "default_metric = 0"
 type_synonym 'i prefix_routing = "('i routing_rule) list"
 
 abbreviation "routing_oiface a \<equiv> output_iface (routing_action a)" (* I needed this a lot... *)
+abbreviation "routing_prefix r \<equiv> pfxm_length (routing_match r)"
 
 definition valid_prefixes where
   "valid_prefixes r = foldr conj (map (\<lambda>rr. valid_prefix (routing_match rr)) r) True"
@@ -77,7 +78,7 @@ qed simp
 subsection\<open>Longest Prefix Match\<close>
 
 text\<open>We can abuse @{const LinordHelper} to sort.\<close>
-definition "routing_rule_sort_key \<equiv> \<lambda>r. LinordHelper (0 - int_of_nat (pfxm_length (routing_match r))) (metric r)"
+definition "routing_rule_sort_key \<equiv> \<lambda>r. LinordHelper (0 - (of_nat :: nat \<Rightarrow> int) (pfxm_length (routing_match r))) (metric r)"
 text\<open>There is actually a slight design choice here. We can choose to sort based on @{thm less_eq_prefix_match_def} (thus including the address) or only the prefix length (excluding it).
   Which is taken does not matter gravely, since the bits of the prefix can't matter. They're either eqal or the rules don't overlap and the metric decides. (It does matter for the resulting list though.)
   Ignoring the prefix and taking only its length is slightly easier.\<close>
@@ -125,13 +126,124 @@ definition "sort_rtbl :: ('i::len) routing_rule list \<Rightarrow> 'i routing_ru
 
 lemma is_longest_prefix_routing_sort: "is_longest_prefix_routing (sort_rtbl r)" unfolding sort_rtbl_def is_longest_prefix_routing_def by simp
 
-subsection\<open>Printing\<close>
+definition "unambiguous_routing rtbl \<equiv> (\<forall>rt1 rt2 rr ra. rtbl = rt1 @ rr # rt2 \<longrightarrow> ra \<in> set (rt1 @ rt2) \<longrightarrow> routing_match rr = routing_match ra \<longrightarrow> routing_rule_sort_key rr \<noteq> routing_rule_sort_key ra)"
+lemma unambiguous_routing_Cons: "unambiguous_routing (r # rtbl) \<Longrightarrow> unambiguous_routing rtbl"
+  unfolding unambiguous_routing_def by(clarsimp) (metis append_Cons in_set_conv_decomp)
+lemma "unambiguous_routing (rr # rtbl) \<Longrightarrow> is_longest_prefix_routing (rr # rtbl) \<Longrightarrow> ra \<in> set rtbl \<Longrightarrow> routing_match rr = routing_match ra \<Longrightarrow> routing_rule_sort_key rr < routing_rule_sort_key ra"
+  unfolding is_longest_prefix_routing_def unambiguous_routing_def by(fastforce simp add: sorted_Cons)
+primrec unambiguous_routing_code where
+"unambiguous_routing_code [] = True" |
+"unambiguous_routing_code (rr#rtbl) = (list_all (\<lambda>ra. routing_match rr \<noteq> routing_match ra \<or> routing_rule_sort_key rr \<noteq> routing_rule_sort_key ra) rtbl \<and> unambiguous_routing_code rtbl)"
+lemma unambiguous_routing_code[code_unfold]: "unambiguous_routing rtbl \<longleftrightarrow> unambiguous_routing_code rtbl"
+proof(induction rtbl)
+  case (Cons rr rtbl) show ?case (is "?l \<longleftrightarrow> ?r") proof
+    assume l: ?l
+    with unambiguous_routing_Cons Cons.IH have "unambiguous_routing_code rtbl" by blast
+    moreover have "list_all (\<lambda>ra. routing_match rr \<noteq> routing_match ra \<or> routing_rule_sort_key rr \<noteq> routing_rule_sort_key ra) rtbl"
+      using l unfolding unambiguous_routing_def by(fastforce simp add: list_all_iff)
+    ultimately show ?r by simp
+  next
+    assume r: ?r
+    with Cons.IH have "unambiguous_routing rtbl" by simp
+    from r have *: "list_all (\<lambda>ra. routing_match rr \<noteq> routing_match ra \<or>  routing_rule_sort_key rr \<noteq> routing_rule_sort_key ra) rtbl" by simp
+    have False if "rr # rtbl = rt1 @ rra # rt2" "ra \<in> set (rt1 @ rt2)" "routing_rule_sort_key rra = routing_rule_sort_key ra \<and> routing_match rra = routing_match ra" for rt1 rt2 rra ra
+    proof(cases "rt1 = []")
+      case True thus ?thesis using that * by(fastforce simp add: list_all_iff)
+    next
+      case False
+      with that(1) have rtbl: "rtbl = tl rt1 @ rra # rt2" by (metis list.sel(3) tl_append2)
+      show ?thesis proof(cases "ra = hd rt1") (* meh case split\<dots> *)
+        case False hence "ra \<in> set (tl rt1 @ rt2)" using that by(cases rt1; simp)
+        with \<open>unambiguous_routing rtbl\<close> show ?thesis  using that(3) rtbl unfolding unambiguous_routing_def by fast
+      next
+        case True hence "rr = ra" using that \<open>rt1 \<noteq> []\<close> by(cases rt1; simp) 
+        thus ?thesis using that * unfolding rtbl by(fastforce simp add: list_all_iff)
+      qed
+    qed
+    thus ?l unfolding unambiguous_routing_def by blast 
+  qed
+qed(simp add: unambiguous_routing_def)
 
-(* TODO: move on next update of IP_Addresses update *)
-definition prefix_match_32_toString :: "32 prefix_match \<Rightarrow> string" where
-  "prefix_match_32_toString pfx = (case pfx of PrefixMatch p l \<Rightarrow> ipv4addr_toString p @ (if l \<noteq> 32 then ''/'' @ string_of_nat l else []))"
-definition prefix_match_128_toString :: "128 prefix_match \<Rightarrow> string" where
-  "prefix_match_128_toString pfx = (case pfx of PrefixMatch p l \<Rightarrow> ipv6addr_toString p @ (if l \<noteq> 128 then ''/'' @ string_of_nat l else []))"
+lemma unambigous_prefix_routing_weak_mono:
+  assumes lpfx: "is_longest_prefix_routing (rr#rtbl)"
+  assumes e:"rr' \<in> set rtbl"
+  shows "routing_rule_sort_key rr' \<ge> routing_rule_sort_key rr"
+using assms  by(simp add: linorder_class.sorted_Cons is_longest_prefix_routing_def)
+lemma unambigous_prefix_routing_strong_mono:
+  assumes lpfx: "is_longest_prefix_routing (rr#rtbl)" 
+  assumes uam: "unambiguous_routing (rr#rtbl)" 
+  assumes e:"rr' \<in> set rtbl"
+  assumes ne: "routing_match rr' = routing_match rr"
+  shows "routing_rule_sort_key rr' > routing_rule_sort_key rr" 
+proof -
+  from uam e ne have "routing_rule_sort_key rr \<noteq> routing_rule_sort_key rr'" by(fastforce simp add: unambiguous_routing_def)
+  moreover from unambigous_prefix_routing_weak_mono lpfx e have "routing_rule_sort_key rr \<le> routing_rule_sort_key rr'" .
+  ultimately show ?thesis by simp
+qed
+
+lemma "routing_rule_sort_key (rr_ctor (0,0,0,0) 8 [] None 0) > routing_rule_sort_key (rr_ctor (0,0,0,0) 24 [] None 0)" by eval
+(* get the inequality right\<dots> bigger means lower priority *)
+text\<open>In case you don't like that formulation of @{const is_longest_prefix_routing} over sorting, this is your lemma.\<close>
+theorem existential_routing: "valid_prefixes rtbl \<Longrightarrow> is_longest_prefix_routing rtbl \<Longrightarrow> has_default_route rtbl \<Longrightarrow> unambiguous_routing rtbl \<Longrightarrow>
+routing_table_semantics rtbl addr = act \<longleftrightarrow> (\<exists>rr \<in> set rtbl. prefix_match_semantics (routing_match rr) addr \<and> routing_action rr = act \<and>
+  (\<forall>ra \<in> set rtbl. routing_rule_sort_key ra < routing_rule_sort_key rr \<longrightarrow> \<not>prefix_match_semantics (routing_match ra) addr))"
+proof(induction rtbl)
+  case Nil thus ?case by simp
+next
+  case (Cons rr rtbl)
+  show ?case proof(cases "prefix_match_semantics (routing_match rr) addr")
+    case False
+    hence [simp]: "routing_table_semantics (rr # rtbl) addr = routing_table_semantics (rr # rtbl) addr" by simp
+    show ?thesis proof(cases "routing_prefix rr = 0")
+      case True text\<open>Need special treatment, rtbl won't have a default route, so the IH is not usable.\<close>
+      have "valid_prefix (routing_match rr)" using Cons.prems valid_prefixes_split by blast
+      with True False have False using zero_prefix_match_all by blast
+      thus ?thesis ..
+    next
+      case False
+      with Cons.prems have mprems: "valid_prefixes rtbl" "is_longest_prefix_routing rtbl" "has_default_route rtbl" "unambiguous_routing rtbl" 
+        by(simp_all add: valid_prefixes_split unambiguous_routing_Cons is_longest_prefix_routing_def sorted_Cons)
+      show ?thesis using Cons.IH[OF mprems] False \<open>\<not> prefix_match_semantics (routing_match rr) addr\<close> by simp
+    qed
+  next
+    case True
+    from True have [simp]: "routing_table_semantics (rr # rtbl) addr = routing_action rr" by simp
+    show ?thesis (is "?l \<longleftrightarrow> ?r") proof
+      assume ?l
+      hence [simp]: "act = routing_action rr" by(simp add: True)
+      have *: "(\<forall>ra\<in>set (rr # rtbl). routing_rule_sort_key rr \<le> routing_rule_sort_key ra)"
+        using \<open>is_longest_prefix_routing (rr # rtbl)\<close>  by(clarsimp simp: is_longest_prefix_routing_def sorted_Cons)
+      thus ?r by(fastforce simp add: True)
+    next
+      assume ?r
+      then guess rr' .. note rr' = this
+      have "rr' = rr" proof(rule ccontr)
+        assume C: "rr' \<noteq> rr"
+        from C have e: "rr' \<in> set rtbl" using rr' by simp
+        show False proof cases
+          assume eq: "routing_match rr' = routing_match rr"
+          with e have "routing_rule_sort_key rr < routing_rule_sort_key rr'" using unambigous_prefix_routing_strong_mono[OF Cons.prems(2,4) _ eq] by simp
+          with True rr' show False by simp
+        next
+          assume ne: "routing_match rr' \<noteq> routing_match rr"
+          from rr' Cons.prems have "valid_prefix (routing_match rr)" "valid_prefix (routing_match rr')" "prefix_match_semantics (routing_match rr') addr" by(auto simp add: valid_prefixes_alt_def)
+          note same_length_prefixes_distinct[OF this(1,2) ne[symmetric] _ True this(3)]
+          moreover have "routing_prefix rr = routing_prefix rr'" (is ?pe) proof -
+            have "routing_rule_sort_key rr < routing_rule_sort_key rr' \<longrightarrow> \<not> prefix_match_semantics (routing_match rr) addr" using rr' by simp
+            with unambigous_prefix_routing_weak_mono[OF Cons.prems(2) e] True have "routing_rule_sort_key rr = routing_rule_sort_key rr'" by simp
+            thus ?pe by(simp add: routing_rule_sort_key_def int_of_nat_def)
+          qed
+          ultimately show False .
+        qed
+      qed
+      thus ?l using rr' by simp
+    qed
+  qed
+qed
+    
+
+
+subsection\<open>Printing\<close>
 
 definition "routing_rule_32_toString (rr::32 routing_rule) \<equiv> 
   prefix_match_32_toString (routing_match rr) 
@@ -285,7 +397,7 @@ This next step reduces it to one for each port.
 The resulting list will represent a function from port to IP wordinterval.
 (It can also be understood as a function from IP (interval) to port (where the intervals don't overlap).\<close>
 
-private definition "reduce_range_destination l \<equiv>
+definition "reduce_range_destination l \<equiv>
 let ps = remdups (map fst l) in
 let c = \<lambda>s. (wordinterval_Union \<circ> map snd \<circ> filter ((op = s) \<circ> fst)) l in
 [(p, c p). p \<leftarrow> ps]

@@ -28,13 +28,14 @@ Stack support is available.
 To get started, use the following commands:
 
 ```
-$ cabal update
-$ cabal sandbox init
-$ cabal install --only-dependencies --enable-tests
-$ cabal build
+$ cabal update && \
+  cabal sandbox init && \
+  cabal install --only-dependencies --enable-tests && \
+  cabal build && \
+  cabal test
 ```
 
-With the last command, `cabal` produces a binary which can be invoked like this:
+With the build command, `cabal` produces a binary which can be invoked like this:
 
 ```
 $ ./dist/build/fffuu/fffuu --help
@@ -43,9 +44,9 @@ $ ./dist/build/fffuu/fffuu --help
 ```
 FFFUU -- Fancy Formal Firewall Universal Understander
 
-Usage: fffuu [--verbose] [--ipassmt STRING] [--table STRING] [--chain STRING]
-             [--service_matrix_sport INTEGER] [--service_matrix_dport INTEGER]
-             STRING
+Usage: fffuu [--verbose] [--ipassmt STRING] [--routingtbl STRING]
+             [--table STRING] [--chain STRING] [--service_matrix_sport INTEGER]
+             [--service_matrix_dport INTEGER] STRING
 
 Available options:
   -h,--help                Show this help text
@@ -53,6 +54,7 @@ Available options:
                            parser).
   --ipassmt STRING         Optional path to an IP assignment file. If not
                            specified, it only loads `lo = [127.0.0.0/8]`.
+  --routingtbl STRING      Optional path to a routing table.
   --table STRING           The table to load for analysis. Default: `filter`.
                            Note: This tool does not support packet modification,
                            so loading tables such as `nat` will most likeley
@@ -90,8 +92,12 @@ For example:
 lo = [127.0.0.0/8]
 ```
 
+If your system only has a single routing table, you can provide the output of `ip route` using `--routingtbl <FILE PATH>` to further improve the results. A comparison to the loaded IP assignment will be displayed as a side-effect.
 
-## Example
+WARNING: This can produce boguous results if your system has more than one relevant routing table or if your ipassignment specifies too small ranges.
+
+
+## Examples
 
 Try this:
 

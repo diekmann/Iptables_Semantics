@@ -55,11 +55,11 @@ section\<open>Matching TCP Flags\<close>
 
   lemma match_tcp_flags_conjunct_option_Some: "match_tcp_flags_conjunct_option f1 f2 = Some f3 \<Longrightarrow>
       match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt \<longleftrightarrow> match_tcp_flags f3 pkt"
-    apply(simp add: match_tcp_flags_conjunct_option_def split: ipt_tcp_flags.split_asm split_if_asm)
+    apply(simp add: match_tcp_flags_conjunct_option_def split: ipt_tcp_flags.split_asm if_split_asm)
     using match_tcp_flags_conjunct by blast
   lemma match_tcp_flags_conjunct_option_None: "match_tcp_flags_conjunct_option f1 f2 = None \<Longrightarrow>
       \<not>(match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt)"
-    apply(simp add: match_tcp_flags_conjunct_option_def split: ipt_tcp_flags.split_asm split_if_asm)
+    apply(simp add: match_tcp_flags_conjunct_option_def split: ipt_tcp_flags.split_asm if_split_asm)
     using match_tcp_flags_conjunct match_tcp_flags_nomatch by metis
 
   lemma match_tcp_flags_conjunct_option: "(case match_tcp_flags_conjunct_option f1 f2 of None \<Rightarrow> False | Some f3 \<Rightarrow> match_tcp_flags f3 pkt) \<longleftrightarrow> match_tcp_flags f1 pkt \<and> match_tcp_flags f2 pkt"

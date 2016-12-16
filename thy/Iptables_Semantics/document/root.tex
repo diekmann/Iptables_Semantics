@@ -35,10 +35,10 @@
 
 \begin{abstract}  
   We present a big step semantics of the filtering behavior of the Linux/netfilter iptables firewall. 
-  We provide algorithms to simplify complex iptables rulests to a simple firewall model (c.f.\ afp entry Simple\_Firewall) and to verify spoofing protection of a ruleset. 
+  We provide algorithms to simplify complex iptables rulests to a simple firewall model (c.f.\ AFP entry Simple\_Firewall) and to verify spoofing protection of a ruleset. 
   Internally, we embed our semantics into ternary logic, ultimately supporting every iptables match condition by abstracting over unknowns. 
-  Using this afp entry and all entries it depends on, we created an easy-to-use, stand-alone haskell tool called \emph{fffuu} (\url{http://iptables.isabelle.systems}). 
-  The tool does not require any input ---except for the \texttt{iptables-save} dump of the analyzed firewall--- and presents the user with interesting results about her ruleset. 
+  Using this AFP entry and all entries it depends on, we created an easy-to-use, stand-alone haskell tool called \emph{fffuu} (\url{http://iptables.isabelle.systems}). 
+  The tool does not require any input ---except for the \texttt{iptables-save} dump of the analyzed firewall--- and presents interesting results about the user's ruleset. 
   Real-Word firewall errors have been uncovered, as well as the correctness of rulesets has been proven with the help of our tool. 
   
 For a detailed description, see \cite{diekmann2015fm,diekmann2015cnsm,diekmann2016networking,diekmann2015congress}. 

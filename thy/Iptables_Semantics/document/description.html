@@ -1,0 +1,39 @@
+We present a big step semantics of the filtering behavior of the
+Linux/netfilter iptables firewall. We provide algorithms to simplify
+complex iptables rulests to a simple firewall model (c.f. AFP entry
+<a href="https://www.isa-afp.org/entries/Simple_Firewall.shtml">Simple_Firewall</a>) 
+and to verify spoofing protection of a ruleset.
+Internally, we embed our semantics into ternary logic, ultimately
+supporting every iptables match condition by abstracting over
+unknowns. Using this AFP entry and all entries it depends on, we
+created an easy-to-use, stand-alone haskell tool called <a
+href="http://iptables.isabelle.systems">fffuu</a>.
+The tool does not require any input &mdash;except for the
+<tt>iptables-save</tt> dump of the analyzed firewall&mdash;
+and presents interesting results about the user's ruleset.
+Real-Word firewall errors have been uncovered, as well as the
+correctness of rulesets has been proven with the help of our tool.
+
+For a detailed description, see:
+<ul>
+ <li>C. Diekmann, L. Hupel, and G. Carle, 
+     <i>Semantics-Preserving Simplification of Real-World Firewall Rule Sets</i>. 
+     In 20th International Symposium on Formal Methods, 2015. 
+     <a href="http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/fm15_Semantics-Preserving_Simplification_of_Real-World_Firewall_Rule_Sets.pdf">[pdf]</a>
+ </li>
+ <li>C. Diekmann, L. Schwaighofer, and G. Carle, 
+     <i>Certifying Spoofing-Protection of Firewalls</i>. 
+     In 11th International Conference on Network and Service Management, 2015. 
+     <a href="http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/diekmann2015_cnsm.pdf">[pdf]</a>
+ </li>
+ <li>C. Diekmann, J. Michaelis, M. Haslbeck, and G. Carle, 
+     <i>Verified iptables Firewall Analysis</i>. 
+     In IFIP Networking, 2016. 
+     <a href="http://dl.ifip.org/db/conf/networking/networking2016/1570232858.pdf">[pdf]</a>
+ </li>
+ <li>C. Diekmann, 
+     <i>Verified Firewall Ruleset Verification &ndash; Math, Functional Programming, Theorem Proving, and an Introduction to Isabelle/HOL</i>. 
+     In 32. Chaos Communication Congress (32C3), 2015. 
+     <a href="https://media.ccc.de/v/32c3-7195-verified_firewall_ruleset_verification">[recording]</a>
+ </li>
+</ul>
