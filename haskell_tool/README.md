@@ -46,7 +46,7 @@ FFFUU -- Fancy Formal Firewall Universal Understander
 
 Usage: fffuu [--verbose] [--ipassmt STRING] [--routingtbl STRING]
              [--table STRING] [--chain STRING] [--service_matrix_sport INTEGER]
-             [--service_matrix_dport INTEGER] STRING
+             [--service_matrix_dport INTEGER]... STRING
 
 Available options:
   -h,--help                Show this help text
@@ -65,7 +65,7 @@ Available options:
                            Source port for the service matrix. If not specified,
                            the randomly chosen source port 10000 is used. TODO:
                            maybe use an ephemeral port ;-).
-  --service_matrix_dport INTEGER
+  --service_matrix_dport INTEGER...
                            Destination port for the service matrix. If not
                            specified, SSH and HTTP (22 and 80) will be used.
                            Argument may be repeated multiple times.
