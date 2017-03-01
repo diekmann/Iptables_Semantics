@@ -102,4 +102,30 @@ value[code] "access_matrix_pretty_ipv4 parts_connection_http
 value[code] "access_matrix_pretty_ipv4 parts_connection_http 
     (preprocess_ESTABLISHED unfold_ruleset_FORWARD upper_closure ipassmt docker_fw2_FORWARD_default_policy docker_fw2)"
 
+  
+  
+  
+parse_iptables_save docker_fw_initial="iptables-save.topos1"
+
+thm docker_fw_initial_def
+thm docker_fw_initial_FORWARD_default_policy_def
+
+(*The original docker0 bridge is still in this dump. We need some information about it.*)
+definition ipassmt_initial :: "(iface \<times> (32 word \<times> nat) list) list" where
+ "ipassmt_initial = (Iface ''docker0'', [(ipv4addr_of_dotdecimal (172,17,0,1),16)])#ipassmt"
+  lemma "distinct (map fst ipassmt_initial)" by eval
+  lemma "ipassmt_sanity_nowildcards (map_of ipassmt_initial)" by eval
+
+
+value[code] "access_matrix_pretty_ipv4 parts_connection_ssh 
+    (preprocess unfold_ruleset_FORWARD upper_closure ipassmt_initial docker_fw_initial_FORWARD_default_policy docker_fw_initial)"
+
+value[code] "access_matrix_pretty_ipv4 parts_connection_ssh 
+    (preprocess_ESTABLISHED unfold_ruleset_FORWARD upper_closure ipassmt_initial docker_fw_initial_FORWARD_default_policy docker_fw_initial)"
+
+value[code] "access_matrix_pretty_ipv4 parts_connection_http 
+    (preprocess unfold_ruleset_FORWARD upper_closure ipassmt_initial docker_fw_initial_FORWARD_default_policy docker_fw_initial)"
+
+value[code] "access_matrix_pretty_ipv4 parts_connection_http 
+    (preprocess_ESTABLISHED unfold_ruleset_FORWARD upper_closure ipassmt_initial docker_fw_initial_FORWARD_default_policy docker_fw_initial)"
 end
