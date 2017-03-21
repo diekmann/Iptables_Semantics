@@ -82,7 +82,7 @@ begin
                      matches \<gamma> m' p; \<Gamma>,\<gamma>,p\<turnstile>\<^sub>g \<langle>rs\<^sub>1, Undecided\<rangle> \<Rightarrow> Undecided;
                      no_matching_Goto \<gamma> p rs\<^sub>1\<rbrakk> \<Longrightarrow>
                      (*we do not support a goto in the first part if you want to return
-                     probably unhanlded case:
+                     probably unhandled case:
                      main:
                        call foo
                      foo:
