@@ -24,7 +24,7 @@ call_no_result:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some rs; \<Ga
                     \<Gamma>,\<gamma>,p\<turnstile> \<langle>rrs, Undecided\<rangle> \<Rightarrow>\<^sub>s t \<rbrakk> \<Longrightarrow>
                \<Gamma>,\<gamma>,p\<turnstile> \<langle>Rule m (Call chain) # rrs, Undecided\<rangle> \<Rightarrow>\<^sub>s t"
 
-lemma "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>s t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
+lemma a: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>s t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t"
   apply(induction rule: iptables_bigstep_ns.induct; (simp add: iptables_bigstep.intros;fail)?)
   apply (meson iptables_bigstep.decision iptables_bigstep.accept seq_cons)
   apply (meson iptables_bigstep.decision iptables_bigstep.drop seq_cons)
@@ -69,7 +69,7 @@ next
   from 2(1) show ?case by (simp add: "2"(3) \<open>t' = Decision X\<close> decided)
 qed
       
-lemma "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> s = Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>s t"
+lemma b: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow> t \<Longrightarrow> s = Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>s t"
   apply(induction rule: iptables_bigstep.induct; (simp add: iptables_bigstep_ns.intros;fail)?)
    apply (metis decided decision seq_ns seq_progress skipD state.exhaust)
   apply(metis call_no_result iptables_bigstep_ns.call_result iptables_bigstep_ns.skip state.exhaust)
@@ -94,10 +94,10 @@ call_no_result:  "\<lbrakk> matches \<gamma> m p; \<Gamma> chain = Some rs; \<Ga
                     \<Gamma>,\<gamma>,p\<turnstile> rrs \<Rightarrow>\<^sub>z t \<rbrakk> \<Longrightarrow>
                \<Gamma>,\<gamma>,p\<turnstile> Rule m (Call chain) # rrs \<Rightarrow>\<^sub>z t"
 
-lemma "\<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>z t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>s t"
+lemma c: "\<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>z t \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>s t"
   by(induction rule: iptables_bigstep_nz.induct; simp add: iptables_bigstep_ns.intros)
     
-lemma "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>s t \<Longrightarrow> s = Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>z t"
+lemma d: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, s\<rangle> \<Rightarrow>\<^sub>s t \<Longrightarrow> s = Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>z t"
   by(induction rule: iptables_bigstep_ns.induct; simp add: iptables_bigstep_nz.intros)
     
 inductive iptables_bigstep_r :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> 'a rule list \<Rightarrow> state \<Rightarrow> bool"
@@ -131,7 +131,7 @@ next
   then show ?case by - (rule iptables_bigstep_r.cases[OF Cons.prems(1)]; simp add: iptables_bigstep_r.intros)
 qed
  
-lemma "\<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>z t \<Longrightarrow> s = Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>r t"
+lemma e: "\<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>z t \<Longrightarrow> s = Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>r t"
   by(induction rule: iptables_bigstep_nz.induct; simp add: iptables_bigstep_r.intros returning)
     
 
@@ -167,7 +167,7 @@ lemma upd_callD: "\<Gamma>(c \<mapsto> rs),\<gamma>,p\<turnstile> [Rule m (Call 
     
 lemma partial_fun_upd: "(f(x \<mapsto> y)) x = Some y" by(fact fun_upd_same)
  
-lemma "\<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>r t \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> all_chains (no_call_to c) \<Gamma> rs \<Longrightarrow> 
+lemma f: "\<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>r t \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> all_chains (no_call_to c) \<Gamma> rs \<Longrightarrow> 
   (\<Gamma>(c \<mapsto> rs)),\<gamma>,p\<turnstile> [Rule m (Call c)] \<Rightarrow>\<^sub>z t"
 proof(induction rule: iptables_bigstep_r.induct; (simp add: iptables_bigstep_nz.intros;fail)?)
   case (return m rs)
@@ -321,7 +321,47 @@ next
       done
     done
 qed
+  
+lemma r_skip_inv: "\<Gamma>,\<gamma>,p\<turnstile> [] \<Rightarrow>\<^sub>r t \<Longrightarrow> t = Undecided"
+  by(subst (asm) iptables_bigstep_r.simps) auto
+  
+(* why did I do all this? essentially, because I thought this should be derivable: *)
+lemma r_call_eq: "\<Gamma> c = Some rs \<Longrightarrow> matches \<gamma> m p \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> [Rule m (Call c)] \<Rightarrow>\<^sub>r t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>r t"
+(* and yes, there is a more general form of this lemma, but\<dots> meh. *)
+  apply(rule iffI)
+  subgoal
+    apply(subst (asm) iptables_bigstep_r.simps)
+    apply(auto dest: r_skip_inv)
+  done
+  subgoal
+    apply(cases t)
+     apply(erule (1) iptables_bigstep_r.call_no_result)
+      apply(simp;fail)
+     apply(simp add: iptables_bigstep_r.skip;fail)
+      apply(simp)
+    apply(erule (2) iptables_bigstep_r.call_result)
+  done
+by -
+  
+theorem r_eq_orig: "\<lbrakk>all_chains (no_call_to c) \<Gamma> rs; \<Gamma> c = Some rs\<rbrakk> \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>r t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call c)], Undecided\<rangle> \<Rightarrow> t"
+  apply(rule iffI)
+  subgoal
+    apply(drule f[where m=MatchAny, THEN c, THEN a])
+      apply(simp;fail)
+     apply(simp;fail)
+    apply (metis fun_upd_triv)
+    done  
+  subgoal
+    apply(subst r_call_eq[where m=MatchAny, symmetric])
+      apply(simp;fail)
+     apply(simp;fail)
+    apply(erule b[THEN d, THEN e, OF _ refl refl refl])
+    done
+  done
 
-    
+corollary r_eq_orig': "\<lbrakk>all_chains (no_call_to c) \<Gamma> rs; \<Gamma> c = Some rs\<rbrakk> \<Longrightarrow> 
+  \<Gamma>,\<gamma>,p\<turnstile> [Rule MatchAny (Call c)] \<Rightarrow>\<^sub>r t \<longleftrightarrow> \<Gamma>,\<gamma>,p\<turnstile> \<langle>[Rule MatchAny (Call c)], Undecided\<rangle> \<Rightarrow> t"
+(* if you really like symmetry *)
+  by(simp add: r_call_eq r_eq_orig)
 
 end
