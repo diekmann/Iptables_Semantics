@@ -188,7 +188,7 @@ d |-> {0.0.0.0 .. 126.255.255.255} u {128.0.0.0 .. 131.159.15.239} u {131.159.16
 ```
 
 Let’s visualize this:
-![fffuu dmz example hosted on imgur](https://i.imgur.com/Pqudris.png “hosted on imgur”)
+![fffuu dmz example hosted on imgur](https://i.imgur.com/Pqudris.png "hosted on imgur")
 
 Ignore the 127.0.0.0/8 range at the bottom. We can see that the firewall implements the textbook DMZ architecture: Internet (cloud) on the top, internal machines on the left, servers (DMZ) on the right. Yay!
 
