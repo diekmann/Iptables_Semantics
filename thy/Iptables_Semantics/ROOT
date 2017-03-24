@@ -31,6 +31,7 @@ session "Iptables_Semantics" = Routing +
   theories
     Semantics
     "Examples/Example_Semantics"
+    Alternative_Semantics
     Semantics_Stateful
     Semantics_Goto
     Call_Return_Unfolding
