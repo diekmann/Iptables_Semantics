@@ -119,10 +119,6 @@ call_no_result:  "\<lbrakk> \<Gamma> chain = Some rs; \<Gamma>,\<gamma>,p\<turns
                     \<Gamma>,\<gamma>,p\<turnstile> rrs \<Rightarrow>\<^sub>r t \<rbrakk> \<Longrightarrow>
                \<Gamma>,\<gamma>,p\<turnstile> Rule m (Call chain) # rrs \<Rightarrow>\<^sub>r t"
 
-lemma "\<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>r t \<Longrightarrow> s = Undecided \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> rs \<Rightarrow>\<^sub>z t"
-  apply(induction rule: iptables_bigstep_r.induct; (simp add: iptables_bigstep_nz.intros)?)
-  oops
-
 private lemma returning:  "\<lbrakk>\<Gamma>,\<gamma>,p\<turnstile> rs\<^sub>1 \<Rightarrow>\<^sub>r Undecided; matches \<gamma> m' p\<rbrakk>
     \<Longrightarrow> \<Gamma>,\<gamma>,p\<turnstile> rs\<^sub>1 @ Rule m' Return # rs\<^sub>2 \<Rightarrow>\<^sub>r Undecided"
 proof(induction rs\<^sub>1)
