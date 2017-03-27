@@ -155,13 +155,13 @@ lemma extract_equi0:
     using wordinterval_to_set_ipcidr_tuple_to_wordinterval by fastforce
   qed(simp)
 
-lemma src_ipPart:
-  assumes "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A"
-          "B \<in> A" "s1 \<in> B" "s2 \<in> B"
-  shows "simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>)"
+lemma src_ipPart_motivation:
+fixes   rs
+defines "X \<equiv> (\<lambda>(base,len). ipset_from_cidr base len) ` src ` match_sel ` set rs"
+assumes "\<forall>A \<in> X. B \<subseteq> A \<or> B \<inter> A = {}" and "s1 \<in> B" and "s2 \<in> B"
+shows "simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>)"
 proof -
-  have "\<forall>A \<in> (\<lambda>(base,len). ipset_from_cidr base len) ` src ` match_sel ` set rs. B \<subseteq> A \<or> B \<inter> A = {} \<Longrightarrow>
-      simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>)"
+  have "\<forall>A \<in> (\<lambda>(base,len). ipset_from_cidr base len) ` src ` match_sel ` set rs. B \<subseteq> A \<or> B \<inter> A = {} \<Longrightarrow> ?thesis"
   proof(induction rs)
     case Nil thus ?case by simp
   next
@@ -177,18 +177,30 @@ proof -
       apply(simp add: simple_matches.simps)
       by blast
     } note helper=this
-    from Cons show ?case
+    from Cons[simplified] show ?case
      apply(cases r, rename_tac m a)
      apply(simp)
      apply(case_tac a)
       using helper apply force+
      done
   qed
+  with assms show ?thesis by blast
+qed
+
+    
+lemma src_ipPart:
+  assumes "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 src rs))) A"
+          "B \<in> A" "s1 \<in> B" "s2 \<in> B"
+  shows "simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>)"
+proof -
+  from src_ipPart_motivation[OF _ assms(3) assms(4)]
+  have "\<forall>A \<in> (\<lambda>(base,len). ipset_from_cidr base len) ` src ` match_sel ` set rs. B \<subseteq> A \<or> B \<inter> A = {} \<Longrightarrow>
+      simple_fw rs (p\<lparr>p_src:=s1\<rparr>) = simple_fw rs (p\<lparr>p_src:=s2\<rparr>)" by fast
   thus ?thesis using assms(1) assms(2)
     unfolding ipPartition_def
     by (metis (full_types) Int_commute extract_equi0)
 qed
-
+  
 (*basically a copy of src_ipPart*)
 lemma dst_ipPart:
   assumes "ipPartition (set (map wordinterval_to_set (extract_IPSets_generic0 dst rs))) A"
