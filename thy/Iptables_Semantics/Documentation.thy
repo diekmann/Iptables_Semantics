@@ -198,8 +198,9 @@ corollary access_matrix_no_interfaces_and_bigstep_semantics:
       and correct_routing: "\<And>rtbl. rtblo = Some rtbl \<Longrightarrow> correct_routing rtbl"
       --"A passed routing table contains no interfaces with wildcard names"
       and routing_no_wildcards: "\<And>rtbl. rtblo = Some rtbl \<Longrightarrow> ipassmt_sanity_nowildcards (map_of (routing_ipassmt rtbl))"
-  and     new: "newpkt p"             
-  and     matrix: "(V,E) = access_matrix \<lparr>pc_iiface = p_iiface p, pc_oiface = p_oiface p, pc_proto = p_proto p, pc_sport = p_sport p, pc_dport = p_dport p\<rparr>
+  and     new: "newpkt p"
+  --"building the matrix over ANY interfaces, not mentioned anywhere. That means, we don't care about interfaces!"
+  and     matrix: "(V,E) = access_matrix \<lparr>pc_iiface = anyI, pc_oiface = anyO, pc_proto = p_proto p, pc_sport = p_sport p, pc_dport = p_dport p\<rparr>
                             (to_simple_firewall_without_interfaces ipassmt rtblo rs)"
   and     accept: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow"
   shows "\<exists>s_repr d_repr s_range d_range. (s_repr, d_repr) \<in> set E \<and>
@@ -208,19 +209,25 @@ corollary access_matrix_no_interfaces_and_bigstep_semantics:
 proof -
   let ?c="\<lparr> pc_iiface = p_iiface p, c_oiface = p_oiface p, pc_proto = p_proto p,
            pc_sport = p_sport p, pc_dport = p_dport p \<rparr>"
+  let ?srs="to_simple_firewall_without_interfaces ipassmt rtblo rs"
+  note tosfw=to_simple_firewall_without_interfaces[OF simple wf_ipassmt1 wf_ipassmt2 nospoofing routing_decided correct_routing routing_no_wildcards, of rtblo, simplified]
+  from tosfw(2) have no_ifaces: "simple_firewall_without_interfaces ?srs" unfolding simple_firewall_without_interfaces_def by fastforce
   from simple simple_imp_good_ruleset have "good_ruleset rs" by blast
   with accept FinalAllow_approximating_in_doubt_allow[OF agree] have accept_ternary:
     "(common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow" by blast
-  from to_simple_firewall_without_interfaces(1)[OF simple wf_ipassmt1 wf_ipassmt2 nospoofing routing_decided correct_routing routing_no_wildcards, of rtblo, simplified] have
+  from tosfw(1) have
     "{p.(common_matcher, in_doubt_allow),p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow>\<^sub>\<alpha> Decision FinalAllow \<and> newpkt p}
       \<subseteq>
-     {p. simple_fw (to_simple_firewall_without_interfaces ipassmt rtblo rs) p = Decision FinalAllow \<and> newpkt p}"
+     {p. simple_fw ?srs p = Decision FinalAllow \<and> newpkt p}"
     unfolding newpkt_def by blast
-  with accept_ternary new have "simple_fw (to_simple_firewall_without_interfaces ipassmt rtblo rs) p = Decision FinalAllow" by blast
-  hence "runFw_scheme (p_src p) (p_dst p) ?c p (to_simple_firewall_without_interfaces ipassmt rtblo rs) = Decision FinalAllow"
+  with accept_ternary new have "simple_fw ?srs p = Decision FinalAllow" by blast
+  hence "runFw_scheme (p_src p) (p_dst p) ?c p ?srs = Decision FinalAllow"
     by(simp add: runFw_scheme_def)
-  hence "runFw (p_src p) (p_dst p) ?c (to_simple_firewall_without_interfaces ipassmt rtblo rs) = Decision FinalAllow"
+  hence "runFw (p_src p) (p_dst p) ?c ?srs = Decision FinalAllow"
     by(simp add: runFw_scheme[symmetric])
+  hence "runFw (p_src p) (p_dst p) 
+          \<lparr>pc_iiface = anyI, pc_oiface = anyO, pc_proto = p_proto p, pc_sport = p_sport p, pc_dport = p_dport p\<rparr> ?srs = Decision FinalAllow"
+    apply(subst runFw_no_interfaces[OF no_ifaces]) by simp
   with access_matrix[OF matrix] show ?thesis by presburger
 qed
 end

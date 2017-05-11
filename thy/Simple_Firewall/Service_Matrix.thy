@@ -1188,6 +1188,23 @@ subsection\<open>Service Matrix over an IP Address Space Partition\<close>
 definition simple_firewall_without_interfaces :: "'i::len simple_rule list \<Rightarrow> bool" where
   "simple_firewall_without_interfaces rs \<equiv> \<forall>m \<in> match_sel ` set rs. iiface m = ifaceAny \<and> oiface m = ifaceAny"
 
+lemma simple_fw_no_interfaces:
+  assumes no_ifaces: "simple_firewall_without_interfaces rs"
+  shows "simple_fw rs p = simple_fw rs (p\<lparr> p_iiface:= x, p_oiface:= y\<rparr>)"
+proof -
+  from no_ifaces have "\<forall>r\<in>set rs. iiface (match_sel r) = ifaceAny \<and> oiface (match_sel r) = ifaceAny"
+    by(simp add: simple_firewall_without_interfaces_def)
+  thus ?thesis apply(induction rs p rule:simple_fw.induct)
+     by(simp_all add: simple_matches.simps match_ifaceAny)
+qed
+   
+lemma runFw_no_interfaces:
+  assumes no_ifaces: "simple_firewall_without_interfaces rs"
+  shows "runFw s d c rs = runFw s d (c\<lparr> pc_iiface:= x, pc_oiface:= y\<rparr>) rs"
+  apply(simp add: runFw_def)
+  apply(subst simple_fw_no_interfaces[OF no_ifaces])
+  by(simp)
+
 lemma[code_unfold]: "simple_firewall_without_interfaces rs \<equiv>
   \<forall>m \<in> set rs. iiface (match_sel m) = ifaceAny \<and> oiface (match_sel m) = ifaceAny"
   by(simp add: simple_firewall_without_interfaces_def)
