@@ -2,6 +2,7 @@ theory Documentation
 imports Semantics_Embeddings
     Call_Return_Unfolding
     No_Spoof_Embeddings
+    Access_Matrix_Embeddings
     "Primitive_Matchers/Code_Interface"
 begin
 
@@ -139,6 +140,21 @@ the graph (e.g. with Graphviz or tkiz): The vertices are the node description (i
   @{term "dom V"} is the label for each node which will also be referenced in the edges,
   @{term "ran V"} is the human-readable description for each node (i.e. the full IP range it represents)), 
 the edges are the edges. Result looks nice. Theorem also tells us that this visualization is correct.
+\<close>
+
+text\<open>
+A final theorem which does not mention the simple firewall at all.
+If the real iptables firewall (@{const iptables_bigstep}) accepts a packet, we have a corresponding
+edge in the @{const access_matrix}:
+
+@{thm access_matrix_and_bigstep_semantics [no_vars]}
+
+
+Actually, we want to ignore all interfaces for a service matrix.
+This is done in @{thm access_matrix_no_interfaces_and_bigstep_semantics[no_vars]}.
+The theorem reads a bit ugly because we need well-formedness assumptions if we rewrite interfaces.
+Internally, it uses @{const iface_try_rewrite} which is pretty safe to use, even if you don't have
+an @{term ipassmt} or routing tables.
 \<close>
 
 end
