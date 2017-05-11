@@ -141,4 +141,36 @@ the graph (e.g. with Graphviz or tkiz): The vertices are the node description (i
 the edges are the edges. Result looks nice. Theorem also tells us that this visualization is correct.
 \<close>
 
+lemma
+  defines "preprocess rs \<equiv> upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new rs)))"
+  and "newpkt p \<equiv> match_tcp_flags ipt_tcp_syn (p_tcp_flags p) \<and> p_tag_ctstate p = CT_New"
+  fixes \<gamma> :: "'i::len common_primitive \<Rightarrow> ('i, 'pkt_ext) tagged_packet_scheme \<Rightarrow> bool"
+  and   p :: "('i::len, 'pkt_ext) tagged_packet_scheme"
+  assumes agree:"matcher_agree_on_exact_matches \<gamma> common_matcher"
+  and simple: "simple_ruleset rs"
+  and new: "newpkt p"             
+  and ignore_payload: "p_payload p = ''''" (*not modeled and not considered in simple firewall*)
+  and matrix: "(V,E) = access_matrix c (to_simple_firewall (preprocess rs))"
+  and src_dst: "p_src p = s \<and> p_dst p = d"
+  and accept: "\<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow"
+  shows "\<exists>s_repr d_repr s_range d_range. (s_repr, d_repr) \<in> set E \<and>
+              (map_of V) s_repr = Some s_range \<and> s \<in> wordinterval_to_set s_range \<and>
+              (map_of V) d_repr = Some d_range \<and> d \<in> wordinterval_to_set d_range"
+proof -
+  from new_packets_to_simple_firewall_overapproximation[OF agree simple] new have
+    "{p. \<Gamma>,\<gamma>,p\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow \<and> newpkt p}
+      \<subseteq>
+     {p. simple_fw (to_simple_firewall (preprocess rs)) p = Decision FinalAllow \<and> newpkt p}"
+    unfolding preprocess_def newpkt_def by blast
+  with accept new have "simple_fw (to_simple_firewall (preprocess rs)) p = Decision FinalAllow" by blast
+  with src_dst have "runFw s d \<lparr> pc_iiface = p_iiface p,
+                          pc_oiface = p_oiface p,
+                          pc_proto = p_proto p,
+                          pc_sport = p_sport p,
+                          pc_dport = p_dport p \<rparr> (to_simple_firewall (preprocess rs)) = Decision FinalAllow"
+    apply(simp add: runFw_def)
+    apply(cases p, simp)
+    apply(simp add: ignore_payload) (*TODO add ctstate to runFw? or generic tagged scheme? can convert here? ignore ctstate*)
+  with access_matrix[OF matrix] runFw_def show ?thesis 
+    oops
 end
