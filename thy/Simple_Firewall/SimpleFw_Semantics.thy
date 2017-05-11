@@ -396,4 +396,25 @@ subsection\<open>Reality check: Validity of Simple Matches\<close>
   
   definition "simple_fw_valid \<equiv> list_all (simple_match_valid \<circ> match_sel)"
 
+
+
+text{*The simple firewall does not care about tcp flags, payload, or any other packet extensions.*}
+lemma simple_matches_extended_packet:
+      "simple_matches m
+        \<lparr>p_iiface = iifce,
+         oiface = oifce,
+         p_src = s, dst = d,
+         p_proto = prot,
+         p_sport = sport, p_dport = dport,
+         tcp_flags = tcp_flags, p_payload = payload1\<rparr>
+        \<longleftrightarrow>
+       simple_matches m
+        \<lparr>p_iiface = iifce,
+         oiface = oifce,
+         p_src = s, p_dst = d,
+         p_proto = prot,
+         p_sport = sport, p_dport = dport,
+         p_tcp_flags = tcp_flags2, p_payload = payload2, \<dots> = aux\<rparr>
+        "
+  by(simp add: simple_matches.simps)
 end
