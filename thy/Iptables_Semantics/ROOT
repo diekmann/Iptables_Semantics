@@ -51,6 +51,8 @@ session "Iptables_Semantics" = Routing +
     "Primitive_Matchers/Parser"
     "Simple_Firewall/SimpleFw_Compliance"
     "Examples/Code_haskell"
+    Access_Matrix_Embeddings
+    No_Spoof_Embeddings
     Documentation
   document_files
     "root.tex"
