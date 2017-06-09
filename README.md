@@ -44,7 +44,9 @@ See README.md in [haskell_tool](./haskell_tool/).
 ## Further References
 
 ### Talks
-  * 32C3: Verified Firewall Ruleset Verification, Cornelius Diekmann, Hamburg, Germany, December 2015 [[description]](https://events.ccc.de/congress/2015/Fahrplan/events/7195.html) [[video]](https://media.ccc.de/v/32c3-7195-verified_firewall_ruleset_verification#video)
+  * 32C3: Verified Firewall Ruleset Verification, Cornelius Diekmann, Hamburg, Germany, December 2015 [[description]](https://events.ccc.de/congress/2015/Fahrplan/events/7195.html) [[video]](https://media.ccc.de/v/32c3-7195-verified_firewall_ruleset_verification#video) [[youtube mirror]](https://www.youtube.com/watch?v=VtfeNiF9pbo)
+  
+  ![youtube video thumbnail](https://img.youtube.com/vi/VtfeNiF9pbo/mqdefault.jpg)
 
 ### Academic Publications
 
