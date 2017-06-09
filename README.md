@@ -14,7 +14,7 @@ It features
   * ...
 
 
-![isabelle/hol logo](https://raw.githubusercontent.com/diekmann/Iptables_Semantics/master/images/isabelle.png "Isabelle/HOL")
+[![isabelle/hol logo](https://raw.githubusercontent.com/diekmann/Iptables_Semantics/master/images/isabelle.png "Isabelle/HOL")](http://isabelle.in.tum.de/)
 
 
 ### Obtaining
@@ -30,7 +30,7 @@ In case this repository is ever outdated, there is always a maintained version o
 
 Don't want to install Isabelle? Don't want to mess with formulas or proofs? Just want a working tool? Cool, checkout our [stand-alone Haskell tool](./haskell_tool/)!
 
-![FFFUU logo](http://i.imgur.com/qc4dNKl.png "FFFUU")
+[![FFFUU logo](http://i.imgur.com/qc4dNKl.png "FFFUU")](./haskell_tool/)
 
 | Component             | Status |
 | --------------------- | ------ |
@@ -46,7 +46,7 @@ See README.md in [haskell_tool](./haskell_tool/).
 ### Talks
   * 32C3: Verified Firewall Ruleset Verification, Cornelius Diekmann, Hamburg, Germany, December 2015 [[description]](https://events.ccc.de/congress/2015/Fahrplan/events/7195.html) [[video]](https://media.ccc.de/v/32c3-7195-verified_firewall_ruleset_verification#video) [[youtube mirror]](https://www.youtube.com/watch?v=VtfeNiF9pbo)
   
-  ![youtube video thumbnail](https://img.youtube.com/vi/VtfeNiF9pbo/mqdefault.jpg)
+  [![youtube video thumbnail](https://img.youtube.com/vi/VtfeNiF9pbo/mqdefault.jpg)](https://media.ccc.de/v/32c3-7195-verified_firewall_ruleset_verification)
 
 ### Academic Publications
 
