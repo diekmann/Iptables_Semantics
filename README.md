@@ -22,8 +22,6 @@ It features
 $ git clone https://github.com/diekmann/Iptables_Semantics.git
 ```
 
-In case this repository is ever outdated, there is always a maintained version of the theory files for the current Isabelle release in the [afp](https://www.isa-afp.org/entries/Iptables_Semantics.shtml).
-
 ---
 
 ## Haskell Tool
@@ -60,6 +58,9 @@ The raw data of the iptables rulesets from the Examples is stored in [this](http
 
 
 ## Isabelle Theory Files
+
+
+This repository is probably not up to date and still uses Isabelle2016-1. **Get the theories for the current Isabelle release directly from the [afp](https://www.isa-afp.org/entries/Iptables_Semantics.shtml)**.
 
 Checking all proofs:
 
