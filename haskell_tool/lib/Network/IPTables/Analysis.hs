@@ -58,7 +58,7 @@ certifySpoofingProtection_generic
         (IsabelleIpAssmt a -> [Isabelle.Rule (Isabelle.Common_primitive a)] -> [String])
          -> IsabelleIpAssmt a -> [Isabelle.Rule (Isabelle.Common_primitive a)] -> ([String], [(Isabelle.Iface, Bool)])
 certifySpoofingProtection_generic debug_ipassmt_f ipassmt rs = (warn_defined ++ debug_ipassmt, certResult)
-    where -- fuc: firewall under certification, prepocessed
+    where -- fuc: firewall under certification, preprocessed
           -- no_spoofing_executable_set requires normalized_nnf_match. Isabelle.upper_closure guarantees this.
           -- It also guarantees that if we start from a simple_ruleset, it remains a simple ruleset.
           -- Theorem: no_spoofing_executable_set_preprocessed

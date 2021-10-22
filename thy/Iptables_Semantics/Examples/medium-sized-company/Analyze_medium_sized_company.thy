@@ -68,7 +68,7 @@ lemma "simple_fw_valid (to_simple_firewall
     (lower_closure (optimize_matches abstract_for_simple_firewall (lower_closure (packet_assume_new unfolded_FORWARD)))))"
   by eval
 (*
-text{*If we call the IP address spcae partitioning incorrectly (not prepocessed, still has interfaces), we get an error*}
+text{*If we call the IP address spcae partitioning incorrectly (not preprocessed, still has interfaces), we get an error*}
 value[code] " parts_connection_ssh 
   (to_simple_firewall (upper_closure (optimize_matches abstract_for_simple_firewall (upper_closure (packet_assume_new unfolded_FORWARD)))))"
 *)
