@@ -692,7 +692,7 @@ text\<open>Examples\<close>
            Rule MatchAny action.Drop]"
     apply(rule no_spoofing_iface)
       apply(simp_all add: simple_ruleset_def) (*simple and nnf*)
-    by eval (*executable spoofing alogorithm*)
+    by eval (*executable spoofing algorithm*)
 
 
   text\<open>Example 2:
