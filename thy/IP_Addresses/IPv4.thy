@@ -18,7 +18,7 @@ section \<open>IPv4 Adresses\<close>
   definition ipv4addr_of_nat :: "nat \<Rightarrow> ipv4addr" where
     "ipv4addr_of_nat n =  of_nat n"
 
-  text\<open>The maximum IPv4 addres\<close>
+  text\<open>The maximum IPv4 address\<close>
   definition max_ipv4_addr :: "ipv4addr" where 
     "max_ipv4_addr \<equiv> ipv4addr_of_nat ((2^32) - 1)"
 
