@@ -269,7 +269,7 @@ ML {*
 
         val msg = case concl of
           @{mpat "Trueprop (DEFER_tag _)"} 
-            => Pretty.str "Could not solve defered side condition"
+            => Pretty.str "Could not solve deferred side condition"
         | @{mpat "Trueprop ((_,_)\<in>_)"} 
             => Pretty.str "Could not refine subterm"
         | _ => Pretty.str "Internal: Unexpected goal"

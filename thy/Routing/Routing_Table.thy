@@ -164,12 +164,12 @@ proof(induction rtbl)
   qed
 qed(simp add: unambiguous_routing_def)
 
-lemma unambigous_prefix_routing_weak_mono:
+lemma unambiguous_prefix_routing_weak_mono:
   assumes lpfx: "is_longest_prefix_routing (rr#rtbl)"
   assumes e:"rr' \<in> set rtbl"
   shows "routing_rule_sort_key rr' \<ge> routing_rule_sort_key rr"
 using assms  by(simp add: linorder_class.sorted_Cons is_longest_prefix_routing_def)
-lemma unambigous_prefix_routing_strong_mono:
+lemma unambiguous_prefix_routing_strong_mono:
   assumes lpfx: "is_longest_prefix_routing (rr#rtbl)" 
   assumes uam: "unambiguous_routing (rr#rtbl)" 
   assumes e:"rr' \<in> set rtbl"
@@ -177,7 +177,7 @@ lemma unambigous_prefix_routing_strong_mono:
   shows "routing_rule_sort_key rr' > routing_rule_sort_key rr" 
 proof -
   from uam e ne have "routing_rule_sort_key rr \<noteq> routing_rule_sort_key rr'" by(fastforce simp add: unambiguous_routing_def)
-  moreover from unambigous_prefix_routing_weak_mono lpfx e have "routing_rule_sort_key rr \<le> routing_rule_sort_key rr'" .
+  moreover from unambiguous_prefix_routing_weak_mono lpfx e have "routing_rule_sort_key rr \<le> routing_rule_sort_key rr'" .
   ultimately show ?thesis by simp
 qed
 
@@ -222,7 +222,7 @@ next
         from C have e: "rr' \<in> set rtbl" using rr' by simp
         show False proof cases
           assume eq: "routing_match rr' = routing_match rr"
-          with e have "routing_rule_sort_key rr < routing_rule_sort_key rr'" using unambigous_prefix_routing_strong_mono[OF Cons.prems(2,4) _ eq] by simp
+          with e have "routing_rule_sort_key rr < routing_rule_sort_key rr'" using unambiguous_prefix_routing_strong_mono[OF Cons.prems(2,4) _ eq] by simp
           with True rr' show False by simp
         next
           assume ne: "routing_match rr' \<noteq> routing_match rr"
@@ -230,7 +230,7 @@ next
           note same_length_prefixes_distinct[OF this(1,2) ne[symmetric] _ True this(3)]
           moreover have "routing_prefix rr = routing_prefix rr'" (is ?pe) proof -
             have "routing_rule_sort_key rr < routing_rule_sort_key rr' \<longrightarrow> \<not> prefix_match_semantics (routing_match rr) addr" using rr' by simp
-            with unambigous_prefix_routing_weak_mono[OF Cons.prems(2) e] True have "routing_rule_sort_key rr = routing_rule_sort_key rr'" by simp
+            with unambiguous_prefix_routing_weak_mono[OF Cons.prems(2) e] True have "routing_rule_sort_key rr = routing_rule_sort_key rr'" by simp
             thus ?pe by(simp add: routing_rule_sort_key_def int_of_nat_def)
           qed
           ultimately show False .
@@ -440,7 +440,7 @@ proof(rule ccontr)
   from x have "\<exists>b2g. x \<in> wordinterval_to_set b2g \<and> wordinterval_to_set b2g \<subseteq> wordinterval_to_set b2 \<and> (a2, b2g) \<in> set (routing_port_ranges tbl wordinterval_UNIV)"
     using iuf(2) by(fastforce simp add: wordinterval_Union)
   then obtain b2g where b2g: "x \<in> wordinterval_to_set b2g" "wordinterval_to_set b2g \<subseteq> wordinterval_to_set b2" "(a2, b2g) \<in> set (routing_port_ranges tbl wordinterval_UNIV)" by clarsimp
-  text\<open>Soudness tells us that the both @{term a1} and @{term a2} have to be the result of routing @{term x}.\<close>
+  text\<open>Soundness tells us that the both @{term a1} and @{term a2} have to be the result of routing @{term x}.\<close>
   note routing_port_ranges_sound[OF b1g(3), unfolded fst_conv snd_conv, OF b1g(1) vpfx] routing_port_ranges_sound[OF b2g(3), unfolded fst_conv snd_conv, OF b2g(1) vpfx]
   text\<open>A contradiction follows from @{thm dif}.\<close>
   with dif show False by simp

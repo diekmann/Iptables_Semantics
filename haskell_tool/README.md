@@ -57,7 +57,7 @@ Available options:
   --routingtbl STRING      Optional path to a routing table.
   --table STRING           The table to load for analysis. Default: `filter`.
                            Note: This tool does not support packet modification,
-                           so loading tables such as `nat` will most likeley
+                           so loading tables such as `nat` will most likely
                            fail.
   --chain STRING           The chain to start the analysis. Default: `FORWARD`.
                            Use `INPUT` for a host-based firewall.

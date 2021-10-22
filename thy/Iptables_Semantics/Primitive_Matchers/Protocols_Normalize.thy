@@ -199,7 +199,7 @@ lemma "simple_proto_conjunct p1 (Proto p2) \<noteq> None \<Longrightarrow> \<for
     "normalized_n_primitive (disc, sel) P m \<Longrightarrow> (\<forall>a. \<not> disc (Prot a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_protocols_step m = Some m' \<Longrightarrow>
      normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
      unfolding compress_normalize_protocols_step_def
-   using compress_normalize_primitve_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(7)] by blast
+   using compress_normalize_primitive_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(7)] by blast
   
 
   lemma "case compress_normalize_protocols_step 

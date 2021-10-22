@@ -75,7 +75,7 @@ section\<open>Matching TCP Flags\<close>
           else  (\<not> c1 \<subseteq> fmask1) \<and> (\<not> c2 \<subseteq> fmask2))"
   context
   begin
-    private lemma funny_set_falg_fmask_helper: "c2 \<subseteq> fmask2 \<Longrightarrow> (c1 = c2 \<and> fmask1 = fmask2) = (\<forall>pkt. (pkt \<inter> fmask1 = c1) = (pkt \<inter> fmask2 = c2))"
+    private lemma funny_set_flag_fmask_helper: "c2 \<subseteq> fmask2 \<Longrightarrow> (c1 = c2 \<and> fmask1 = fmask2) = (\<forall>pkt. (pkt \<inter> fmask1 = c1) = (pkt \<inter> fmask2 = c2))"
     apply rule
      apply presburger
     apply(subgoal_tac "fmask1 = fmask2")
@@ -127,7 +127,7 @@ section\<open>Matching TCP Flags\<close>
       apply(cases f1, cases f2, simp)
       apply(rename_tac fmask1 c1 fmask2 c2)
       apply(intro conjI impI)
-       using funny_set_falg_fmask_helper apply metis
+       using funny_set_flag_fmask_helper apply metis
       apply blast
      done
   end

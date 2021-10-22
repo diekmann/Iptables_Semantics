@@ -6,7 +6,7 @@
 
 (*
   CHANGELOG:
-    2010-05-09: Removed AC, AI locales, they are superseeded by concepts
+    2010-05-09: Removed AC, AI locales, they are superseded by concepts
                   from OrderedGroups
     2010-09-22: Merges with ext/Aux
 

@@ -17,8 +17,8 @@ diff -u iptables_20.11.2013 iptables_20.11.2013_cheating
 
 The rule was simply dead.
 
-We suffix everything which is based on this modified rulset (with those three rules removed) '_cheating'.
-In earlier versions, we also remove the ESTABLISHED;REALTED rule. Details why this is (was) reasonable can be found in the paper:
+We suffix everything which is based on this modified ruleset (with those three rules removed) '_cheating'.
+In earlier versions, we also remove the ESTABLISHED;RELATED rule. Details why this is (was) reasonable can be found in the paper:
 http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/fm15_Semantics-Preserving_Simplification_of_Real-World_Firewall_Rule_Sets.pdf
 
 

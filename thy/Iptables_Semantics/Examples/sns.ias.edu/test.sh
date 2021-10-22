@@ -12,7 +12,7 @@ modprobe ip_conntrack
 modprobe ip_conntrack_ftp
 
 # These lines are here in case rules are already in place and the script is ever rerun on the fly.
-# We want to remove all rules and pre-exisiting user defined chains and zero the counters
+# We want to remove all rules and pre-existing user defined chains and zero the counters
 # before we implement new rules.
 iptables -F
 iptables -X

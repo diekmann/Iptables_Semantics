@@ -595,7 +595,7 @@ lemma wordinterval_to_set_alt: "wordinterval_to_set r = {x. wordinterval_element
 lemma wordinterval_un_empty:
   "wordinterval_empty r1 \<Longrightarrow> wordinterval_eq (wordinterval_union r1 r2) r2"
   by(subst wordinterval_eq_set_eq, simp)
-lemma wordinterval_un_emty_b:
+lemma wordinterval_un_empty_b:
   "wordinterval_empty r2 \<Longrightarrow> wordinterval_eq (wordinterval_union r1 r2) r1"
   by(subst wordinterval_eq_set_eq, simp)
 

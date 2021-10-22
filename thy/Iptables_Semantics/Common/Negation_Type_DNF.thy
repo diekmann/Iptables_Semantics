@@ -118,7 +118,7 @@ subsubsection\<open>inverting a DNF\<close>
     apply(simp add: map_a_and cnf_to_bool_append dnf_to_bool_append)
     by blast
   
-  lemma cnf_invert_singelton: "cnf_to_bool \<gamma> [invert a] \<longleftrightarrow> \<not> cnf_to_bool \<gamma> [a]" by(cases a, simp_all)
+  lemma cnf_invert_singleton: "cnf_to_bool \<gamma> [invert a] \<longleftrightarrow> \<not> cnf_to_bool \<gamma> [a]" by(cases a, simp_all)
   
   lemma cnf_singleton_false: "(\<exists>a'\<in>set as. \<not> cnf_to_bool \<gamma> [a']) \<longleftrightarrow> \<not> cnf_to_bool \<gamma> as"
     by(induction \<gamma> as rule: cnf_to_bool.induct) (simp_all)
@@ -131,7 +131,7 @@ subsubsection\<open>inverting a DNF\<close>
     apply(induction d)
      apply(simp_all)
     apply(simp add: listprepend_correct)
-    apply(simp add: cnf_invert_singelton cnf_singleton_false)
+    apply(simp add: cnf_invert_singleton cnf_singleton_false)
     done
 
 subsubsection\<open>Optimizing\<close>

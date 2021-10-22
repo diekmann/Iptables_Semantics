@@ -22,7 +22,7 @@ fun wf_disc_sel :: "(('a \<Rightarrow> bool) \<times> ('a \<Rightarrow> 'b)) \<R
 
 (* should the following be added to the definition?
  the discriminator is true for all C independent of the a
- for example: is_Src_IP is true for all Src_IPs, independent of the numberic value of the ip.
+ for example: is_Src_IP is true for all Src_IPs, independent of the numeric value of the ip.
 lemma "wf_disc_sel (disc, sel) C \<Longrightarrow> (\<exists>a. disc (C a)) \<longrightarrow> (\<forall>a. disc (C a))"
 *)
 

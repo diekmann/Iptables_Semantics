@@ -3,7 +3,7 @@ imports Common_Primitive_Syntax
         "../Semantics_Ternary/Primitive_Normalization"
         "../../Simple_Firewall/Primitives/Iface"
         "../../Simple_Firewall/Common/IP_Addr_WordInterval_toString" (*for debug pretty-printing*)
-        "../../Automatic_Refinement/Lib/Misc" (*dependnecy!*)
+        "../../Automatic_Refinement/Lib/Misc" (*dependency!*)
 begin
 
   text\<open>A mapping from an interface to its assigned ip addresses in CIDR notation\<close>
@@ -36,7 +36,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
         distinct (map fst ipassmt) \<and> ipassmt_sanity_nowildcards (map_of ipassmt)
       then
         map_of ipassmt
-      else undefined (*undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces*))"
+      else undefined (*undefined_ipassmt_must_be_distinct_and_not_have_wildcard_interfaces*))"
 
 
   text\<open>some additional (optional) sanity checks\<close>
@@ -365,8 +365,8 @@ subsection\<open>IP Assignment difference\<close>
       [(d, (k a b d, k b a d)). d \<leftarrow> remdups (map fst (a @ b))]"
   
   
-  text\<open>If an interface is defined in both ipassignments and there is no difference
-       then the two ipassignements describe the same IP range for this interface.\<close>
+  text\<open>If an interface is defined in both ip and there is no difference
+       then the two ip assignments describe the same IP range for this interface.\<close>
   lemma ipassmt_diff_ifce_equal: "(ifce, [], []) \<in> set (ipassmt_diff ipassmt1 ipassmt2)  \<Longrightarrow>
          ifce \<in> dom (map_of ipassmt1) \<Longrightarrow> ifce \<in> dom (map_of ipassmt2) \<Longrightarrow>
            ipcidr_union_set (set (the ((map_of ipassmt1) ifce))) =

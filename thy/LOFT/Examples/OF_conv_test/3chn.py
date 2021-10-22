@@ -130,9 +130,9 @@ class DTopo(Topo):
 		csl  = self.addLink(client, switch, intfName2='s1-lan')
 		nhsl = self.addLink(nhost,  switch,  intfName2='s1-wan')
 
-def dump(ofile, strng):
+def dump(ofile, text):
 	with open(ofile, "w") as fo:
-		fo.write(strng.replace("\r\n","\n"))
+		fo.write(text.replace("\r\n","\n"))
 
 def tcpreachtest(net, client, server, port=80, timeout=2.5):
 	output("TCP {}: {} -> {}: ".format(port, client, server))
@@ -164,7 +164,7 @@ def makearpentries(host, hosts):
 	for intf in host.intfList():
 		if intf.MAC() and intf.IP(): # will also sort out loopback
 			for host in hosts:
-				host.cmd("arp -s {} {}".format(intf.IP(), intf.MAC())) # will fail with Netwok unreachable at given times. Easier to ignore than fix.
+				host.cmd("arp -s {} {}".format(intf.IP(), intf.MAC())) # will fail with Network unreachable at given times. Easier to ignore than fix.
 
 def standalone():
 	if "info" in argv:

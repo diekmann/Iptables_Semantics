@@ -10,7 +10,7 @@ text {*
   Priority tags are used to influence the ordering of refinement theorems.
   A priority tag defines two numeric priorities, a major and a minor priority.
   The major priority is considered first, the minor priority last, i.e., after
-  the homogenity and relator-priority criteria.
+  the homogeneity and relator-priority criteria.
   The default value for both priorities is 0.
 *}
 definition PRIO_TAG :: "int \<Rightarrow> int \<Rightarrow> bool" 
@@ -459,12 +459,12 @@ ML {*
 
     structure hom_rules = Named_Sorted_Thms (
       val name = @{binding autoref_hom}
-      val description = "Autoref: Homogenity rules"
+      val description = "Autoref: Homogeneity rules"
       val sort = K I
       val transform = K (
         fn thm => case Thm.concl_of thm of 
           @{mpat "Trueprop (CONSTRAINT _ _)"} => [thm]
-        | _ => raise THM ("Invalid homogenity rule",~1,[thm])
+        | _ => raise THM ("Invalid homogeneity rule",~1,[thm])
       )
     )
   

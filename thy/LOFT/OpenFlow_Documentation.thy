@@ -211,9 +211,9 @@ schematic_goal "(field_match :: of_match_field) \<in> {
 	L4Dst (?pd :: 16 word) (?md :: 16 word)
 }" by(fact of_match_field_typeset)
 text\<open>
-Two things are worth additional mention: L3 and L4 ``addressess''.
+Two things are worth additional mention: L3 and L4 ``addresses''.
 The @{term IPv4Src} and @{term IPv4Dst} matches are specified as ``can be subnet masked'' in~\cite{specification10}, 
-  whereras~\cite{specification15} states clearly that arbitrary bitmasks can be used. We took the conservative approach here.
+  whereas~\cite{specification15} states clearly that arbitrary bitmasks can be used. We took the conservative approach here.
 Our alteration of @{term L4Src} and @{term L4Dst} is more grave. While~\cite{specification10} does not state anything about layer 4 ports and masks,
 \cite{specification15} specifically forbids using masks on them. 
 Nevertheless, OpenVSwitch \cite{openvswitch} and some other implementations support them.
@@ -228,7 +228,7 @@ Guha \emph{et al.} decided to use the fact that the preconditions can be arrange
 They evaluated match conditions in a manner following that graph:
 first, all field matches without preconditions are evaluated.
 Upon evaluating a field match (e.g., @{term "EtherType 0x0800"}), the matches that had their precondition fulfilled by it
-  (e.g., @{term IPv4Src} and @{term IPv4Src} in this example) are evalutated.
+  (e.g., @{term IPv4Src} and @{term IPv4Src} in this example) are evaluated.
 This mirrors the faulty behavior of some implementations (see \cite{guha2013machine}).
 Adopting that behavior into our model would mean that any packet matches against the field match set @{term "{IPv4Dst (PrefixMatch 134744072 32)}"} 
 instead of just those destined for 8.8.8.8 or causing an error. We found this to be unsatisfactory.\<close>
@@ -314,9 +314,9 @@ We could have made this definition on sets but chose not to for consistency.}:
 The use of @{term Undefined} immediately raises the question in which condition it cannot occur.
 We give the following definition:\<close>
 lemma "check_no_overlap \<gamma> ft = (\<forall>a \<in> set ft. \<forall>b \<in> set ft. (a \<noteq> b \<and> ofe_prio a = ofe_prio b) \<longrightarrow> \<not>(\<exists>p. \<gamma> (ofe_fields a) p \<and> \<gamma> (ofe_fields b) p))" unfolding check_no_overlap_alt check_no_overlap2_def by force
-text\<open>Together with distinctness of the flow table, this provides the abscence of @{term Undefined}\footnote{It is slightly stronger than necessary, overlapping rules might be shadowed and thus never influence the behavior.}:\<close>
+text\<open>Together with distinctness of the flow table, this provides the absence of @{term Undefined}\footnote{It is slightly stronger than necessary, overlapping rules might be shadowed and thus never influence the behavior.}:\<close>
 lemma "\<lbrakk>check_no_overlap \<gamma> ft; distinct ft\<rbrakk> \<Longrightarrow>
-  OF_priority_match \<gamma> ft p \<noteq> Undefined" by (simp add: no_overlapsI no_overlaps_not_unefined)
+  OF_priority_match \<gamma> ft p \<noteq> Undefined" by (simp add: no_overlapsI no_overlaps_not_undefined)
 
 text\<open>Given the absence of overlapping or duplicate flow entries, we can show two interesting equivalences.
 the first is the equality to the semantics defined by Guha \emph{et al.}:\<close>
@@ -396,7 +396,7 @@ text_raw\<open>
 \<close>
 lemma "lr_of_tran rt fw ifs \<equiv> 
 if \<not> (no_oif_match fw \<and> has_default_policy fw \<and> simple_fw_valid fw	\<and> valid_prefixes rt \<and> has_default_route rt \<and> distinct ifs)
-  then Inl ''Error in creating OpenFlow table: prerequisites not satisifed''
+  then Inl ''Error in creating OpenFlow table: prerequisites not satisfied''
   else (
 let
   nfw = map simple_rule_dtor fw; 
@@ -501,7 +501,7 @@ Obviously, we will never see any packets with an input interface that is not in 
 Furthermore, we do not state anything about non-IPv4 traffic. (The traffic will remain unmatched in by the flow table, but we have not verified that.)
 The last assumption is that the translation does not return a run-time error.
 The translation will return a run-time error if the rules can not be assigned priorities from a 16 bit integer, 
-or when one of the following conditions on the input data is not satisifed:\<close>
+or when one of the following conditions on the input data is not satisfied:\<close>
 lemma "
   \<not> no_oif_match fw \<or> 
   \<not> has_default_policy fw \<or>

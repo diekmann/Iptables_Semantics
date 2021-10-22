@@ -524,7 +524,7 @@ begin
        apply(simp_all)
       done
   
-    text\<open>Non-wildacrd interfaces of length @{term n}\<close>
+    text\<open>Non-wildcard interfaces of length @{term n}\<close>
     private definition non_wildcard_ifaces :: "nat \<Rightarrow> string list" where
      "non_wildcard_ifaces n \<equiv> filter (\<lambda>i. \<not> iface_name_is_wildcard i) (List.n_lists n all_chars)"
 
@@ -537,7 +537,7 @@ begin
     private lemma "(\<Union> i \<in> set (non_wildcard_ifaces n). internal_iface_name_to_set i) = {s::string. length s = n \<and> \<not> iface_name_is_wildcard s}"
      by(simp add: non_wildcard_ifaces)
   
-    text\<open>Non-wildacrd interfaces up to length @{term n}\<close>
+    text\<open>Non-wildcard interfaces up to length @{term n}\<close>
     private fun non_wildcard_ifaces_upto :: "nat \<Rightarrow> string list" where
       "non_wildcard_ifaces_upto 0 = [[]]" |
       "non_wildcard_ifaces_upto (Suc n) = (non_wildcard_ifaces (Suc n)) @ non_wildcard_ifaces_upto n"

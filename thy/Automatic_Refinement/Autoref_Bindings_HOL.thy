@@ -611,7 +611,7 @@ subsection "Examples"
 
 text {* Be careful to make the concrete type a schematic type variable.
   The default behaviour of @{text "schematic_lemma"} makes it a fixed variable,
-  that will not unify with the infered term! *}
+  that will not unify with the inferred term! *}
 schematic_goal 
   "(?f::?'c,[1,2,3]@[4::nat])\<in>?R"
   by autoref

@@ -305,7 +305,7 @@ begin
   subsection \<open>Convenience Tools\<close>
 
   ML {*
-    (* Prefix p_ or wrong type supresses generation of relAPP *)
+    (* Prefix p_ or wrong type suppresses generation of relAPP *)
   
     fun cnv_relAPP t = let
       fun consider (Var ((name,_),T)) =

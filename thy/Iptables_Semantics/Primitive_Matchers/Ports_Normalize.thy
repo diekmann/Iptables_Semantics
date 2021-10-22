@@ -541,7 +541,7 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
     shows "m' \<in> set (normalize_positive_ports_step (disc,sel) C m) \<Longrightarrow> normalized_nnf_match m'"
     apply(simp add: normalize_positive_ports_step_def)
     apply(elim exE conjE, rename_tac rst spts)
-    apply(drule sym) (*switch primitive_extrartor = *)
+    apply(drule sym) (*switch primitive_extractor = *)
     apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel])
     apply(subgoal_tac "getNeg spts = []") (*duplication above*)
      prefer 2 subgoal
@@ -559,7 +559,7 @@ subsection\<open>Normalizing Positive Matches on Ports\<close>
     apply(intro ballI, rename_tac m')
     apply(simp)
     apply(elim exE conjE, rename_tac rst spts)
-    apply(drule sym) (*switch primitive_extrartor = *)
+    apply(drule sym) (*switch primitive_extractor = *)
     apply(frule primitive_extractor_correct(2)[OF n wf_disc_sel])
     apply(frule primitive_extractor_correct(3)[OF n wf_disc_sel])
     apply(subgoal_tac "getNeg spts = []") (*duplication above*)

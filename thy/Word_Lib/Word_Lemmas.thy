@@ -3007,7 +3007,7 @@ lemma word_le_plus:"\<lbrakk>(a::('a::len) word) < a + b; c < b\<rbrakk> \<Longr
 by (metis order_less_imp_le word_random)
 
 (*
- * Basic signed arithemetic properties.
+ * Basic signed arithmetic properties.
  *)
 
 lemma sint_minus1 [simp]: "(sint x = -1) = (x = -1)"
@@ -4635,7 +4635,7 @@ qed
   'l is the longer word.
   's is the shorter word.
 *)
-lemma bl_cast_long_short_long_ingoreLeadingZero_generic:
+lemma bl_cast_long_short_long_ignoreLeadingZero_generic:
 "length (dropWhile Not (to_bl w)) \<le> len_of TYPE('s) \<Longrightarrow>
  len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
   (of_bl:: bool list \<Rightarrow> 'l::len word) (to_bl ((of_bl:: bool list \<Rightarrow> 's::len word) (to_bl w))) = w"
@@ -4655,12 +4655,12 @@ lemma bl_cast_long_short_long_ingoreLeadingZero_generic:
  For example: 'l::len word is 128 word (full ipv6 address)
               's::len word is 16 word (address piece of ipv6 address in colon-text-representation)
 *)
-corollary ucast_short_ucast_long_ingoreLeadingZero:
+corollary ucast_short_ucast_long_ignoreLeadingZero:
   "length (dropWhile Not (to_bl w)) \<le> len_of TYPE('s) \<Longrightarrow>
    len_of TYPE('s) \<le> len_of TYPE('l) \<Longrightarrow>
    (ucast:: 's::len word \<Rightarrow> 'l::len word) ((ucast:: 'l::len word \<Rightarrow> 's::len word) w) = w"
   apply(subst Word.ucast_bl)+
-  apply(rule bl_cast_long_short_long_ingoreLeadingZero_generic)
+  apply(rule bl_cast_long_short_long_ignoreLeadingZero_generic)
    apply(simp_all)
   done
 

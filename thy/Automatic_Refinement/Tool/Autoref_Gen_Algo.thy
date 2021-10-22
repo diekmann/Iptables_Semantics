@@ -4,7 +4,7 @@ imports Autoref_Translate
 begin
 
 (* TODO/FIXME: The priority ordering is not yet suited for generic
-  algorithms! If a refinement rule is generic, the homogenity and relator
+  algorithms! If a refinement rule is generic, the homogeneity and relator
   measures make no sense, as they are applied to schematic variables.
   However, currently generic algorithms seem to have lower priority than
   specific ones, so we can probably live with this problem for a while.

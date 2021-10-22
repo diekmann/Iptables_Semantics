@@ -57,7 +57,7 @@ For example:
 try with oxm_type=OXM_OF_ETH_TYPE, oxm_hasmask=0, and oxm_value=0x0800. That is, match-
 ing on the IPv4 source address is allowed only if the Ethernet type is explicitly set to IPv4.
 \<dots>
-Even if OpenFlow 1.0 does not require this behavior, some switches may still silently drop matches without prerequsites.
+Even if OpenFlow 1.0 does not require this behavior, some switches may still silently drop matches without prerequisites.
 
 *)
 
@@ -80,11 +80,11 @@ function prerequisites :: "of_match_field \<Rightarrow> of_match_field set \<Rig
 "prerequisites (IPv4Src _) m = (let v = EtherType 0x0800 in v \<in> m \<and> prerequisites v m)" |
 (* OF_IPV4_DST ETH_TYPE=0x0800 *)
 "prerequisites (IPv4Dst _) m = (let v = EtherType 0x0800 in v \<in> m \<and> prerequisites v m)" |
-(* Now here goes a bit of fuzz: OF specifies differen OXM_OF_(TCP,UDP,L4_Protocol.SCTP,\<dots>)_(SRC,DST). I only have L4Src. So gotta make do with that. *)
+(* Now here goes a bit of fuzz: OF specifies different OXM_OF_(TCP,UDP,L4_Protocol.SCTP,\<dots>)_(SRC,DST). I only have L4Src. So gotta make do with that. *)
 "prerequisites (L4Src _ _) m = (\<exists>proto \<in> {TCP,UDP,L4_Protocol.SCTP}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)" |
 "prerequisites (L4Dst _ _) m = prerequisites (L4Src undefined undefined) m"
 by pat_completeness auto
-(* Ignoredd PACKET_TYPE=foo *)
+(* Ignored PACKET_TYPE=foo *)
 
 fun match_sorter :: "of_match_field \<Rightarrow> nat" where
 "match_sorter (IngressPort _) = 1" |

@@ -76,7 +76,7 @@ context begin
   private lemma coversallAddSubset:"\<Union> (insert a ts) = \<Union> (addSubsetSet a ts)" 
     by (auto simp add: addSubsetSet_def)
   
-  private lemma ipPartioningAddSubset0: "disjoint ts \<Longrightarrow> ipPartition ts (addSubsetSet a ts)"
+  private lemma ipPartitioningAddSubset0: "disjoint ts \<Longrightarrow> ipPartition ts (addSubsetSet a ts)"
     apply(simp add: addSubsetSet_def ipPartition_def)
     apply(safe)
       apply blast
@@ -175,7 +175,7 @@ context begin
     case Nil thus ?case by(simp add: ipPartition_def)
     next
     case (Cons t ts)
-      from Cons.prems ipPartioningAddSubset0 have d: "ipPartition As (addSubsetSet t As)" by blast
+      from Cons.prems ipPartitioningAddSubset0 have d: "ipPartition As (addSubsetSet t As)" by blast
       from Cons.prems Cons.IH d disjointAddSubset ipPartitioningAddSubset1
       have e: "ipPartition (set ts) (partitioning ts (addSubsetSet t As))" by blast
       from ipPartitioningAddSubset2 Cons.prems 

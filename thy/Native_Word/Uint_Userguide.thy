@@ -155,7 +155,7 @@ text {*
 subsection {* Example: expressions and two semantics *}
 
 text {*
-  As the running example, we consider a language of expressions (literal values, less-than comparisions and conditional) where values are either booleans or 32-bit words.
+  As the running example, we consider a language of expressions (literal values, less-than comparisons and conditional) where values are either booleans or 32-bit words.
   The original specification uses the type @{typ "32 word"}.
 *}
 
@@ -266,7 +266,7 @@ text {*
   semantics (code equations @{thm [source] eval.simps} and
   @{thm [source] step.equation}, respectively).
 
-  We check that the adaptation has suceeded by exporting the functions.
+  We check that the adaptation has succeeded by exporting the functions.
   As we only use native word sizes that PolyML supports, we can use 
   the usual target @{text "SML"} instead of @{text "SML_word"}.
 *}

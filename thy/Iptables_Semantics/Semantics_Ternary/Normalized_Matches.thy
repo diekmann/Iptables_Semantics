@@ -4,7 +4,7 @@ begin
 
 section\<open>Normalized (DNF) matches\<close>
 
-text\<open>simplify a match expression. The output is a list of match exprissions, the semantics is @{text "\<or>"} of the list elements.\<close>
+text\<open>simplify a match expression. The output is a list of match expressions, the semantics is @{text "\<or>"} of the list elements.\<close>
 fun normalize_match :: "'a match_expr \<Rightarrow> 'a match_expr list" where
   "normalize_match (MatchAny) = [MatchAny]" |
   "normalize_match (Match m) = [Match m]" |
@@ -351,7 +351,7 @@ fun normalized_nnf_match :: "'a match_expr \<Rightarrow> bool" where
 
 text\<open>Essentially, @{term normalized_nnf_match} checks for a negation normal form: Only AND is at toplevel, negation only occurs in front of literals.
  Since @{typ "'a match_expr"} does not support OR, the result is in conjunction normal form.
- Applying @{const normalize_match}, the reuslt is a list. Essentially, this is the disjunctive normal form.\<close>
+ Applying @{const normalize_match}, the result is a list. Essentially, this is the disjunctive normal form.\<close>
 
 lemma normalize_match_already_normalized: "normalized_nnf_match m \<Longrightarrow> normalize_match m = [m]"
   by(induction m rule: normalize_match.induct) (simp)+

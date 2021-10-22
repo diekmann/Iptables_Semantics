@@ -12,7 +12,7 @@ section \<open>IPv6 Addresses\<close>
   text\<open>An IPv6 address is basically a 128 bit unsigned integer. RFC 4291, Section 2.\<close>
   type_synonym ipv6addr = "128 word"
  
-  text\<open>Conversion between natural numbers and IPv6 adresses\<close>
+  text\<open>Conversion between natural numbers and IPv6 addresses\<close>
   definition nat_of_ipv6addr :: "ipv6addr \<Rightarrow> nat" where
     "nat_of_ipv6addr a = unat a"
   definition ipv6addr_of_nat :: "nat \<Rightarrow> ipv6addr" where
@@ -45,7 +45,7 @@ section \<open>IPv6 Addresses\<close>
   lemma ipv6addr_of_nat_nat_of_ipv6addr: "ipv6addr_of_nat (nat_of_ipv6addr addr) = addr"
     by(simp add: ipv6addr_of_nat_def nat_of_ipv6addr_def)
 
-subsection\<open>Syntax of IPv6 Adresses\<close>
+subsection\<open>Syntax of IPv6 Addresses\<close>
   text\<open>RFC 4291, Section 2.2.: Text Representation of Addresses\<close>
 
   text\<open>Quoting the RFC (note: errata exists):\<close>
@@ -210,7 +210,7 @@ subsection\<open>Syntax of IPv6 Adresses\<close>
     | [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g] \<Rightarrow> Some (IPv6AddrCompressed7_7 a b c d e f () g)
 
     | [Some a, Some b, Some c, Some d, Some e, Some f, Some g, None] \<Rightarrow> Some (IPv6AddrCompressed8_7 a b c d e f g ())
-    | _ \<Rightarrow> None (*invalid ipv6 copressed address.*)
+    | _ \<Rightarrow> None (*invalid ipv6 compressed address.*)
 )"
 
   fun ipv6addr_syntax_compressed_to_list :: "ipv6addr_syntax_compressed \<Rightarrow> ((16 word) option) list"
@@ -479,7 +479,7 @@ subsection\<open>Semantics\<close>
     have ucast_ipv6_piece_rule:
       "length (dropWhile Not (to_bl w)) \<le> 16 \<Longrightarrow> (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) w) = w"
       for w::ipv6addr 
-      by(rule ucast_short_ucast_long_ingoreLeadingZero) (simp_all)
+      by(rule ucast_short_ucast_long_ignoreLeadingZero) (simp_all)
     have ucast_ipv6_piece: "16 \<le> 128 - n \<Longrightarrow> 
       (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) (w AND (mask 16 << n) >> n)) << n = w AND (mask 16 << n)"
       for w::ipv6addr and n::nat
@@ -510,7 +510,7 @@ subsection\<open>Semantics\<close>
     have ucast16_ucast128_masks_highest_bits0: 
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF))) = ip AND 0xFFFF"
       apply(subst word128_masks_ipv6pieces)+
-      apply(subst ucast_short_ucast_long_ingoreLeadingZero)
+      apply(subst ucast_short_ucast_long_ignoreLeadingZero)
         apply simp_all
       by (simp add: length_drop_mask)
 
@@ -635,14 +635,14 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
 
 
   lemma ipv6_unparsed_compressed_to_preferred_identity1:
-   "ipv6_unparsed_compressed_to_preferred (ipv6addr_syntax_compressed_to_list ipv6compressed) = Some ipv6prferred
-    \<longleftrightarrow> ipv6addr_c2p ipv6compressed = ipv6prferred"
+   "ipv6_unparsed_compressed_to_preferred (ipv6addr_syntax_compressed_to_list ipv6compressed) = Some ipv6preferred
+    \<longleftrightarrow> ipv6addr_c2p ipv6compressed = ipv6preferred"
   by(cases ipv6compressed) (simp_all add: ipv6_unparsed_compressed_to_preferred_def) (*1s*)
  
   lemma ipv6_unparsed_compressed_to_preferred_identity2: 
-    "ipv6_unparsed_compressed_to_preferred ls = Some ipv6prferred
+    "ipv6_unparsed_compressed_to_preferred ls = Some ipv6preferred
      \<longleftrightarrow> (\<exists>ipv6compressed. parse_ipv6_address_compressed ls = Some ipv6compressed \<and>
-                           ipv6addr_c2p ipv6compressed = ipv6prferred)"
+                           ipv6addr_c2p ipv6compressed = ipv6preferred)"
   apply(rule iffI)
    apply(subgoal_tac "parse_ipv6_address_compressed ls \<noteq> None")
     prefer 2

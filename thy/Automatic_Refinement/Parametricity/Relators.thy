@@ -758,7 +758,7 @@ lemma sv_add_invar:
 
 
 
-subsection {* Miscellanneous *}
+subsection {* Miscellaneous *}
 lemma rel_cong: "(f,g)\<in>Id \<Longrightarrow> (x,y)\<in>Id \<Longrightarrow> (f x, g y)\<in>Id" by simp
 lemma rel_fun_cong: "(f,g)\<in>Id \<Longrightarrow> (f x, g x)\<in>Id" by simp
 lemma rel_arg_cong: "(x,y)\<in>Id \<Longrightarrow> (f x, f y)\<in>Id" by simp

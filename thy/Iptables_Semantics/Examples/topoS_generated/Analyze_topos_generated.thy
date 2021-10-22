@@ -5,7 +5,7 @@ begin
 
 
 
-parse_iptables_save factory_fw="imaginray_factory_network.iptables-save.by-linux-kernel"
+parse_iptables_save factory_fw="imaginary_factory_network.iptables-save.by-linux-kernel"
 
 thm factory_fw_def
 thm factory_fw_FORWARD_default_policy_def

@@ -19,7 +19,7 @@ session "Bitmagic" = IP_Addresses +
 session "Iptables_Semantics" = Routing +
   theories[document=false]
     "~~/src/HOL/Library/LaTeXsugar"
-    (*The Native_Word things destory the latex document! Does not compile, ...*)
+    (*The Native_Word things destroy the latex document! Does not compile, ...*)
     "../Native_Word/More_Bits_Int"
     "../Native_Word/Code_Target_Bits_Int"
     "~~/src/HOL/Library/Code_Target_Nat"

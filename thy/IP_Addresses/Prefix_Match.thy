@@ -153,7 +153,7 @@ subsection\<open>Equivalence Proofs\<close>
     unfolding prefix_match_semantics_wordset[OF assms]
     unfolding valid_prefix_ipset_from_netmask_ipset_from_cidr
     unfolding prefix_to_wordset_def
-    apply(subst ipset_from_cidr_base_wellforemd)
+    apply(subst ipset_from_cidr_base_wellformed)
      subgoal using assms by(simp add: valid_prefix_def pfxm_mask_def)
     by(simp add: pfxm_mask_def)
     

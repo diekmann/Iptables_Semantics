@@ -365,7 +365,7 @@ begin
      
 
   text\<open>The following algorithm sound but not complete.\<close>
-  (*alowed: set ip ips potentially allowed for iface
+  (*allowed: set ip ips potentially allowed for iface
     denied: set of ips definitely dropped for iface*)
   private fun no_spoofing_algorithm
     :: "iface \<Rightarrow> 'i::len ipassignment \<Rightarrow> 'i common_primitive rule list \<Rightarrow> 'i word set \<Rightarrow> 'i word set \<Rightarrow> bool" where
@@ -692,7 +692,7 @@ text\<open>Examples\<close>
            Rule MatchAny action.Drop]"
     apply(rule no_spoofing_iface)
       apply(simp_all add: simple_ruleset_def) (*simple and nnf*)
-    by eval (*executable spoofing alogorithm*)
+    by eval (*executable spoofing algorithm*)
 
 
   text\<open>Example 2:
@@ -717,7 +717,7 @@ text\<open>Examples\<close>
 \<close>
   lemma "\<not> no_spoofing TYPE('pkt_ext)
           [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidently allow everything for eth0*)
+          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidentally allow everything for eth0*)
            Rule (MatchAnd (MatchNot (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192,168,0,0)) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
            Rule MatchAny action.Accept]
           "
@@ -739,7 +739,7 @@ text\<open>Examples\<close>
    lemma "\<not> no_spoofing_iface 
           (Iface ''eth0'') 
           [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidently allow everything for eth0*)
+          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidentally allow everything for eth0*)
            Rule (MatchAnd (MatchNot (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192,168,0,0)) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
            Rule MatchAny action.Accept]
           " by eval

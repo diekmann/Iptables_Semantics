@@ -36,15 +36,15 @@ inductive semantics_stateful ::
     semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) ps (ps_processed@[(p, X)]) (state_update \<sigma>' X p)"
 
 
-lemma semantics_stateful_intro_process_one: "semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) (p#ps) ps_processed_old \<sigma>_old \<Longrightarrow>
+lemma semantics_stateful_intro_process_one: "semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) (p#ps) ps_processed_old \<sigma>_old \<Longrightarrow>
        \<Gamma>,\<gamma>\<^sub>\<sigma> \<sigma>_old,p\<turnstile> \<langle>[Rule MatchAny (Call built_in_chain), Rule MatchAny default_policy], Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
-       \<sigma>' = state_upate \<sigma>_old X p \<Longrightarrow>
+       \<sigma>' = state_update \<sigma>_old X p \<Longrightarrow>
        ps_processed = ps_processed_old@[(p, X)] \<Longrightarrow>
-       semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
+       semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
   by(auto intro: semantics_stateful.intros)
 
 lemma semantics_stateful_intro_start: "\<sigma>\<^sub>0 = \<sigma>' \<Longrightarrow> ps_processed = [] \<Longrightarrow>
-       semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
+       semantics_stateful \<Gamma> \<gamma>\<^sub>\<sigma> state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
   by(auto intro: semantics_stateful.intros)
 
 
@@ -58,7 +58,7 @@ text\<open>In this model, the matcher is completely stateless but packets are pr
 inductive semantics_stateful_packet_tagging ::
    "'a ruleset \<Rightarrow>
     ('a, 'ptagged) matcher \<Rightarrow>
-    ('\<sigma> \<Rightarrow> 'p \<Rightarrow> 'ptagged) \<Rightarrow> (*taggs the packet accordig to the current state before processing by firewall*)
+    ('\<sigma> \<Rightarrow> 'p \<Rightarrow> 'ptagged) \<Rightarrow> (*taggs the packet according to the current state before processing by firewall*)
     ('\<sigma> \<Rightarrow> final_decision \<Rightarrow> 'p \<Rightarrow> '\<sigma>) \<Rightarrow> (*state updater*)
     '\<sigma> \<Rightarrow> (*Starting state. constant*)
     (string \<times> action) \<Rightarrow>
@@ -74,15 +74,15 @@ inductive semantics_stateful_packet_tagging ::
 
 
 lemma semantics_stateful_packet_tagging_intro_start: "\<sigma>\<^sub>0 = \<sigma>' \<Longrightarrow> ps_processed = [] \<Longrightarrow>
-       semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
+       semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
   by(auto intro: semantics_stateful_packet_tagging.intros)
 
 lemma semantics_stateful_packet_tagging_intro_process_one:
-      "semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) (p#ps) ps_processed_old \<sigma>_old \<Longrightarrow>
+      "semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) (p#ps) ps_processed_old \<sigma>_old \<Longrightarrow>
        \<Gamma>,\<gamma>,(packet_tagger \<sigma>_old p)\<turnstile> \<langle>[Rule MatchAny (Call built_in_chain), Rule MatchAny default_policy], Undecided\<rangle> \<Rightarrow> Decision X \<Longrightarrow>
-       \<sigma>' = state_upate \<sigma>_old X p \<Longrightarrow>
+       \<sigma>' = state_update \<sigma>_old X p \<Longrightarrow>
        ps_processed = ps_processed_old@[(p, X)] \<Longrightarrow>
-       semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_upate \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
+       semantics_stateful_packet_tagging \<Gamma> \<gamma> packet_tagger state_update \<sigma>\<^sub>0 (built_in_chain, default_policy) ps ps_processed \<sigma>'"
   by(auto intro: semantics_stateful_packet_tagging.intros)
 
 

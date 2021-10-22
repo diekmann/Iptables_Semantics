@@ -7,7 +7,7 @@ imports Word_More
         WordInterval
 begin
 
-section \<open>Modelling IP Adresses\<close>
+section \<open>Modelling IP Addresses\<close>
   text\<open>An IP address is basically an unsigned integer.
     We model IP addresses of arbitrary lengths.
 
@@ -110,7 +110,7 @@ subsection\<open>Sets of IP Addresses\<close>
     by(simp add: ipset_from_cidr_alt bitmagic_zeroLast_leq_or1Last)
 
   text{*Though we can write 192.168.1.2/24, we say that 192.168.0.0/24 is well-formed.*}
-  lemma ipset_from_cidr_base_wellforemd: fixes base:: "'i::len word"
+  lemma ipset_from_cidr_base_wellformed: fixes base:: "'i::len word"
     assumes "mask (len_of TYPE('i) - l) AND base = 0"
       shows "ipset_from_cidr base l = {base .. base OR mask (len_of TYPE('i) - l)}"
   proof -
@@ -135,7 +135,7 @@ subsection\<open>Sets of IP Addresses\<close>
   proof -
     have obviously: "mask (len_of TYPE('i) - n) = 0" by (simp add: assms)
     show ?thesis
-      apply(subst ipset_from_cidr_base_wellforemd)
+      apply(subst ipset_from_cidr_base_wellformed)
        subgoal using assms by simp
       by (simp add: obviously)
   qed
@@ -172,7 +172,7 @@ subsection\<open>Sets of IP Addresses\<close>
     apply(subst ipset_from_cidr_alt2[symmetric])
     apply(subst zero_base_lsb_imp_set_eq_as_bit_operation)
      apply(simp; fail)
-    apply(subst ipset_from_cidr_base_wellforemd)
+    apply(subst ipset_from_cidr_base_wellformed)
      apply(simp; fail)
     apply(simp)
     done

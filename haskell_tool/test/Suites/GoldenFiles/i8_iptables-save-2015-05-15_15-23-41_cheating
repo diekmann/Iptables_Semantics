@@ -2,8 +2,8 @@ Parsed IpAssmt
 IpAssmt [(eth0,Pos [0.0.0.0-255.255.255.255]),(foo,Pos []),(eth1.96,Pos [131.159.14.3/25]),(eth1.108,Pos [131.159.14.129/26]),(eth1.109,Pos [131.159.20.11/24]),(eth1.110,Neg [131.159.14.0/23,131.159.20.0/23,192.168.212.0/23,188.95.233.0/24,188.95.232.192/27,188.95.234.0/23,192.48.107.0/24,188.95.236.0/22,185.86.232.0/22]),(eth1.116,Pos [131.159.15.131/26]),(eth1.152,Pos [131.159.15.252/28]),(eth1.171,Pos [131.159.15.2/26]),(eth1.173,Pos [131.159.21.252/24]),(eth1.1010,Pos [131.159.15.227/28]),(eth1.1011,Pos [131.159.14.194/27]),(eth1.1012,Pos [131.159.14.238/28]),(eth1.1014,Pos [131.159.15.217/27]),(eth1.1016,Pos [131.159.15.66/26]),(eth1.1017,Pos [131.159.14.242/28]),(eth1.1111,Pos [192.168.212.4/24]),(eth1.97,Pos [188.95.233.2/24]),(eth1.1019,Pos [188.95.234.2/23]),(eth1.1020,Pos [192.48.107.2/24]),(eth1.1023,Pos [188.95.236.2/22]),(eth1.1025,Pos [185.86.232.2/22]),(eth1.1024,Neg [131.159.14.0/23,131.159.20.0/23,192.168.212.0/23,188.95.233.0/24,188.95.232.192/27,188.95.234.0/23,192.48.107.0/24,188.95.236.0/22,185.86.232.0/22])]
 == Checking which tables are supported for analysis. Usually, only `filter'. ==
 Parsed 90 chains in table filter, a total of 4813 rules
-Table `nat' caught exception: `Reading ruleset failed! sanity_wf_ruleset check failed.'. Analysis not possible for this table. This is probably due to unsupportd actions (or a bug in the parser).
-Table `raw' caught exception: `Reading ruleset failed! sanity_wf_ruleset check failed.'. Analysis not possible for this table. This is probably due to unsupportd actions (or a bug in the parser).
+Table `nat' caught exception: `Reading ruleset failed! sanity_wf_ruleset check failed.'. Analysis not possible for this table. This is probably due to unsupported actions (or a bug in the parser).
+Table `raw' caught exception: `Reading ruleset failed! sanity_wf_ruleset check failed.'. Analysis not possible for this table. This is probably due to unsupported actions (or a bug in the parser).
 == Transformed to Isabelle type (only filter table) ==
 == unfolded FORWARD chain (upper closure) ==
 (-m state --state ESTABLISHED,RELATED,UNTRACKED, -j ACCEPT)

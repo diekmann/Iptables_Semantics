@@ -380,7 +380,7 @@ lemma primitive_extractor_reassemble_preserves:
    normalized_nnf_match m \<Longrightarrow>
    P m \<Longrightarrow>
    P MatchAny \<Longrightarrow>
-   primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> (*turn eqality around to simplify proof*)
+   primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> (*turn equality around to simplify proof*)
    (\<And>m1 m2. P (MatchAnd m1 m2) \<longleftrightarrow> P m1 \<and> P m2) \<Longrightarrow>
    (\<And>ls1 ls2. P (alist_and' (ls1 @ ls2)) \<longleftrightarrow> P (alist_and' ls1) \<and> P (alist_and' ls2)) \<Longrightarrow>
    P (alist_and' (NegPos_map C as))"
@@ -866,7 +866,7 @@ subsection\<open>Optimizing a match expression\<close>
 
 
   thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive (*is similar*)
-  lemma compress_normalize_primitve_preserves_normalized_n_primitive:
+  lemma compress_normalize_primitive_preserves_normalized_n_primitive:
     assumes am: "normalized_n_primitive (disc2, sel2) P m"
         and wf: "wf_disc_sel (disc,sel) C"
         and disc: "(\<forall>a. \<not> disc2 (C a))"

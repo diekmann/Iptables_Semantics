@@ -8,17 +8,17 @@ imports IP_Address
 begin
 
 
-section \<open>IPv4 Adresses\<close>
+section \<open>IPv4 Addresses\<close>
   text\<open>An IPv4 address is basically a 32 bit unsigned integer.\<close>
   type_synonym ipv4addr = "32 word"
 
-  text\<open>Conversion between natural numbers and IPv4 adresses\<close>
+  text\<open>Conversion between natural numbers and IPv4 addresses\<close>
   definition nat_of_ipv4addr :: "ipv4addr \<Rightarrow> nat" where
     "nat_of_ipv4addr a = unat a"
   definition ipv4addr_of_nat :: "nat \<Rightarrow> ipv4addr" where
     "ipv4addr_of_nat n =  of_nat n"
 
-  text\<open>The maximum IPv4 addres\<close>
+  text\<open>The maximum IPv4 address\<close>
   definition max_ipv4_addr :: "ipv4addr" where 
     "max_ipv4_addr \<equiv> ipv4addr_of_nat ((2^32) - 1)"
 
@@ -42,7 +42,7 @@ section \<open>IPv4 Adresses\<close>
   lemma ipv4addr_of_nat_nat_of_ipv4addr: "ipv4addr_of_nat (nat_of_ipv4addr addr) = addr"
     by(simp add: ipv4addr_of_nat_def nat_of_ipv4addr_def)
 
-subsection\<open>Representing IPv4 Adresses (Syntax)\<close>
+subsection\<open>Representing IPv4 Addresses (Syntax)\<close>
   fun ipv4addr_of_dotdecimal :: "nat \<times> nat \<times> nat \<times> nat \<Rightarrow> ipv4addr" where
     "ipv4addr_of_dotdecimal (a,b,c,d) = ipv4addr_of_nat (d + 256 * c + 65536 * b + 16777216 * a )"
 

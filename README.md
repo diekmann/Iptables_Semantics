@@ -54,7 +54,7 @@ See README.md in [haskell_tool](./haskell_tool/).
   * Cornelius Diekmann, Lukas Schwaighofer, and Georg Carle. *Certifying spoofing-protection of firewalls.* In 11th International Conference on Network and Service Management, CNSM, Barcelona, Spain, November 2015. [[preprint]](http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/diekmann2015_cnsm.pdf), [[ieee | paywall]](http://ieeexplore.ieee.org/document/7367354/)
   * Cornelius Diekmann, Lars Hupel, and Georg Carle. *Semantics-Preserving Simplification of Real-World Firewall Rule Sets.* In 20th International Symposium on Formal Methods, June 2015. [[preprint]](http://www.net.in.tum.de/fileadmin/bibtex/publications/papers/fm15_Semantics-Preserving_Simplification_of_Real-World_Firewall_Rule_Sets.pdf), [[springer | paywall]](http://link.springer.com/chapter/10.1007%2F978-3-319-19249-9_13)
 
-The raw data of the iptables rulesets from the Examples is stored in [this](https://github.com/diekmann/net-network) repositoy.
+The raw data of the iptables rulesets from the Examples is stored in [this](https://github.com/diekmann/net-network) repository.
 
 ---
 

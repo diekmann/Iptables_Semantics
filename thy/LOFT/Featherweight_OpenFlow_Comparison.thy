@@ -91,7 +91,7 @@ lemma guha_equal_hlp:
 	apply(simp add: guha_equal_Action[OF no])
 	apply(simp add: guha_equal_NoAction[OF no])
 	apply(subgoal_tac False, simp)
-	apply(simp add: no no_overlaps_not_unefined)
+	apply(simp add: no no_overlaps_not_undefined)
 done
 
 lemma guha_deterministic1: "guha_table_semantics \<gamma> ft p (Some x1) \<Longrightarrow> \<not> guha_table_semantics \<gamma> ft p None" 
@@ -120,8 +120,8 @@ lemma guha_equal:
 	using guha_deterministic1 apply fast
 	using guha_deterministic2[OF no] apply blast
 	using guha_deterministic1 apply fast
-	using no_overlaps_not_unefined[OF no] apply fastforce
-	using no_overlaps_not_unefined[OF no] apply fastforce 
+	using no_overlaps_not_undefined[OF no] apply fastforce
+	using no_overlaps_not_undefined[OF no] apply fastforce 
 done
 
 lemma guha_nondeterministicD:

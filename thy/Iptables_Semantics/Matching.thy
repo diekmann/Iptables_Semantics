@@ -23,7 +23,7 @@ lemma matcheq_matchAny: "\<not> has_primitive m \<Longrightarrow> matcheq_matchA
   by(induction m) simp_all
 
 lemma matcheq_matchNone: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone m \<longleftrightarrow> \<not> matches \<gamma> m p"
-  by(auto dest: matcheq_matchAny matachAny_matchNone)
+  by(auto dest: matcheq_matchAny matchAny_matchNone)
 
 lemma matcheq_matchNone_not_matches: "matcheq_matchNone m \<Longrightarrow> \<not> matches \<gamma> m p"
   by(induction m rule: matcheq_matchNone.induct) auto

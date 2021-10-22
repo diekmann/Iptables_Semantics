@@ -45,7 +45,7 @@ data CommandLineArgsLabeled = CommandLineArgsLabeled
         { verbose :: Bool <?> "Show verbose debug output (for example, of the parser)."
         , ipassmt :: Maybe FilePath  <?> "Optional path to an IP assignment file. If not specified, it only loads `lo = [127.0.0.0/8]`."
         , routingtbl :: Maybe FilePath  <?> "Optional path to a routing table."
-        , table :: Maybe String <?> "The table to load for analysis. Default: `filter`. Note: This tool does not support packet modification, so loading tables such as `nat` will most likeley fail."
+        , table :: Maybe String <?> "The table to load for analysis. Default: `filter`. Note: This tool does not support packet modification, so loading tables such as `nat` will most likely fail."
         , chain :: Maybe String <?> "The chain to start the analysis. Default: `FORWARD`. Use `INPUT` for a host-based firewall."
         --TODO: we need some grouping for specific options for the analysis
         -- For example ./fffuu --analysis service-matrix --sport 424242 --analysis spoofing --foo
@@ -56,7 +56,7 @@ data CommandLineArgsLabeled = CommandLineArgsLabeled
 instance ParseRecord CommandLineArgsLabeled
 
 
--- unlabeld, mandatory command line arguments. For example: ./fffuu "path/to/iptables-save"
+-- unlabeled, mandatory command line arguments. For example: ./fffuu "path/to/iptables-save"
 -- http://stackoverflow.com/questions/36375556/haskell-unnamed-command-line-arguments-for-optparse-generic/36382477#36382477
 data CommandLineArgsUnlabeled = CommandLineArgsUnlabeled
         (FilePath <?> "Required: Path to `iptables-save` output. This is the input for this tool.")
@@ -133,7 +133,7 @@ main' ops = do
                     \It abstracts over unknown matches. \
                     \By default, it does an overapproximation, i.e. it loads a more permissive version of the ruleset. \
                     \Then it runs a number of analysis. \
-                    \Overapproximation means: if the anaylsis concludes that the packets you want to be dropped are dropped in the loaded overapproximation, then they are also dropped for your real firewall (without approximation)."
+                    \Overapproximation means: if the analysis concludes that the packets you want to be dropped are dropped in the loaded overapproximation, then they are also dropped for your real firewall (without approximation)."
     --print (cmdArgs::CommandLineArgs)
     (verbose, ipassmt, rtbl, table, chain, smOptions, (srcname, src)) <- readArgs ops cmdArgs
     
