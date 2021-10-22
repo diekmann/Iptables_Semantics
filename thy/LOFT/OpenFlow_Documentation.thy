@@ -211,7 +211,7 @@ schematic_goal "(field_match :: of_match_field) \<in> {
 	L4Dst (?pd :: 16 word) (?md :: 16 word)
 }" by(fact of_match_field_typeset)
 text\<open>
-Two things are worth additional mention: L3 and L4 ``addressess''.
+Two things are worth additional mention: L3 and L4 ``addresses''.
 The @{term IPv4Src} and @{term IPv4Dst} matches are specified as ``can be subnet masked'' in~\cite{specification10}, 
   whereras~\cite{specification15} states clearly that arbitrary bitmasks can be used. We took the conservative approach here.
 Our alteration of @{term L4Src} and @{term L4Dst} is more grave. While~\cite{specification10} does not state anything about layer 4 ports and masks,

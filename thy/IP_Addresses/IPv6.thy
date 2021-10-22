@@ -12,7 +12,7 @@ section \<open>IPv6 Addresses\<close>
   text\<open>An IPv6 address is basically a 128 bit unsigned integer. RFC 4291, Section 2.\<close>
   type_synonym ipv6addr = "128 word"
  
-  text\<open>Conversion between natural numbers and IPv6 adresses\<close>
+  text\<open>Conversion between natural numbers and IPv6 addresses\<close>
   definition nat_of_ipv6addr :: "ipv6addr \<Rightarrow> nat" where
     "nat_of_ipv6addr a = unat a"
   definition ipv6addr_of_nat :: "nat \<Rightarrow> ipv6addr" where
@@ -45,7 +45,7 @@ section \<open>IPv6 Addresses\<close>
   lemma ipv6addr_of_nat_nat_of_ipv6addr: "ipv6addr_of_nat (nat_of_ipv6addr addr) = addr"
     by(simp add: ipv6addr_of_nat_def nat_of_ipv6addr_def)
 
-subsection\<open>Syntax of IPv6 Adresses\<close>
+subsection\<open>Syntax of IPv6 Addresses\<close>
   text\<open>RFC 4291, Section 2.2.: Text Representation of Addresses\<close>
 
   text\<open>Quoting the RFC (note: errata exists):\<close>
