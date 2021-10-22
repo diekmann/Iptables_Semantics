@@ -84,7 +84,7 @@ function prerequisites :: "of_match_field \<Rightarrow> of_match_field set \<Rig
 "prerequisites (L4Src _ _) m = (\<exists>proto \<in> {TCP,UDP,L4_Protocol.SCTP}. let v = IPv4Proto proto in v \<in> m \<and> prerequisites v m)" |
 "prerequisites (L4Dst _ _) m = prerequisites (L4Src undefined undefined) m"
 by pat_completeness auto
-(* Ignoredd PACKET_TYPE=foo *)
+(* Ignored PACKET_TYPE=foo *)
 
 fun match_sorter :: "of_match_field \<Rightarrow> nat" where
 "match_sorter (IngressPort _) = 1" |
