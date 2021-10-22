@@ -107,13 +107,13 @@ method_setup autoref_trans_step = {*
   Scan.succeed (fn ctxt => SIMPLE_METHOD' (
     Autoref_Translate.trans_dbg_step_tac (Autoref_Phases.init_data ctxt)
   ))
-  *} "Single translation step, leaving unsolved side-coditions"
+  *} "Single translation step, leaving unsolved side-conditions"
 
 method_setup autoref_trans_step_only = {*
   Scan.succeed (fn ctxt => SIMPLE_METHOD' (
     Autoref_Translate.trans_step_only_tac (Autoref_Phases.init_data ctxt)
   ))
-  *} "Single translation step, not attempting to solve side-coditions"
+  *} "Single translation step, not attempting to solve side-conditions"
 
 method_setup autoref_side = {*
   Scan.succeed (fn ctxt => SIMPLE_METHOD' (
