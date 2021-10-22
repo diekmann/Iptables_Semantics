@@ -314,7 +314,7 @@ We could have made this definition on sets but chose not to for consistency.}:
 The use of @{term Undefined} immediately raises the question in which condition it cannot occur.
 We give the following definition:\<close>
 lemma "check_no_overlap \<gamma> ft = (\<forall>a \<in> set ft. \<forall>b \<in> set ft. (a \<noteq> b \<and> ofe_prio a = ofe_prio b) \<longrightarrow> \<not>(\<exists>p. \<gamma> (ofe_fields a) p \<and> \<gamma> (ofe_fields b) p))" unfolding check_no_overlap_alt check_no_overlap2_def by force
-text\<open>Together with distinctness of the flow table, this provides the abscence of @{term Undefined}\footnote{It is slightly stronger than necessary, overlapping rules might be shadowed and thus never influence the behavior.}:\<close>
+text\<open>Together with distinctness of the flow table, this provides the absence of @{term Undefined}\footnote{It is slightly stronger than necessary, overlapping rules might be shadowed and thus never influence the behavior.}:\<close>
 lemma "\<lbrakk>check_no_overlap \<gamma> ft; distinct ft\<rbrakk> \<Longrightarrow>
   OF_priority_match \<gamma> ft p \<noteq> Undefined" by (simp add: no_overlapsI no_overlaps_not_unefined)
 
