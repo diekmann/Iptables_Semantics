@@ -365,7 +365,7 @@ begin
      
 
   text\<open>The following algorithm sound but not complete.\<close>
-  (*alowed: set ip ips potentially allowed for iface
+  (*allowed: set ip ips potentially allowed for iface
     denied: set of ips definitely dropped for iface*)
   private fun no_spoofing_algorithm
     :: "iface \<Rightarrow> 'i::len ipassignment \<Rightarrow> 'i common_primitive rule list \<Rightarrow> 'i word set \<Rightarrow> 'i word set \<Rightarrow> bool" where
