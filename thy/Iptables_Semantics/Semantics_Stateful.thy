@@ -58,7 +58,7 @@ text\<open>In this model, the matcher is completely stateless but packets are pr
 inductive semantics_stateful_packet_tagging ::
    "'a ruleset \<Rightarrow>
     ('a, 'ptagged) matcher \<Rightarrow>
-    ('\<sigma> \<Rightarrow> 'p \<Rightarrow> 'ptagged) \<Rightarrow> (*taggs the packet accordig to the current state before processing by firewall*)
+    ('\<sigma> \<Rightarrow> 'p \<Rightarrow> 'ptagged) \<Rightarrow> (*taggs the packet according to the current state before processing by firewall*)
     ('\<sigma> \<Rightarrow> final_decision \<Rightarrow> 'p \<Rightarrow> '\<sigma>) \<Rightarrow> (*state updater*)
     '\<sigma> \<Rightarrow> (*Starting state. constant*)
     (string \<times> action) \<Rightarrow>
