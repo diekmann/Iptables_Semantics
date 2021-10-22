@@ -1428,7 +1428,7 @@ the edges are the edges. Result looks nice. Theorem also tells us that this visu
   vertices = (name, list of ip addresses this vertex corresponds to)
   and edges = (name \<times> name) list
 
-  Note that the WordInterval is already sorted, which is important for prettyness!
+  Note that the WordInterval is already sorted, which is important for prettiness!
 *)
 text\<open>Only defined for @{const simple_firewall_without_interfaces}\<close>
 definition access_matrix_pretty_ipv4
