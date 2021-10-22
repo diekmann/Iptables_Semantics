@@ -135,7 +135,7 @@ begin
     "normalized_n_primitive (disc, sel) P m \<Longrightarrow> (\<forall>a. \<not> disc (IIface a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_input_interfaces m = Some m' \<Longrightarrow>
      normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
      unfolding compress_normalize_input_interfaces_def
-   using compress_normalize_primitve_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(5)] by blast
+   using compress_normalize_primitive_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(5)] by blast
   
 
 
@@ -208,7 +208,7 @@ begin
     "normalized_n_primitive (disc, sel) P m \<Longrightarrow> (\<forall>a. \<not> disc (OIface a)) \<Longrightarrow> normalized_nnf_match m \<Longrightarrow> compress_normalize_output_interfaces m = Some m' \<Longrightarrow>
      normalized_nnf_match m' \<and> normalized_n_primitive (disc, sel) P m'"
      unfolding compress_normalize_output_interfaces_def
-   using compress_normalize_primitve_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(6)] by blast
+   using compress_normalize_primitive_preserves_normalized_n_primitive[OF _ wf_disc_sel_common_primitive(6)] by blast
 
 end
 

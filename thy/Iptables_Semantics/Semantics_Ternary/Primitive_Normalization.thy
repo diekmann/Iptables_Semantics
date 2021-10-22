@@ -866,7 +866,7 @@ subsection\<open>Optimizing a match expression\<close>
 
 
   thm normalize_primitive_extract_preserves_unrelated_normalized_n_primitive (*is similar*)
-  lemma compress_normalize_primitve_preserves_normalized_n_primitive:
+  lemma compress_normalize_primitive_preserves_normalized_n_primitive:
     assumes am: "normalized_n_primitive (disc2, sel2) P m"
         and wf: "wf_disc_sel (disc,sel) C"
         and disc: "(\<forall>a. \<not> disc2 (C a))"
