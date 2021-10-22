@@ -36,7 +36,7 @@ subsection\<open>Sanity checking for an @{typ "'i ipassignment"}.\<close>
         distinct (map fst ipassmt) \<and> ipassmt_sanity_nowildcards (map_of ipassmt)
       then
         map_of ipassmt
-      else undefined (*undefined_ipassmt_must_be_distinct_and_dont_have_wildcard_interfaces*))"
+      else undefined (*undefined_ipassmt_must_be_distinct_and_not_have_wildcard_interfaces*))"
 
 
   text\<open>some additional (optional) sanity checks\<close>
