@@ -637,7 +637,7 @@ ML {*
         "resolve with premises"
       #> Method.setup @{binding elim_all}
          (Attrib.thms >> (fn thms => fn ctxt => SIMPLE_METHOD (elim_all_tac ctxt thms)))
-         "repeteadly apply elimination rules to all subgoals"
+         "repeatedly apply elimination rules to all subgoals"
       #> Method.setup @{binding subst_tac} eqsubst_inst_meth
          "single-step substitution (dynamic instantiation)"
       #> Method.setup @{binding clarsimp_all} (
