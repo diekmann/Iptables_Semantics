@@ -717,7 +717,7 @@ text\<open>Examples\<close>
 \<close>
   lemma "\<not> no_spoofing TYPE('pkt_ext)
           [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidently allow everything for eth0*)
+          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidentally allow everything for eth0*)
            Rule (MatchAnd (MatchNot (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192,168,0,0)) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
            Rule MatchAny action.Accept]
           "
@@ -739,7 +739,7 @@ text\<open>Examples\<close>
    lemma "\<not> no_spoofing_iface 
           (Iface ''eth0'') 
           [Iface ''eth0'' \<mapsto> [(ipv4addr_of_dotdecimal (192,168,0,0), 24)]]
-          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidently allow everything for eth0*)
+          [Rule (MatchNot (Match (IIface (Iface ''wlan+'')))) action.Accept, (*accidentally allow everything for eth0*)
            Rule (MatchAnd (MatchNot (Match (Src (IpAddrNetmask (ipv4addr_of_dotdecimal (192,168,0,0)) 24)))) (Match (IIface (Iface ''eth0'')))) action.Drop,
            Rule MatchAny action.Accept]
           " by eval
