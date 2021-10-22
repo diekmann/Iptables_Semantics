@@ -380,7 +380,7 @@ lemma primitive_extractor_reassemble_preserves:
    normalized_nnf_match m \<Longrightarrow>
    P m \<Longrightarrow>
    P MatchAny \<Longrightarrow>
-   primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> (*turn eqality around to simplify proof*)
+   primitive_extractor (disc, sel) m = (as, ms) \<Longrightarrow> (*turn equality around to simplify proof*)
    (\<And>m1 m2. P (MatchAnd m1 m2) \<longleftrightarrow> P m1 \<and> P m2) \<Longrightarrow>
    (\<And>ls1 ls2. P (alist_and' (ls1 @ ls2)) \<longleftrightarrow> P (alist_and' ls1) \<and> P (alist_and' ls2)) \<Longrightarrow>
    P (alist_and' (NegPos_map C as))"
