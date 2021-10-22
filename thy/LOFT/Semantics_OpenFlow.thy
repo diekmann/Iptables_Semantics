@@ -68,7 +68,7 @@ lemma check_no_overlap_alt: "check_no_overlap \<gamma> ft = check_no_overlap2 \<
 	by blast
 
 (* If there are no overlapping rules, our match should check out. *)
-lemma no_overlap_not_unefined: "check_no_overlap \<gamma> ft \<Longrightarrow> OF_same_priority_match2 \<gamma> ft p \<noteq> Undefined"
+lemma no_overlap_not_undefined: "check_no_overlap \<gamma> ft \<Longrightarrow> OF_same_priority_match2 \<gamma> ft p \<noteq> Undefined"
 proof
   assume goal1: "check_no_overlap \<gamma> ft" "OF_same_priority_match2 \<gamma> ft p = Undefined"
 	let ?as = "{f. f \<in> set ft \<and> \<gamma> (ofe_fields f) p \<and> (\<forall>fo \<in> set ft. ofe_prio f < ofe_prio fo \<longrightarrow> \<not> \<gamma> (ofe_fields fo) p)}"
@@ -363,7 +363,7 @@ lemma OF_spm3_noa_none:
 unfolding OF_eq_sort[OF no] by(drule OF_lm_noa_none) simp
 
 (* repetition of the lemma for definition 2 for definition 3 *)
-lemma no_overlaps_not_unefined: "no_overlaps \<gamma> ft \<Longrightarrow> OF_priority_match \<gamma> ft p \<noteq> Undefined"
-	using check_no_overlapI no_overlap_not_unefined no_overlaps_defeq by fastforce
+lemma no_overlaps_not_undefined: "no_overlaps \<gamma> ft \<Longrightarrow> OF_priority_match \<gamma> ft p \<noteq> Undefined"
+	using check_no_overlapI no_overlap_not_undefined no_overlaps_defeq by fastforce
 
 end
