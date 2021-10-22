@@ -133,7 +133,7 @@ main' ops = do
                     \It abstracts over unknown matches. \
                     \By default, it does an overapproximation, i.e. it loads a more permissive version of the ruleset. \
                     \Then it runs a number of analysis. \
-                    \Overapproximation means: if the anaylsis concludes that the packets you want to be dropped are dropped in the loaded overapproximation, then they are also dropped for your real firewall (without approximation)."
+                    \Overapproximation means: if the analysis concludes that the packets you want to be dropped are dropped in the loaded overapproximation, then they are also dropped for your real firewall (without approximation)."
     --print (cmdArgs::CommandLineArgs)
     (verbose, ipassmt, rtbl, table, chain, smOptions, (srcname, src)) <- readArgs ops cmdArgs
     

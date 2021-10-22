@@ -4,7 +4,7 @@ and loads one table and chain. By default, it loads the `filter` table and the
 where only `ACCEPT` and `DROP` actions remain. It abstracts over unknown
 matches. By default, it does an overapproximation, i.e. it loads a more
 permissive version of the ruleset. Then it runs a number of analysis.
-Overapproximation means: if the anaylsis concludes that the packets you want to
+Overapproximation means: if the analysis concludes that the packets you want to
 be dropped are dropped in the loaded overapproximation, then they are also
 dropped for your real firewall (without approximation).
 
