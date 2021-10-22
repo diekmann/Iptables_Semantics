@@ -3,7 +3,7 @@ imports Common_Primitive_Syntax
         "../Semantics_Ternary/Primitive_Normalization"
         "../../Simple_Firewall/Primitives/Iface"
         "../../Simple_Firewall/Common/IP_Addr_WordInterval_toString" (*for debug pretty-printing*)
-        "../../Automatic_Refinement/Lib/Misc" (*dependnecy!*)
+        "../../Automatic_Refinement/Lib/Misc" (*dependency!*)
 begin
 
   text\<open>A mapping from an interface to its assigned ip addresses in CIDR notation\<close>
