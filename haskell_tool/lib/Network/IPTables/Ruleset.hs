@@ -168,7 +168,7 @@ checkParsedTables res = mapM_ check tables
           errormsg t msg = concat ["Table `", t ,"' caught exception: `"
                                    , msg
                                    , "'. Analysis not possible for this table. "
-                                   , "This is probably due to unsupportd actions "
+                                   , "This is probably due to unsupported actions "
                                    , "(or a bug in the parser)."]
           success t chain = concat ["Parsed ", show (length chain)
                                    , " chains in table ", t, ", a total of "

@@ -134,8 +134,8 @@ INFO: Officially, we only support the filter table. You requested the `raw' tabl
 INFO: Officially, we only support the chains FORWARD, INPUT, OUTPUT. You requested the `PREROUTING' chain. Let's see what happens ;-)
 == Checking which tables are supported for analysis. Usually, only `filter'. ==
 Parsed 7 chains in table filter, a total of 53 rules
-Table `mangle' caught exception: `Reading ruleset failed! sanity_wf_ruleset check failed.'. Analysis not possible for this table. This is probably due to unsupportd actions (or a bug in the parser).
-Table `nat' caught exception: `Reading ruleset failed! sanity_wf_ruleset check failed.'. Analysis not possible for this table. This is probably due to unsupportd actions (or a bug in the parser).
+Table `mangle' caught exception: `Reading ruleset failed! sanity_wf_ruleset check failed.'. Analysis not possible for this table. This is probably due to unsupported actions (or a bug in the parser).
+Table `nat' caught exception: `Reading ruleset failed! sanity_wf_ruleset check failed.'. Analysis not possible for this table. This is probably due to unsupported actions (or a bug in the parser).
 Parsed 3 chains in table raw, a total of 12 rules
 == Transformed to Isabelle type (only raw table) ==
 [("OUTPUT",[]),("PREROUTING",[(-i lup, -j lupSpoofProtect (call)),(! -s 10.13.42.136/29 -i ldit, -j DROP),(! -s 10.13.42.128/29 -i lmd, -j DROP),(! -s 10.13.42.144/28 -i loben, -j DROP),(! -s 10.13.42.176/28 -i wg, -j DROP),(! -s 10.13.42.160/28 -i wt, -j DROP)]),("lupSpoofProtect",[(-s 192.168.0.0/16, -j DROP),(-s 10.0.0.0/8, -j DROP),(-s 172.16.0.0/12, -j DROP),(-d 192.168.0.0/16, -j DROP),(-d 10.0.0.0/8, -j DROP),(-d 172.16.0.0/12, -j DROP)])]
