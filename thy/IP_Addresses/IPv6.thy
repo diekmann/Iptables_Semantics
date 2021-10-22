@@ -210,7 +210,7 @@ subsection\<open>Syntax of IPv6 Addresses\<close>
     | [Some a, Some b, Some c, Some d, Some e, Some f, None, Some g] \<Rightarrow> Some (IPv6AddrCompressed7_7 a b c d e f () g)
 
     | [Some a, Some b, Some c, Some d, Some e, Some f, Some g, None] \<Rightarrow> Some (IPv6AddrCompressed8_7 a b c d e f g ())
-    | _ \<Rightarrow> None (*invalid ipv6 copressed address.*)
+    | _ \<Rightarrow> None (*invalid ipv6 compressed address.*)
 )"
 
   fun ipv6addr_syntax_compressed_to_list :: "ipv6addr_syntax_compressed \<Rightarrow> ((16 word) option) list"
