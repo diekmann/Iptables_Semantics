@@ -366,7 +366,7 @@ subsection\<open>IP Assignment difference\<close>
   
   
   text\<open>If an interface is defined in both ip and there is no difference
-       then the two ipassignements describe the same IP range for this interface.\<close>
+       then the two ip assignments describe the same IP range for this interface.\<close>
   lemma ipassmt_diff_ifce_equal: "(ifce, [], []) \<in> set (ipassmt_diff ipassmt1 ipassmt2)  \<Longrightarrow>
          ifce \<in> dom (map_of ipassmt1) \<Longrightarrow> ifce \<in> dom (map_of ipassmt2) \<Longrightarrow>
            ipcidr_union_set (set (the ((map_of ipassmt1) ifce))) =
