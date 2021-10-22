@@ -396,7 +396,7 @@ text_raw\<open>
 \<close>
 lemma "lr_of_tran rt fw ifs \<equiv> 
 if \<not> (no_oif_match fw \<and> has_default_policy fw \<and> simple_fw_valid fw	\<and> valid_prefixes rt \<and> has_default_route rt \<and> distinct ifs)
-  then Inl ''Error in creating OpenFlow table: prerequisites not satisifed''
+  then Inl ''Error in creating OpenFlow table: prerequisites not satisfied''
   else (
 let
   nfw = map simple_rule_dtor fw; 
@@ -501,7 +501,7 @@ Obviously, we will never see any packets with an input interface that is not in 
 Furthermore, we do not state anything about non-IPv4 traffic. (The traffic will remain unmatched in by the flow table, but we have not verified that.)
 The last assumption is that the translation does not return a run-time error.
 The translation will return a run-time error if the rules can not be assigned priorities from a 16 bit integer, 
-or when one of the following conditions on the input data is not satisifed:\<close>
+or when one of the following conditions on the input data is not satisfied:\<close>
 lemma "
   \<not> no_oif_match fw \<or> 
   \<not> has_default_policy fw \<or>

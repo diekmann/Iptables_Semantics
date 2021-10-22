@@ -475,7 +475,7 @@ definition "no_oif_match \<equiv> list_all (\<lambda>m. oiface (match_sel m) = i
 
 definition "lr_of_tran rt fw ifs \<equiv> 
   if \<not> (no_oif_match fw \<and> has_default_policy fw \<and> simple_fw_valid fw	\<and> valid_prefixes rt \<and> has_default_route rt \<and> distinct ifs)
-    then Inl ''Error in creating OpenFlow table: prerequisites not satisifed''
+    then Inl ''Error in creating OpenFlow table: prerequisites not satisfied''
     else (
   let	nrd = lr_of_tran_fbs rt fw ifs;
 	ard = map (apfst of_nat) (annotate_rlen nrd) (* give them a priority *)
