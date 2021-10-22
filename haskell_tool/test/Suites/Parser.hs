@@ -323,7 +323,7 @@ test_service_matrix ipassmtMaybeString fileName expected_result errormsg = do
 
 
 test_topoS_generated_service_matrix = HU.testCase "test_topoS_generated_service_matrix" $ test_service_matrix Nothing rulesetFile expected_result errormsg
-    where rulesetFile = "../thy/Iptables_Semantics/Examples/topoS_generated/imaginray_factory_network.iptables-save.by-linux-kernel"
+    where rulesetFile = "../thy/Iptables_Semantics/Examples/topoS_generated/imaginary_factory_network.iptables-save.by-linux-kernel"
           errormsg = "service marix topoS_generated differs"
           expected_result = ([
               ("10.8.8.1","10.8.8.1")
