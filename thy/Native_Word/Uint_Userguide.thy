@@ -155,7 +155,7 @@ text {*
 subsection {* Example: expressions and two semantics *}
 
 text {*
-  As the running example, we consider a language of expressions (literal values, less-than comparisions and conditional) where values are either booleans or 32-bit words.
+  As the running example, we consider a language of expressions (literal values, less-than comparisons and conditional) where values are either booleans or 32-bit words.
   The original specification uses the type @{typ "32 word"}.
 *}
 
