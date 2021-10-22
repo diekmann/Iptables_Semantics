@@ -130,9 +130,9 @@ class DTopo(Topo):
 		csl  = self.addLink(client, switch, intfName2='s1-lan')
 		nhsl = self.addLink(nhost,  switch,  intfName2='s1-wan')
 
-def dump(ofile, strng):
+def dump(ofile, text):
 	with open(ofile, "w") as fo:
-		fo.write(strng.replace("\r\n","\n"))
+		fo.write(text.replace("\r\n","\n"))
 
 def tcpreachtest(net, client, server, port=80, timeout=2.5):
 	output("TCP {}: {} -> {}: ".format(port, client, server))
