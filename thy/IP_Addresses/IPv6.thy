@@ -635,14 +635,14 @@ definition ipv6_unparsed_compressed_to_preferred :: "((16 word) option) list \<R
 
 
   lemma ipv6_unparsed_compressed_to_preferred_identity1:
-   "ipv6_unparsed_compressed_to_preferred (ipv6addr_syntax_compressed_to_list ipv6compressed) = Some ipv6prferred
-    \<longleftrightarrow> ipv6addr_c2p ipv6compressed = ipv6prferred"
+   "ipv6_unparsed_compressed_to_preferred (ipv6addr_syntax_compressed_to_list ipv6compressed) = Some ipv6preferred
+    \<longleftrightarrow> ipv6addr_c2p ipv6compressed = ipv6preferred"
   by(cases ipv6compressed) (simp_all add: ipv6_unparsed_compressed_to_preferred_def) (*1s*)
  
   lemma ipv6_unparsed_compressed_to_preferred_identity2: 
-    "ipv6_unparsed_compressed_to_preferred ls = Some ipv6prferred
+    "ipv6_unparsed_compressed_to_preferred ls = Some ipv6preferred
      \<longleftrightarrow> (\<exists>ipv6compressed. parse_ipv6_address_compressed ls = Some ipv6compressed \<and>
-                           ipv6addr_c2p ipv6compressed = ipv6prferred)"
+                           ipv6addr_c2p ipv6compressed = ipv6preferred)"
   apply(rule iffI)
    apply(subgoal_tac "parse_ipv6_address_compressed ls \<noteq> None")
     prefer 2
