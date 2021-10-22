@@ -156,7 +156,7 @@ filter_Isabelle_Action ps = case fAction ps of [] -> Isabelle.Empty
 
 
 
--- this is just DEBUGING
+-- this is just DEBUGGING
 -- tries to catch errors of rulesetLookup
 checkParsedTables :: Isabelle.Len a => Ruleset a -> IO ()
 checkParsedTables res = mapM_ check tables
