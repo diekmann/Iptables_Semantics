@@ -29,7 +29,7 @@ function ctstate_set_toString_list :: "ctstate set \<Rightarrow> string list" wh
     if CT_New \<in> S then ''NEW''#ctstate_set_toString_list (S - {CT_New}) else
     if CT_Established \<in> S then ''ESTABLISHED''#ctstate_set_toString_list (S - {CT_Established}) else
     if CT_Related \<in> S then ''RELATED''#ctstate_set_toString_list (S - {CT_Related}) else
-    if CT_Untracked \<in> S then ''UNTRACKED''#ctstate_set_toString_list (S - {CT_Untracked}) else [''ERROR-unkown-ctstate''])"
+    if CT_Untracked \<in> S then ''UNTRACKED''#ctstate_set_toString_list (S - {CT_Untracked}) else [''ERROR-unknown-ctstate''])"
 by(pat_completeness) auto
 
 termination ctstate_set_toString_list

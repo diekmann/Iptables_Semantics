@@ -106,7 +106,7 @@ begin
               IIface (Iface ''foobar''),
               Extra ''--name DEFAULT --rsource'']" by eval
   
-  private lemma eval_ternary_And_Unknown_Unkown:
+  private lemma eval_ternary_And_Unknown_Unknown:
     "eval_ternary_And TernaryUnknown (eval_ternary_And TernaryUnknown tv) =
         eval_ternary_And TernaryUnknown tv"
     by(cases tv) (simp_all)
@@ -127,7 +127,7 @@ begin
    case (2 a1 a2) thus ?case
      apply(simp add: is_pos_Extra_alist_and)
      apply(cases a1)
-      apply(simp_all add: eval_ternary_And_Unknown_Unkown)
+      apply(simp_all add: eval_ternary_And_Unknown_Unknown)
      done
    next
    case 3 thus ?case by(simp)
