@@ -3007,7 +3007,7 @@ lemma word_le_plus:"\<lbrakk>(a::('a::len) word) < a + b; c < b\<rbrakk> \<Longr
 by (metis order_less_imp_le word_random)
 
 (*
- * Basic signed arithemetic properties.
+ * Basic signed arithmetic properties.
  *)
 
 lemma sint_minus1 [simp]: "(sint x = -1) = (x = -1)"
