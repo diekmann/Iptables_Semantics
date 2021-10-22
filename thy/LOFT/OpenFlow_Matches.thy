@@ -57,7 +57,7 @@ For example:
 try with oxm_type=OXM_OF_ETH_TYPE, oxm_hasmask=0, and oxm_value=0x0800. That is, match-
 ing on the IPv4 source address is allowed only if the Ethernet type is explicitly set to IPv4.
 \<dots>
-Even if OpenFlow 1.0 does not require this behavior, some switches may still silently drop matches without prerequsites.
+Even if OpenFlow 1.0 does not require this behavior, some switches may still silently drop matches without prerequisites.
 
 *)
 
