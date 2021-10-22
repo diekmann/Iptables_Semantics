@@ -365,7 +365,7 @@ subsection\<open>IP Assignment difference\<close>
       [(d, (k a b d, k b a d)). d \<leftarrow> remdups (map fst (a @ b))]"
   
   
-  text\<open>If an interface is defined in both ipassignments and there is no difference
+  text\<open>If an interface is defined in both ip and there is no difference
        then the two ipassignements describe the same IP range for this interface.\<close>
   lemma ipassmt_diff_ifce_equal: "(ifce, [], []) \<in> set (ipassmt_diff ipassmt1 ipassmt2)  \<Longrightarrow>
          ifce \<in> dom (map_of ipassmt1) \<Longrightarrow> ifce \<in> dom (map_of ipassmt2) \<Longrightarrow>
