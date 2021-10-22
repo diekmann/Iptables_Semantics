@@ -164,7 +164,7 @@ def makearpentries(host, hosts):
 	for intf in host.intfList():
 		if intf.MAC() and intf.IP(): # will also sort out loopback
 			for host in hosts:
-				host.cmd("arp -s {} {}".format(intf.IP(), intf.MAC())) # will fail with Netwok unreachable at given times. Easier to ignore than fix.
+				host.cmd("arp -s {} {}".format(intf.IP(), intf.MAC())) # will fail with Network unreachable at given times. Easier to ignore than fix.
 
 def standalone():
 	if "info" in argv:
