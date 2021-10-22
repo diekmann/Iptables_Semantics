@@ -6,7 +6,7 @@ begin
 
 
 section\<open>Printing various version of the simplified firewall\<close>
-  text\<open>We got lucky that we do not need to abstract over the primitives whcih are not supported by the simple firewall\<close>
+  text\<open>We got lucky that we do not need to abstract over the primitives which are not supported by the simple firewall\<close>
   value[code] "let x = to_simple_firewall (upper_closure
                       (packet_assume_new
                       (unfold_ruleset_FORWARD net_fw_3_FORWARD_default_policy (map_of net_fw_3))))
