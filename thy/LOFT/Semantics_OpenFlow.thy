@@ -60,7 +60,7 @@ definition OF_same_priority_match2 :: "('m, 'p) field_matcher \<Rightarrow> ('m,
                  | (Suc 0) \<Rightarrow> Action (the_elem s) 
                  | _       \<Rightarrow> Undefined"
 
-(* are there any overlaping rules? *)
+(* are there any overlapping rules? *)
 definition "check_no_overlap \<gamma> ft = (\<forall>a \<in> set ft. \<forall>b \<in> set ft. \<forall>p \<in> UNIV. (ofe_prio a = ofe_prio b \<and> \<gamma> (ofe_fields a) p \<and> a \<noteq> b) \<longrightarrow> \<not>\<gamma> (ofe_fields b) p)"
 definition "check_no_overlap2 \<gamma> ft = (\<forall>a \<in> set ft. \<forall>b \<in> set ft. (a \<noteq> b \<and> ofe_prio a = ofe_prio b) \<longrightarrow> \<not>(\<exists>p \<in> UNIV. \<gamma> (ofe_fields a) p \<and> \<gamma> (ofe_fields b) p))"
 lemma check_no_overlap_alt: "check_no_overlap \<gamma> ft = check_no_overlap2 \<gamma> ft"
