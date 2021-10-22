@@ -228,7 +228,7 @@ Guha \emph{et al.} decided to use the fact that the preconditions can be arrange
 They evaluated match conditions in a manner following that graph:
 first, all field matches without preconditions are evaluated.
 Upon evaluating a field match (e.g., @{term "EtherType 0x0800"}), the matches that had their precondition fulfilled by it
-  (e.g., @{term IPv4Src} and @{term IPv4Src} in this example) are evalutated.
+  (e.g., @{term IPv4Src} and @{term IPv4Src} in this example) are evaluated.
 This mirrors the faulty behavior of some implementations (see \cite{guha2013machine}).
 Adopting that behavior into our model would mean that any packet matches against the field match set @{term "{IPv4Dst (PrefixMatch 134744072 32)}"} 
 instead of just those destined for 8.8.8.8 or causing an error. We found this to be unsatisfactory.\<close>
