@@ -37,7 +37,7 @@ datatype ('m, 'a) flow_entry_match = OFEntry (ofe_prio: "16 word") (ofe_fields: 
 find_consts "(('a \<times> 'b) \<Rightarrow> 'c) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'c"
 (* but no "uncurry" *)
 find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c) \<Rightarrow> ('a \<times> 'b) \<Rightarrow> 'c"
-(* Anyway, we want this to easily construct OFEntrys from tuples *)
+(* Anyway, we want this to easily construct OFEntry-s from tuples *)
 definition "split3 f p \<equiv> case p of (a,b,c) \<Rightarrow> f a b c"
 find_consts "('a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd) \<Rightarrow> ('a \<times> 'b \<times> 'c) \<Rightarrow> 'd"
 
