@@ -10,7 +10,7 @@ import Test.Tasty
 import Test.Tasty.HUnit as HU
 
 
--- we always have "-m protocolid:0" (note the 0) because we havn't filled the protocol yet
+-- we always have "-m protocolid:0" (note the 0) because we haven't filled the protocol yet
 expected_result = "*filter\n\
     \:DOS~Pro-t_ect - [0:0]\n\
     \:FORWARD DROP [0:0]\n\
