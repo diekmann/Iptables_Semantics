@@ -190,7 +190,7 @@ fun approximating_bigstep_fun :: "('a, 'p) match_tac \<Rightarrow> 'p \<Rightarr
               | Reject \<Rightarrow> Decision FinalDeny
               | Log \<Rightarrow> approximating_bigstep_fun \<gamma> p rs Undecided
               | Empty \<Rightarrow> approximating_bigstep_fun \<gamma> p rs Undecided
-              (*unhalndled cases*)
+              (*unhandled cases*)
               )"
 
 
