@@ -479,7 +479,7 @@ subsection\<open>Semantics\<close>
     have ucast_ipv6_piece_rule:
       "length (dropWhile Not (to_bl w)) \<le> 16 \<Longrightarrow> (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) w) = w"
       for w::ipv6addr 
-      by(rule ucast_short_ucast_long_ingoreLeadingZero) (simp_all)
+      by(rule ucast_short_ucast_long_ignoreLeadingZero) (simp_all)
     have ucast_ipv6_piece: "16 \<le> 128 - n \<Longrightarrow> 
       (ucast::16 word \<Rightarrow> 128 word) ((ucast::128 word \<Rightarrow> 16 word) (w AND (mask 16 << n) >> n)) << n = w AND (mask 16 << n)"
       for w::ipv6addr and n::nat
@@ -510,7 +510,7 @@ subsection\<open>Semantics\<close>
     have ucast16_ucast128_masks_highest_bits0: 
       "(ucast ((ucast::ipv6addr \<Rightarrow> 16 word) (ip AND 0xFFFF))) = ip AND 0xFFFF"
       apply(subst word128_masks_ipv6pieces)+
-      apply(subst ucast_short_ucast_long_ingoreLeadingZero)
+      apply(subst ucast_short_ucast_long_ignoreLeadingZero)
         apply simp_all
       by (simp add: length_drop_mask)
 
