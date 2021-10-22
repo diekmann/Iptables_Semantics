@@ -451,7 +451,7 @@ local
       else r end;
   
   fun append table chain rule = case FirewallTable.lookup table chain
-      of NONE => raise Fail ("uninitialized cahin: "^chain)
+      of NONE => raise Fail ("uninitialized chain: "^chain)
       |  SOME rules => FirewallTable.update (chain, rules@[rule]) table
   
   fun mk_Rule (tbl: firewall_table) (chain: string, target : (parsed_action_type * string) option, t : term) =
