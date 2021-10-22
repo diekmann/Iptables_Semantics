@@ -4,7 +4,7 @@ begin
 
 section\<open>Normalized (DNF) matches\<close>
 
-text\<open>simplify a match expression. The output is a list of match exprissions, the semantics is @{text "\<or>"} of the list elements.\<close>
+text\<open>simplify a match expression. The output is a list of match expressions, the semantics is @{text "\<or>"} of the list elements.\<close>
 fun normalize_match :: "'a match_expr \<Rightarrow> 'a match_expr list" where
   "normalize_match (MatchAny) = [MatchAny]" |
   "normalize_match (Match m) = [Match m]" |
