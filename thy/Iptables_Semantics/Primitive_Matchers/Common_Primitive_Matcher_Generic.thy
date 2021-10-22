@@ -68,7 +68,7 @@ begin
   by(auto simp add: Ports_single_not Ports_single Prot_single_not Prot_single)
 
 
-  lemma multiports_disjuction:
+  lemma multiports_disjunction:
         "(\<exists>rg\<in>set spts. matches (\<beta>, \<alpha>) (Match (Src_Ports (L4Ports proto [rg]))) a p) \<longleftrightarrow> matches (\<beta>, \<alpha>) (Match (Src_Ports (L4Ports proto spts))) a p"
         "(\<exists>rg\<in>set dpts. matches (\<beta>, \<alpha>) (Match (Dst_Ports (L4Ports proto [rg]))) a p) \<longleftrightarrow> matches (\<beta>, \<alpha>) (Match (Dst_Ports (L4Ports proto dpts))) a p"
     by(auto simp add: Src_Ports Dst_Ports match_raw_ternary bool_to_ternary_simps ports_to_set
