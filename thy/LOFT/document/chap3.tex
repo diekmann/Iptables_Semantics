@@ -148,7 +148,7 @@ This can be explained by two facts:
 	\item Some combinations of matches from the firewall and the routing table cannot be ruled out, since the firewall match might only contain an output port and the rule can thus only apply for the packets matching a few routing table entries. 
 	However, the translation is not aware of that and can thus not remove the combination of the firewall rule and other routing table entries.
 \end{itemize}
-In some rules, the conditions above coincede, resulting in $416\ (=16 \cdot 26)$ rules.
+In some rules, the conditions above coincide, resulting in $416\ (=16 \cdot 26)$ rules.
 To avoid the high number of rules resulting from the port matches, rules that forbids packets with source or destination port 0 could be added to the start of the firewall and the $1$-$65535$ could be removed;
 dealing with the firewall / routing table problem is part of the future work on output interfaces.
 
