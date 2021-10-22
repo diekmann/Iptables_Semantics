@@ -69,7 +69,7 @@ fun opt_MatchAny_match_expr_once :: "'a match_expr \<Rightarrow> 'a match_expr" 
   "opt_MatchAny_match_expr_once (MatchAnd _ (MatchNot MatchAny)) = (MatchNot MatchAny)" |
   "opt_MatchAny_match_expr_once (MatchAnd (MatchNot MatchAny) _) = (MatchNot MatchAny)" |
   "opt_MatchAny_match_expr_once (MatchAnd m1 m2) = MatchAnd (opt_MatchAny_match_expr_once m1) (opt_MatchAny_match_expr_once m2)"
-(* without recursive call: need to apply multiple times until it stabelizes *)
+(* without recursive call: need to apply multiple times until it stabilizes *)
 
 
 text\<open>It is still a good idea to apply @{const opt_MatchAny_match_expr_once} multiple times. Example:\<close>
