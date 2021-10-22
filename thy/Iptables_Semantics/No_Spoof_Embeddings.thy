@@ -8,7 +8,7 @@ section\<open>Spoofing protection in Ternary Semantics implies Spoofing protecti
 text\<open>If @{const no_spoofing} is shown in the ternary semantics, it implies that no spoofing
         is possible in the Boolean semantics with magic oracle.
         We only assume that the oracle agrees with the @{const common_matcher} on the not-unknown parts.\<close>
-  lemma approximating_imp_booloan_semantics_nospoofing: 
+  lemma approximating_imp_boolean_semantics_nospoofing: 
       assumes "matcher_agree_on_exact_matches \<gamma> common_matcher"
       and "simple_ruleset rs"
       and no_spoofing: "no_spoofing TYPE('pkt_ext) ipassmt rs"
@@ -38,7 +38,7 @@ text\<open>If @{const no_spoofing} is shown in the ternary semantics, it implies
           and no_spoofing: "no_spoofing TYPE('pkt_ext) ipassmt rs" and "iface \<in> dom ipassmt"
       shows "{p_src p | p :: ('i::len,'pkt_ext) tagged_packet_scheme. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
                  ipcidr_union_set (set (the (ipassmt iface)))"
-      using approximating_imp_booloan_semantics_nospoofing[OF assms(1) assms(2) assms(3), where \<Gamma>=\<Gamma>]
+      using approximating_imp_boolean_semantics_nospoofing[OF assms(1) assms(2) assms(3), where \<Gamma>=\<Gamma>]
       using assms(4) by blast
 
 
@@ -55,7 +55,7 @@ text\<open>If @{const no_spoofing} is shown in the ternary semantics, it implies
     { assume no_spoofing: "no_spoofing TYPE('pkt_ext) ipassmt rs"
       have "{p_src p | p :: ('i,'pkt_ext) tagged_packet_scheme. (\<Gamma>,\<gamma>,p\<lparr>p_iiface:=iface_sel iface\<rparr>\<turnstile> \<langle>rs, Undecided\<rangle> \<Rightarrow> Decision FinalAllow)} \<subseteq>
                  ipcidr_union_set (set (the (ipassmt iface)))"
-      using approximating_imp_booloan_semantics_nospoofing[OF assms(1) assms(2) no_spoofing, where \<Gamma>=\<Gamma>]
+      using approximating_imp_boolean_semantics_nospoofing[OF assms(1) assms(2) no_spoofing, where \<Gamma>=\<Gamma>]
       using assms(5) by blast
     }
     with no_spoofing_iface[OF assms(2) assms(3) no_spoofing_executable] show ?thesis by blast
