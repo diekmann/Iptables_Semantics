@@ -266,7 +266,7 @@ text {*
   semantics (code equations @{thm [source] eval.simps} and
   @{thm [source] step.equation}, respectively).
 
-  We check that the adaptation has suceeded by exporting the functions.
+  We check that the adaptation has succeeded by exporting the functions.
   As we only use native word sizes that PolyML supports, we can use 
   the usual target @{text "SML"} instead of @{text "SML_word"}.
 *}
