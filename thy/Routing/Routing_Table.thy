@@ -440,7 +440,7 @@ proof(rule ccontr)
   from x have "\<exists>b2g. x \<in> wordinterval_to_set b2g \<and> wordinterval_to_set b2g \<subseteq> wordinterval_to_set b2 \<and> (a2, b2g) \<in> set (routing_port_ranges tbl wordinterval_UNIV)"
     using iuf(2) by(fastforce simp add: wordinterval_Union)
   then obtain b2g where b2g: "x \<in> wordinterval_to_set b2g" "wordinterval_to_set b2g \<subseteq> wordinterval_to_set b2" "(a2, b2g) \<in> set (routing_port_ranges tbl wordinterval_UNIV)" by clarsimp
-  text\<open>Soudness tells us that the both @{term a1} and @{term a2} have to be the result of routing @{term x}.\<close>
+  text\<open>Soundness tells us that the both @{term a1} and @{term a2} have to be the result of routing @{term x}.\<close>
   note routing_port_ranges_sound[OF b1g(3), unfolded fst_conv snd_conv, OF b1g(1) vpfx] routing_port_ranges_sound[OF b2g(3), unfolded fst_conv snd_conv, OF b2g(1) vpfx]
   text\<open>A contradiction follows from @{thm dif}.\<close>
   with dif show False by simp
