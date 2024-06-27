@@ -105,6 +105,7 @@ protocol = choice (map make ps)
                , ("esp",       Isabelle.esp)
                , ("ah",        Isabelle.ah)
                , ("gre",       Isabelle.gre)
+               , ("sctp",      Isabelle.sctp)
                ]
 
 iface :: Parsec String s Isabelle.Iface
