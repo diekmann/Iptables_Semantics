@@ -3662,7 +3662,7 @@ ipassmt_iface_replace_dstip_mexpr ::
                  Iface -> Match_expr (Common_primitive a);
 ipassmt_iface_replace_dstip_mexpr ipassmt ifce =
   (case ipassmt ifce of {
-    Nothing -> Match (OIface ifce);
+    Nothing -> MatchNot MatchAny;
     Just ips ->
       match_list_to_match_expr
         (map (Match . Dst) (map (uncurry IpAddrNetmask) ips));
